@@ -28,3 +28,10 @@ Abrir en `http://localhost:3000`.
 ## Contexto de continuidad
 
 La referencia de decisiones del proyecto esta en `docs/project-context.md`.
+
+## Backlog en Azure DevOps
+
+Hay un script para crear Epic/Features/Tasks automaticamente:
+
+- `scripts/create-ado-work-items.ps1`
+- Guia de uso: `docs/azure-devops-automation.md`
