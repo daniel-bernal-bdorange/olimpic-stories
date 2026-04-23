@@ -38,5 +38,11 @@ Todo el stack debe ser gratuito (open source o free tier).
 3. Diseñar y animar el menu central sube/baja.
 4. Implementar un patron reusable de seccion narrativa con scroll.
 
+## Brief de referencia (Cold War)
+- Documento principal: `docs/design-brief-cold-war.md`
+- Este brief define concepto visual, paleta, tipografia, estructura de secciones,
+  animaciones, datos clave y checklist de calidad para ejecutar la feature
+  `Cold War in Gold` con enfoque scrollytelling editorial.
+
 ## Nota de sesion
 El proyecto se creo en `C:\dev\olympic-data-story` para evitar bloqueos de seguridad de OneDrive.
