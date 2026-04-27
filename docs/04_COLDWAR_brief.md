@@ -173,13 +173,13 @@ El scroll está bloqueado (`overflow: hidden` en body) hasta que se elige.
 ### Variables CSS que se setean al elegir
 ```js
 // Si elige USA:
-root.style.setProperty('--player-color', '#B22234')       // rojo USA
+root.style.setProperty('--player-color', '#1B4FAA')       // azul USA
 root.style.setProperty('--enemy-color', '#CC0000')         // rojo URSS
 root.style.setProperty('--player-label', 'USA')
 root.style.setProperty('--enemy-label', 'USSR')
 root.style.setProperty('--victory-word', 'VICTORY')
 root.style.setProperty('--defeat-word', 'DEFEAT')
-root.style.setProperty('--player-flag-accent', '#B22234')
+root.style.setProperty('--player-flag-accent', '#1B4FAA')
 
 // Si elige USSR — exactamente al revés
 ```

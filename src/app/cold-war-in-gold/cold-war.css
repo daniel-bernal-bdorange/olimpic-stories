@@ -245,12 +245,10 @@ body:has(.cw-side-picker-container) {
 
 .cw-chart__area--player {
   fill: var(--player-color);
-  fill-opacity: 0.06;
 }
 
 .cw-chart__area--enemy {
   fill: var(--enemy-color);
-  fill-opacity: 0.06;
 }
 
 .cw-chart__line {

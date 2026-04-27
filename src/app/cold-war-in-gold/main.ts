@@ -10,14 +10,28 @@ type ChartPoint = ColdWarMedalDatum & {
   enemyGold: number | null;
 };
 
+type ChartRenderOptions = {
+  animateEntry?: boolean;
+  revealStage?: boolean;
+};
+
 const CHART_MARGIN = { top: 40, right: 60, bottom: 50, left: 50 };
 const CHART_WIDTH = 1100;
 const CHART_HEIGHT = 620;
+const CHART_ENTRY_DURATION = 2.5;
+const CHART_ENTRY_DELAY = 0.3;
+const CHART_AREA_OPACITY = 0.06;
 
 const BOYCOTT_ANNOTATIONS = {
   1980: { dx: -148, dy: -70, text: "USA BOYCOTT - 6 GOLDS" },
   1984: { dx: 44, dy: -82, text: "USSR BOYCOTT - 6 GOLDS" },
 } as const;
+
+let activeSideChoice: SideChoice | null = null;
+let chartResizeObserver: ResizeObserver | null = null;
+let resizeFrame = 0;
+let chartEntryTimeline: gsap.core.Timeline | null = null;
+let sidePickerCleanupFns: Array<() => void> = [];
 
 function normalizeLabel(value: string): string {
   return value.replace(/"/g, "").trim();
@@ -77,6 +91,120 @@ function isBoycottPoint(datum: ChartPoint, side: SideChoice, series: "player" | 
   }
 
   return false;
+}
+
+function isDefined<T>(value: T | null): value is T {
+  return value !== null;
+}
+
+function cleanupSidePickerListeners(): void {
+  sidePickerCleanupFns.forEach((cleanup) => cleanup());
+  sidePickerCleanupFns = [];
+}
+
+function disconnectChartResizeObserver(): void {
+  chartResizeObserver?.disconnect();
+  chartResizeObserver = null;
+
+  if (resizeFrame !== 0) {
+    cancelAnimationFrame(resizeFrame);
+    resizeFrame = 0;
+  }
+}
+
+function resetLineDraw(path: SVGPathElement | null): SVGPathElement | null {
+  if (!path) return null;
+
+  path.style.removeProperty("stroke-dasharray");
+  path.style.removeProperty("stroke-dashoffset");
+
+  return path;
+}
+
+function prepareLineDraw(path: SVGPathElement | null): SVGPathElement | null {
+  if (!path) return null;
+
+  const totalLength = path.getTotalLength();
+  path.style.strokeDasharray = `${totalLength}`;
+  path.style.strokeDashoffset = `${totalLength}`;
+
+  return path;
+}
+
+function animateChartEntry(lines: SVGPathElement[], areas: SVGPathElement[]): void {
+  chartEntryTimeline?.kill();
+  gsap.set(areas, { opacity: 0 });
+
+  const timeline = gsap.timeline({ delay: CHART_ENTRY_DELAY });
+  chartEntryTimeline = timeline;
+
+  timeline.to(
+    lines,
+    {
+      strokeDashoffset: 0,
+      duration: CHART_ENTRY_DURATION,
+      ease: "power2.inOut",
+    },
+    0
+  );
+
+  timeline.to(
+    areas,
+    {
+      opacity: CHART_AREA_OPACITY,
+      duration: CHART_ENTRY_DURATION,
+      ease: "power2.inOut",
+    },
+    0
+  );
+
+  timeline.eventCallback("onComplete", () => {
+    chartEntryTimeline = null;
+  });
+}
+
+function setupChartResize(chartRoot: HTMLElement): void {
+  disconnectChartResizeObserver();
+
+  if (typeof ResizeObserver === "undefined") return;
+
+  let lastWidth = Math.round(chartRoot.getBoundingClientRect().width);
+  let lastHeight = Math.round(chartRoot.getBoundingClientRect().height);
+
+  chartResizeObserver = new ResizeObserver((entries) => {
+    if (!activeSideChoice) return;
+
+    const entry = entries[0];
+    if (!entry) return;
+
+    const nextWidth = Math.round(entry.contentRect.width);
+    const nextHeight = Math.round(entry.contentRect.height);
+
+    if (nextWidth === lastWidth && nextHeight === lastHeight) return;
+
+    lastWidth = nextWidth;
+    lastHeight = nextHeight;
+
+    if (resizeFrame !== 0) {
+      cancelAnimationFrame(resizeFrame);
+    }
+
+    resizeFrame = requestAnimationFrame(() => {
+      resizeFrame = 0;
+      initChart(activeSideChoice, { animateEntry: false, revealStage: false });
+    });
+  });
+
+  chartResizeObserver.observe(chartRoot);
+}
+
+function addManagedListener<K extends keyof HTMLElementEventMap>(
+  target: HTMLElement,
+  eventName: K,
+  listener: (event: HTMLElementEventMap[K]) => void
+): void {
+  target.addEventListener(eventName, listener as EventListener);
+  sidePickerCleanupFns.push(() => target.removeEventListener(eventName, listener as EventListener));
 }
 
 export function buildColdWarMarkup(): string {
@@ -152,11 +280,14 @@ export function buildColdWarMarkup(): string {
   `;
 }
 
-export function initChart(side: SideChoice): void {
+export function initChart(side: SideChoice, options: ChartRenderOptions = {}): void {
   const chartRoot = document.getElementById("cw-chart");
   const storyRoot = document.getElementById("cold-war-root");
+  const { animateEntry = true, revealStage = true } = options;
 
   if (!chartRoot || !storyRoot) return;
+
+  activeSideChoice = side;
 
   chartRoot.innerHTML = "";
 
@@ -223,10 +354,22 @@ export function initChart(side: SideChoice): void {
     .y((datum) => y(datum.enemyGold ?? 0))
     .curve(d3.curveMonotoneX);
 
-  chart.append("path").datum(data).attr("class", "cw-chart__area cw-chart__area--enemy").attr("d", areaEnemy);
-  chart.append("path").datum(data).attr("class", "cw-chart__area cw-chart__area--player").attr("d", areaPlayer);
-  chart.append("path").datum(data).attr("class", "cw-chart__line cw-chart__line--enemy").attr("d", lineEnemy);
-  chart.append("path").datum(data).attr("class", "cw-chart__line cw-chart__line--player").attr("d", linePlayer);
+  const enemyArea = chart.append("path").datum(data).attr("class", "cw-chart__area cw-chart__area--enemy").attr("d", areaEnemy);
+  const playerArea = chart.append("path").datum(data).attr("class", "cw-chart__area cw-chart__area--player").attr("d", areaPlayer);
+  const enemyLine = chart.append("path").datum(data).attr("class", "cw-chart__line cw-chart__line--enemy").attr("d", lineEnemy);
+  const playerLine = chart.append("path").datum(data).attr("class", "cw-chart__line cw-chart__line--player").attr("d", linePlayer);
+
+  const areaNodes = [enemyArea.node(), playerArea.node()].filter(isDefined);
+  const lineNodes = [enemyLine.node(), playerLine.node()].filter(isDefined);
+
+  if (animateEntry) {
+    animateChartEntry([prepareLineDraw(enemyLine.node()), prepareLineDraw(playerLine.node())].filter(isDefined), areaNodes);
+  } else {
+    chartEntryTimeline?.kill();
+    chartEntryTimeline = null;
+    lineNodes.forEach((line) => resetLineDraw(line));
+    gsap.set(areaNodes, { opacity: CHART_AREA_OPACITY });
+  }
 
   const pointSeries = [
     {
@@ -336,8 +479,10 @@ export function initChart(side: SideChoice): void {
     .attr("y", -18)
     .text("GOLD MEDALS");
 
+  setupChartResize(chartRoot);
+
   const stage = storyRoot.querySelector(".cw-stage");
-  if (stage) {
+  if (stage && revealStage) {
     gsap.fromTo(stage, { autoAlpha: 0, y: 28 }, { autoAlpha: 1, y: 0, duration: 0.7, ease: "power3.out" });
   }
 }
@@ -346,6 +491,8 @@ export function initSidePicker(): void {
   const root = document.getElementById("cold-war-root");
   const picker = document.querySelector(".cw-side-picker");
   if (!picker || !root) return;
+
+  cleanupSidePickerListeners();
 
   const usaSide = picker.querySelector(".cw-side--usa") as HTMLElement;
   const ussrSide = picker.querySelector(".cw-side--ussr") as HTMLElement;
@@ -365,22 +512,22 @@ export function initSidePicker(): void {
     }
   );
 
-  usaSide.addEventListener("mouseenter", () => {
+  addManagedListener(usaSide, "mouseenter", () => {
     usaSide.classList.add("cw-side--active");
     ussrSide.classList.add("cw-side--inactive");
   });
 
-  usaSide.addEventListener("mouseleave", () => {
+  addManagedListener(usaSide, "mouseleave", () => {
     usaSide.classList.remove("cw-side--active");
     ussrSide.classList.remove("cw-side--inactive");
   });
 
-  ussrSide.addEventListener("mouseenter", () => {
+  addManagedListener(ussrSide, "mouseenter", () => {
     ussrSide.classList.add("cw-side--active");
     usaSide.classList.add("cw-side--inactive");
   });
 
-  ussrSide.addEventListener("mouseleave", () => {
+  addManagedListener(ussrSide, "mouseleave", () => {
     ussrSide.classList.remove("cw-side--active");
     usaSide.classList.remove("cw-side--inactive");
   });
@@ -395,6 +542,24 @@ export function initSidePicker(): void {
     initChart(side);
   };
 
-  usaButton?.addEventListener("click", () => handleSideChoice("usa"));
-  ussrButton?.addEventListener("click", () => handleSideChoice("ussr"));
+  if (usaButton) {
+    addManagedListener(usaButton, "click", () => {
+      void handleSideChoice("usa");
+    });
+  }
+
+  if (ussrButton) {
+    addManagedListener(ussrButton, "click", () => {
+      void handleSideChoice("ussr");
+    });
+  }
+}
+
+export function destroyColdWar(): void {
+  cleanupSidePickerListeners();
+  disconnectChartResizeObserver();
+  chartEntryTimeline?.kill();
+  chartEntryTimeline = null;
+  activeSideChoice = null;
+  document.body.style.overflow = "";
 }

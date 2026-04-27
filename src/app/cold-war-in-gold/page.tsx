@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { buildColdWarMarkup, initSidePicker } from "./main";
+import { buildColdWarMarkup, destroyColdWar, initSidePicker } from "./main";
 import "./cold-war.css";
 
 export default function ColdWarInGoldPage() {
@@ -10,6 +10,10 @@ export default function ColdWarInGoldPage() {
 
   useEffect(() => {
     initSidePicker();
+
+    return () => {
+      destroyColdWar();
+    };
   }, []);
 
   return (
