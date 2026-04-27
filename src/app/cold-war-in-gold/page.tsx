@@ -1,9 +1,16 @@
+"use client";
+
+import { useEffect } from "react";
 import Link from "next/link";
-import { buildSidePickerMarkup } from "./main";
+import { buildSidePickerMarkup, initSidePicker } from "./main";
 import "./cold-war.css";
 
 export default function ColdWarInGoldPage() {
   const markup = buildSidePickerMarkup();
+
+  useEffect(() => {
+    initSidePicker();
+  }, []);
 
   return (
     <main className="cw-page-shell">

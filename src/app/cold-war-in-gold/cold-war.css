@@ -199,6 +199,19 @@ body:has(.cw-side-picker-container) {
   background-color: rgba(204, 0, 0, 0.2);
 }
 
+/* Hover expansion states */
+.cw-side {
+  transition: flex 0.4s ease;
+}
+
+.cw-side--active {
+  flex: 1 1 60%;
+}
+
+.cw-side--inactive {
+  flex: 1 1 40%;
+}
+
 .cw-side__content {
   position: relative;
   z-index: 2;
