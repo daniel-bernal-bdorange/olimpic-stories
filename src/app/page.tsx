@@ -84,30 +84,44 @@ const storiesData = [
 const OlympicRings = () => (
   <svg
     viewBox="0 0 110 60"
-    className="h-6 w-auto opacity-50 hover:opacity-100 transition-opacity duration-400"
+    className="h-10 w-auto opacity-100 hover:opacity-100 transition-opacity duration-400"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
   >
-    <circle cx="15" cy="30" r="10" stroke="#0085c7" strokeWidth="3" />
-    <circle cx="55" cy="30" r="10" stroke="#000000" strokeWidth="3" />
-    <circle cx="95" cy="30" r="10" stroke="#d4271f" strokeWidth="3" />
-    <circle cx="35" cy="50" r="10" stroke="#f4c300" strokeWidth="3" />
-    <circle cx="75" cy="50" r="10" stroke="#009f3d" strokeWidth="3" />
+    <circle cx="15" cy="30" r="10" stroke="#0085c7" strokeWidth="2.5" />
+    <circle cx="55" cy="30" r="10" stroke="#000000" strokeWidth="2.5" />
+    <circle cx="95" cy="30" r="10" stroke="#d4271f" strokeWidth="2.5" />
+    <circle cx="35" cy="50" r="10" stroke="#f4c300" strokeWidth="2.5" />
+    <circle cx="75" cy="50" r="10" stroke="#009f3d" strokeWidth="2.5" />
   </svg>
 );
 
 /**
  * Header Grande
  */
-const Header = () => (
-  <header className="fixed top-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-lg border-b border-border py-6">
+const Header = ({ isVisible }: { isVisible: boolean }) => (
+  <header 
+    className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gold/20 py-8 transition-opacity duration-500" 
+    style={{ 
+      backgroundImage: "url('/images/carbonfiber.png')", 
+      backgroundSize: 'cover', 
+      backgroundRepeat: 'no-repeat', 
+      backgroundColor: 'rgba(244, 244, 245, 0.7)', 
+      backgroundBlendMode: 'multiply',
+      opacity: isVisible ? 1 : 0,
+      pointerEvents: isVisible ? 'auto' : 'none',
+    }}>
     <div className="px-12 flex items-center justify-between">
       {/* Logo izquierda */}
-      <div className="flex items-center gap-4 group cursor-pointer">
-        <div className="font-bebas text-white text-3xl tracking-wider">ODS</div>
-        <div className="flex items-center gap-4">
-          <div className="w-1 h-1 rounded-full bg-gold" />
-          <div className="font-dm-mono text-sm text-muted tracking-widest">OLYMPIC DATA STORIES</div>
+      <div className="flex items-center gap-6 group cursor-pointer">
+        <div className="flex flex-col">
+          <div className="font-bebas text-foreground text-5xl tracking-wider leading-none">ODS</div>
+          <div className="font-dm-mono text-xs text-gold-accent tracking-widest mt-1">OLYMPIC DATA</div>
+        </div>
+        <div className="h-12 w-px bg-gold-accent/30" />
+        <div className="flex flex-col">
+          <div className="font-bebas text-2xl text-foreground tracking-wider">OLYMPIC</div>
+          <div className="font-dm-mono text-xs text-muted tracking-widest">DATA STORIES</div>
         </div>
       </div>
 
@@ -128,7 +142,7 @@ const SectionsList = ({
   activeIndex: number; 
   onHover: (idx: number) => void;
 }) => (
-  <aside className="w-1/4 flex flex-col justify-center pt-24 px-8 space-y-12 bg-black">
+  <aside className="w-1/4 flex flex-col justify-center pt-20 px-8 space-y-12 bg-white">
     {storiesData.map((story, idx) => (
       <div
         key={story.id}
@@ -138,27 +152,33 @@ const SectionsList = ({
         {/* Número */}
         <div
           className={`font-dm-mono text-xs tracking-widest mb-1 transition-colors duration-300 ${
-            activeIndex === idx ? 'text-gold' : 'text-muted'
+            activeIndex === idx ? 'text-gold-accent' : 'text-muted'
           }`}
         >
           {story.number}
         </div>
 
-        {/* Título muy pequeño */}
+        {/* Título grande */}
         <div
-          className={`font-bebas text-sm tracking-wider mb-2 transition-colors duration-300 ${
-            activeIndex === idx ? 'text-white' : 'text-gray-600'
+          className={`font-bebas tracking-wider mb-3 transition-colors duration-300 ${
+            activeIndex === idx ? 'text-foreground' : 'text-gray-400'
           }`}
+          style={{
+            fontSize: '3vw',
+            lineHeight: '1.1',
+          }}
         >
           {story.title}
         </div>
 
-        {/* Línea animada */}
+        {/* Border left y underline animados */}
         <div
-          className="h-px transition-all duration-600 ease-out"
+          className="transition-all duration-600 ease-out"
           style={{
-            backgroundColor: activeIndex === idx ? 'var(--gold)' : 'transparent',
-            width: activeIndex === idx ? '100%' : '0%',
+            borderLeft: activeIndex === idx ? '3px solid var(--gold-accent)' : '3px solid transparent',
+            borderBottom: activeIndex === idx ? '2px solid var(--gold-accent)' : '2px solid transparent',
+            width: '100%',
+            paddingLeft: activeIndex === idx ? '12px' : '0',
           }}
         />
       </div>
@@ -167,66 +187,92 @@ const SectionsList = ({
 );
 
 /**
- * Columnas Centrales: Carousel (50%)
- * Imágenes pequeñas, scrollables, viendo todas simultáneamente
+ * Columnas Centrales: Carrusel Vertical (50%)
+ * 
+ * Carrusel tipo stack vertical:
+ * - Imagen anterior: pequeña arriba (peek)
+ * - Imagen activa: grande en centro (100%)
+ * - Imagen siguiente: pequeña abajo (peek)
+ * 
+ * Transiciones suaves con translateY y escala
  */
 const CarouselCenter = ({ activeIndex }: { activeIndex: number }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-
   return (
-    <section className="w-1/2 flex flex-col justify-center items-center px-6 bg-black">
-      {/* Espacio en blanco arriba */}
-      <div className="flex-1" />
+    <section className="w-1/2 flex flex-col justify-center items-center px-12 bg-white overflow-hidden">
+      {/* Contenedor del carrusel vertical */}
+      <div className="relative w-full max-w-md h-96">
+        {/* Renderizar todas las imágenes con posiciones relativas */}
+        {storiesData.map((story, idx) => {
+          // Calcular posición relativa a la imagen activa
+          const position = idx - activeIndex;
 
-      {/* Contenedor scrollable con todas las imágenes visibles */}
-      <div
-        ref={containerRef}
-        className="relative w-full max-w-sm h-96 overflow-y-scroll scrollbar-thin scrollbar-thumb-gold scrollbar-track-transparent"
-      >
-        <div className="space-y-6 pb-12">
-          {storiesData.map((story, idx) => {
-            const isActive = idx === activeIndex;
-            const scale = isActive ? 1 : 0.85;
-            const opacity = isActive ? 1 : 0.6;
+          // Configuración visual basada en la posición
+          let yTranslate = 0;
+          let scale = 0.7;
+          let opacity = 0.5;
+          let zIndex = 10;
 
-            return (
-              <div
-                key={story.id}
-                className="flex justify-center transition-all duration-500 ease-out"
+          if (position === 0) {
+            // Imagen activa - centro
+            yTranslate = 0;
+            scale = 1;
+            opacity = 1;
+            zIndex = 30;
+          } else if (position === -1) {
+            // Imagen anterior - arriba (pequeña)
+            yTranslate = -240;
+            scale = 0.7;
+            opacity = 0.6;
+            zIndex = 20;
+          } else if (position === 1) {
+            // Imagen siguiente - abajo (pequeña)
+            yTranslate = 240;
+            scale = 0.7;
+            opacity = 0.6;
+            zIndex = 20;
+          } else {
+            // Imágenes más lejanas - ocultas
+            yTranslate = position > 0 ? 600 : -600;
+            scale = 0.6;
+            opacity = 0;
+            zIndex = 5;
+          }
+
+          return (
+            <div
+              key={story.id}
+              className="absolute inset-0 transition-all duration-700 ease-out rounded-lg overflow-hidden shadow-2xl"
+              style={{
+                transform: `translateY(${yTranslate}px) scale(${scale})`,
+                zIndex,
+                opacity,
+              }}
+            >
+              <Image
+                src={story.image}
+                alt={story.title}
+                fill
+                className="object-cover"
                 style={{
-                  transform: `scale(${scale})`,
-                  opacity: opacity,
+                  filter: position === 0 ? 'grayscale(0%)' : 'grayscale(100%)',
                 }}
-              >
-                <div className="relative w-full aspect-video rounded-lg overflow-hidden shadow-2xl">
-                  <Image
-                    src={story.image}
-                    alt={story.title}
-                    fill
-                    className="object-cover"
-                    style={{
-                      filter: isActive ? 'grayscale(0%)' : 'grayscale(100%)',
-                    }}
-                  />
+              />
 
-                  {/* Gradient overlay solo en activa */}
-                  {isActive && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-transparent" />
-                  )}
+              {/* Gradient overlay solo en imagen activa */}
+              {position === 0 && (
+                <div className="absolute inset-0 bg-gradient-to-r from-black/30 via-transparent to-transparent" />
+              )}
 
-                  {/* Número de imagen en esquina */}
-                  <div className="absolute bottom-3 left-3 font-dm-mono text-xs text-white bg-black/60 px-3 py-1 rounded">
-                    {story.number}
-                  </div>
+              {/* Número y Título en esquina inferior izquierda */}
+              <div className="absolute bottom-4 left-4 flex flex-col gap-1">
+                <div className="font-bebas text-sm text-white bg-black/70 px-3 py-1 rounded tracking-wide">
+                  {story.title}
                 </div>
               </div>
-            );
-          })}
-        </div>
+            </div>
+          );
+        })}
       </div>
-
-      {/* Espacio en blanco abajo */}
-      <div className="flex-1" />
     </section>
   );
 };
@@ -239,21 +285,31 @@ const DescriptionPanel = ({ activeIndex }: { activeIndex: number }) => {
   const story = storiesData[activeIndex];
 
   return (
-    <aside className="w-1/4 flex flex-col justify-center px-8 space-y-8 bg-black">
+    <aside className="w-1/4 flex flex-col justify-center px-8 space-y-8 bg-white">
       {/* Metadata */}
       <div>
-        <div className="font-dm-mono text-xs tracking-widest text-gold mb-4">
+        <div className="font-dm-mono text-xs tracking-widest text-gold-accent mb-4">
           {story.metadata.label}
         </div>
-        <div className="border-b border-gold/30 mb-6" />
+        <div className="border-b border-gold-accent/30 mb-6" />
 
-        {/* Stats */}
-        <div className="space-y-3">
-          {story.metadata.stats.map((stat, idx) => (
-            <div key={idx} className="font-dm-mono text-xs text-foreground leading-relaxed">
-              {stat}
-            </div>
-          ))}
+        {/* Stats - 2 líneas cada uno */}
+        <div className="space-y-6">
+          {story.metadata.stats.map((stat, idx) => {
+            const parts = stat.split(' — ') || stat.split(' · ');
+            const number = parts[0];
+            const label = parts.slice(1).join(' ') || stat;
+            return (
+              <div key={idx}>
+                <div className="font-bebas" style={{ fontSize: '3.5vw', color: '#18181b', lineHeight: '1' }}>
+                  {number}
+                </div>
+                <div className="font-dm-mono text-xs text-gray-500 tracking-widest mt-1">
+                  {label}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -266,9 +322,9 @@ const DescriptionPanel = ({ activeIndex }: { activeIndex: number }) => {
         {/* CTA */}
         <Link
           href={`/${story.slug}`}
-          className="inline-flex items-center gap-2 font-dm-mono text-xs tracking-widest text-white hover:text-gold transition-colors duration-300 group"
+          className="inline-flex items-center gap-2 font-dm-mono text-xs tracking-widest text-foreground hover:text-gold-accent transition-colors duration-300 group"
         >
-          <span className="transition-transform duration-300 group-hover:translate-x-1" style={{ color: 'var(--gold)' }}>
+          <span className="transition-transform duration-300 group-hover:translate-x-1" style={{ color: 'var(--gold-accent)' }}>
             →
           </span>
           EXPLORE
@@ -279,10 +335,28 @@ const DescriptionPanel = ({ activeIndex }: { activeIndex: number }) => {
 };
 
 /**
+ * Hero Title con fade out
+ */
+const HeroTitle = ({ activeIndex }: { activeIndex: number }) => (
+  <div className="absolute top-28 left-1/2 transform -translate-x-1/2 z-40 pointer-events-none">
+    <h1 
+      className="font-bebas text-center text-foreground tracking-wider transition-opacity duration-700"
+      style={{
+        fontSize: '12vw',
+        lineHeight: '1',
+        opacity: activeIndex === 0 ? 0.8 : 0,
+      }}
+    >
+      OLYMPIC<br />DATA<br />STORIES
+    </h1>
+  </div>
+);
+
+/**
  * Footer
  */
 const Footer = () => (
-  <footer className="fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur-lg border-t border-border">
+  <footer className="bg-white border-t border-gold/20" style={{ backgroundImage: "url('/images/carbonfiber.png')", backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundColor: 'rgba(244, 244, 245, 0.7)', backgroundBlendMode: 'multiply' }}>
     <div className="h-10 px-8 flex items-center justify-between text-xs text-muted font-dm-mono tracking-widest">
       <span>© 2026</span>
       <span>4 DATA STORIES</span>
@@ -296,7 +370,29 @@ const Footer = () => (
  */
 export default function Home() {
   const [activeStoryIndex, setActiveStoryIndex] = useState(0);
+  const [showHeader, setShowHeader] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * Scroll al top cuando carga la página
+   */
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  /**
+   * Maneja el scroll para mostrar/ocultar header
+   */
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      // Mostrar header cuando se sale de la portada (altura de la ventana)
+      setShowHeader(scrollTop > window.innerHeight * 0.5);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   /**
    * Maneja eventos de scroll wheel
@@ -304,6 +400,13 @@ export default function Home() {
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
       if (!containerRef.current?.contains(e.target as Node)) return;
+
+      // Solo navegar entre stories si no estamos en la portada
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      if (scrollTop < window.innerHeight) {
+        // En la portada, dejar scroll normal
+        return;
+      }
 
       e.preventDefault();
 
@@ -321,15 +424,34 @@ export default function Home() {
   }, []);
 
   return (
-    <div
-      ref={containerRef}
-      className="relative w-screen h-screen overflow-hidden bg-black"
-    >
-      {/* HEADER */}
-      <Header />
+    <div ref={containerRef} className="relative w-screen">
+      {/* PORTADA A PANTALLA COMPLETA */}
+      <section className="relative w-full h-screen flex flex-col items-center justify-center bg-white bg-cover bg-center" style={{ backgroundImage: "url('/images/hero_bg.png')" }}>
+        {/* Overlay más transparente */}
+        <div className="absolute inset-0 bg-white/65" />
+        
+        {/* Contenido centrado */}
+        <div className="relative z-10 text-center">
+          <h1 className="font-bebas text-foreground tracking-wider" style={{ fontSize: '16vw', lineHeight: '0.9' }}>
+            OLYMPIC
+          </h1>
+          <h2 className="font-bebas text-foreground tracking-wider" style={{ fontSize: '16vw', lineHeight: '0.9' }}>
+            DATA
+          </h2>
+          <h3 className="font-bebas text-foreground tracking-wider" style={{ fontSize: '16vw', lineHeight: '0.9' }}>
+            STORIES
+          </h3>
+          <p className="font-dm-mono text-muted tracking-widest text-xs mt-8">SCROLL TO EXPLORE</p>
+        </div>
+      </section>
 
-      {/* MAIN - Layout de 4 columnas */}
-      <main className="flex pt-28 pb-10 h-full">
+      {/* CONTENIDO PRINCIPAL */}
+      <div className="relative w-full">
+        {/* HEADER */}
+        <Header isVisible={showHeader} />
+
+        {/* MAIN - Layout de 4 columnas */}
+        <main className="flex pt-32 pb-10 h-screen relative z-10 bg-white">
         {/* COLUMNA 1: Secciones (25%) */}
         <SectionsList
           activeIndex={activeStoryIndex}
@@ -341,10 +463,11 @@ export default function Home() {
 
         {/* COLUMNA 4: Descripción (25%) */}
         <DescriptionPanel activeIndex={activeStoryIndex} />
-      </main>
+        </main>
 
-      {/* FOOTER */}
-      <Footer />
+        {/* FOOTER */}
+        <Footer />
+      </div>
     </div>
   );
 }

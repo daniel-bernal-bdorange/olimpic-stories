@@ -4,14 +4,15 @@
 
 :root {
   /* Colores de fondo y tipografía base */
-  --background: #0a0a0a;
-  --foreground: #f4f4f5;
-  --muted: #a1a1aa;
-  --border: #27272a;
+  --background: #f4f4f5;
+  --foreground: #18181b;
+  --muted: #666666;
+  --border: #e5e7eb;
   
   /* Color dorado primario (acentos, detalles de lujo) */
-  --gold: #f8d47a;
-  --gold-light: #fce3a8;
+  --gold: #C9A84C;
+  --gold-light: #f8d47a;
+  --gold-accent: #C9A84C;
   
   /* Colores de acento por story (ring colors) */
   --ring-red: #ef4444;      /* Cold War in Gold */
@@ -41,21 +42,28 @@
 html {
   /* Asegurar que 100vh funciona correctamente */
   height: 100%;
-  overflow: hidden;
+  overflow: auto;
 }
 
 body {
   background: var(--background);
+  background-image: url('/images/carbonfiber.png');
+  background-attachment: fixed;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-blend-mode: overlay;
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
-  height: 100vh;
-  overflow: hidden;
+  height: auto;
+  overflow: auto;
+  position: relative;
 }
 
 /* Sistema de tipografía profesional */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-bebas);
   letter-spacing: 0.05em;
+  color: var(--foreground);
 }
 
 /* Clase para texto de etiquetas y metadata */
@@ -65,4 +73,5 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.2em;
+  color: var(--muted);
 }
