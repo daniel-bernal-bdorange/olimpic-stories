@@ -74,7 +74,16 @@ body:has(.cw-side-picker-container) {
   --victory-word: "VICTORY";
   --defeat-word: "DEFEAT";
   --player-flag-accent: #b22234;
+}
 
+#cold-war-root:has(.cw-side-picker) {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+#cold-war-root:not(:has(.cw-side-picker)) {
   width: min(1120px, 100% - 3rem);
   margin: 0 auto;
   padding: 0.5rem 0 4rem;
