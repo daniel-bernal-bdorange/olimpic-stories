@@ -101,7 +101,7 @@ const OlympicRings = () => (
  */
 const Header = ({ isVisible }: { isVisible: boolean }) => (
   <header 
-    className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gold/20 py-8 transition-opacity duration-500" 
+    className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gold/20 py-4 sm:py-6 lg:py-8 transition-opacity duration-500" 
     style={{ 
       backgroundImage: "url('/images/carbonfiber.png')", 
       backgroundSize: 'cover', 
@@ -111,22 +111,24 @@ const Header = ({ isVisible }: { isVisible: boolean }) => (
       opacity: isVisible ? 1 : 0,
       pointerEvents: isVisible ? 'auto' : 'none',
     }}>
-    <div className="px-12 flex items-center justify-between">
+    <div className="px-4 sm:px-8 lg:px-12 flex items-center justify-between gap-4">
       {/* Logo izquierda */}
-      <div className="flex items-center gap-6 group cursor-pointer">
+      <div className="flex items-center gap-3 sm:gap-6 group cursor-pointer">
         <div className="flex flex-col">
-          <div className="font-bebas text-foreground text-5xl tracking-wider leading-none">ODS</div>
-          <div className="font-dm-mono text-xs text-gold-accent tracking-widest mt-1">OLYMPIC DATA</div>
+          <div className="font-bebas text-zinc-100 text-3xl sm:text-4xl lg:text-5xl tracking-wider leading-none">ODS</div>
+          <div className="font-dm-mono text-xs text-amber-200 tracking-widest mt-1">OLYMPIC DATA</div>
         </div>
-        <div className="h-12 w-px bg-gold-accent/30" />
+        <div className="h-8 sm:h-12 w-px bg-amber-200/50" />
         <div className="flex flex-col">
-          <div className="font-bebas text-2xl text-foreground tracking-wider">OLYMPIC</div>
-          <div className="font-dm-mono text-xs text-muted tracking-widest">DATA STORIES</div>
+          <div className="font-bebas text-lg sm:text-xl lg:text-2xl text-zinc-100 tracking-wider">OLYMPIC</div>
+          <div className="font-dm-mono text-[10px] sm:text-xs text-zinc-300 tracking-widest">DATA STORIES</div>
         </div>
       </div>
 
       {/* Aros derecha */}
-      <OlympicRings />
+      <div className="hidden sm:block">
+        <OlympicRings />
+      </div>
     </div>
   </header>
 );
@@ -142,12 +144,12 @@ const SectionsList = ({
   activeIndex: number; 
   onHover: (idx: number) => void;
 }) => (
-  <aside className="w-1/4 flex flex-col justify-center pt-20 px-8 space-y-12 bg-white">
+  <aside className="w-full lg:w-1/4 flex lg:flex-col lg:justify-center pt-6 lg:pt-20 px-4 sm:px-8 gap-4 lg:space-y-12 lg:gap-0 bg-white overflow-x-auto">
     {storiesData.map((story, idx) => (
       <div
         key={story.id}
         onMouseEnter={() => onHover(idx)}
-        className="group cursor-pointer"
+        className="group cursor-pointer min-w-[12rem] lg:min-w-0"
       >
         {/* Número */}
         <div
@@ -164,7 +166,7 @@ const SectionsList = ({
             activeIndex === idx ? 'text-foreground' : 'text-gray-400'
           }`}
           style={{
-            fontSize: '3vw',
+            fontSize: 'clamp(1.6rem, 3vw, 3.2rem)',
             lineHeight: '1.1',
           }}
         >
@@ -198,9 +200,9 @@ const SectionsList = ({
  */
 const CarouselCenter = ({ activeIndex }: { activeIndex: number }) => {
   return (
-    <section className="w-1/2 flex flex-col justify-center items-center px-12 bg-white overflow-hidden">
+    <section className="w-full lg:w-1/2 flex flex-col justify-center items-center px-4 sm:px-8 lg:px-12 bg-white overflow-hidden">
       {/* Contenedor del carrusel vertical */}
-      <div className="relative w-full max-w-md h-96">
+      <div className="relative w-full max-w-sm sm:max-w-md h-72 sm:h-80 lg:h-96">
         {/* Renderizar todas las imágenes con posiciones relativas */}
         {storiesData.map((story, idx) => {
           // Calcular posición relativa a la imagen activa
@@ -220,13 +222,13 @@ const CarouselCenter = ({ activeIndex }: { activeIndex: number }) => {
             zIndex = 30;
           } else if (position === -1) {
             // Imagen anterior - arriba (pequeña)
-            yTranslate = -240;
+            yTranslate = -180;
             scale = 0.7;
             opacity = 0.6;
             zIndex = 20;
           } else if (position === 1) {
             // Imagen siguiente - abajo (pequeña)
-            yTranslate = 240;
+            yTranslate = 180;
             scale = 0.7;
             opacity = 0.6;
             zIndex = 20;
@@ -241,7 +243,7 @@ const CarouselCenter = ({ activeIndex }: { activeIndex: number }) => {
           return (
             <div
               key={story.id}
-              className="absolute inset-0 transition-all duration-700 ease-out rounded-lg overflow-hidden shadow-2xl"
+              className={`absolute inset-0 transition-all duration-700 ease-out rounded-lg overflow-hidden shadow-2xl ${position !== 0 ? 'hidden sm:block' : ''}`}
               style={{
                 transform: `translateY(${yTranslate}px) scale(${scale})`,
                 zIndex,
@@ -285,7 +287,7 @@ const DescriptionPanel = ({ activeIndex }: { activeIndex: number }) => {
   const story = storiesData[activeIndex];
 
   return (
-    <aside className="w-1/4 flex flex-col justify-center px-8 space-y-8 bg-white">
+    <aside className="w-full lg:w-1/4 flex flex-col justify-center px-4 sm:px-8 py-4 lg:py-0 space-y-6 lg:space-y-8 bg-white">
       {/* Metadata */}
       <div>
         <div className="font-dm-mono text-xs tracking-widest text-gold-accent mb-4">
@@ -301,7 +303,7 @@ const DescriptionPanel = ({ activeIndex }: { activeIndex: number }) => {
             const label = parts.slice(1).join(' ') || stat;
             return (
               <div key={idx}>
-                <div className="font-bebas" style={{ fontSize: '3.5vw', color: '#18181b', lineHeight: '1' }}>
+                <div className="font-bebas" style={{ fontSize: 'clamp(2rem, 3.5vw, 3.8rem)', color: '#18181b', lineHeight: '1' }}>
                   {number}
                 </div>
                 <div className="font-dm-mono text-xs text-gray-500 tracking-widest mt-1">
@@ -335,31 +337,13 @@ const DescriptionPanel = ({ activeIndex }: { activeIndex: number }) => {
 };
 
 /**
- * Hero Title con fade out
- */
-const HeroTitle = ({ activeIndex }: { activeIndex: number }) => (
-  <div className="absolute top-28 left-1/2 transform -translate-x-1/2 z-40 pointer-events-none">
-    <h1 
-      className="font-bebas text-center text-foreground tracking-wider transition-opacity duration-700"
-      style={{
-        fontSize: '12vw',
-        lineHeight: '1',
-        opacity: activeIndex === 0 ? 0.8 : 0,
-      }}
-    >
-      OLYMPIC<br />DATA<br />STORIES
-    </h1>
-  </div>
-);
-
-/**
  * Footer
  */
 const Footer = () => (
   <footer className="bg-white border-t border-gold/20" style={{ backgroundImage: "url('/images/carbonfiber.png')", backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundColor: 'rgba(244, 244, 245, 0.7)', backgroundBlendMode: 'multiply' }}>
-    <div className="h-10 px-8 flex items-center justify-between text-xs text-muted font-dm-mono tracking-widest">
+    <div className="h-10 px-4 sm:px-8 flex items-center justify-between text-[10px] sm:text-xs text-zinc-200 font-dm-mono tracking-widest">
       <span>© 2026</span>
-      <span>4 DATA STORIES</span>
+      <span className="hidden sm:inline">4 DATA STORIES</span>
       <span>SCROLL TO VIEW ALL</span>
     </div>
   </footer>
@@ -424,7 +408,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div ref={containerRef} className="relative w-screen">
+    <div ref={containerRef} className="relative w-full overflow-x-hidden">
       {/* PORTADA A PANTALLA COMPLETA */}
       <section className="relative w-full h-screen flex flex-col items-center justify-center bg-white bg-cover bg-center" style={{ backgroundImage: "url('/images/hero_bg.png')" }}>
         {/* Overlay más transparente */}
@@ -432,13 +416,13 @@ export default function Home() {
         
         {/* Contenido centrado */}
         <div className="relative z-10 text-center">
-          <h1 className="font-bebas text-foreground tracking-wider" style={{ fontSize: '16vw', lineHeight: '0.9' }}>
+          <h1 className="font-bebas text-foreground tracking-wider" style={{ fontSize: 'clamp(4rem, 16vw, 16rem)', lineHeight: '0.9' }}>
             OLYMPIC
           </h1>
-          <h2 className="font-bebas text-foreground tracking-wider" style={{ fontSize: '16vw', lineHeight: '0.9' }}>
+          <h2 className="font-bebas text-foreground tracking-wider" style={{ fontSize: 'clamp(4rem, 16vw, 16rem)', lineHeight: '0.9' }}>
             DATA
           </h2>
-          <h3 className="font-bebas text-foreground tracking-wider" style={{ fontSize: '16vw', lineHeight: '0.9' }}>
+          <h3 className="font-bebas text-foreground tracking-wider" style={{ fontSize: 'clamp(4rem, 16vw, 16rem)', lineHeight: '0.9' }}>
             STORIES
           </h3>
           <p className="font-dm-mono text-muted tracking-widest text-xs mt-8">SCROLL TO EXPLORE</p>
@@ -451,7 +435,7 @@ export default function Home() {
         <Header isVisible={showHeader} />
 
         {/* MAIN - Layout de 4 columnas */}
-        <main className="flex pt-32 pb-10 h-screen relative z-10 bg-white">
+        <main className="flex flex-col lg:flex-row pt-20 sm:pt-24 lg:pt-32 pb-10 min-h-screen lg:h-screen relative z-10 bg-white">
         {/* COLUMNA 1: Secciones (25%) */}
         <SectionsList
           activeIndex={activeStoryIndex}
