@@ -2,11 +2,11 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { buildSidePickerMarkup, initSidePicker } from "./main";
+import { buildColdWarMarkup, initSidePicker } from "./main";
 import "./cold-war.css";
 
 export default function ColdWarInGoldPage() {
-  const markup = buildSidePickerMarkup();
+  const markup = buildColdWarMarkup();
 
   useEffect(() => {
     initSidePicker();

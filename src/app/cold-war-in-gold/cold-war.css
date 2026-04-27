@@ -67,13 +67,13 @@ body:has(.cw-side-picker-container) {
   --cw-font-body: "Cormorant Garamond", serif;
   --cw-font-data: "DM Mono", monospace;
 
-  --player-color: #b22234;
+  --player-color: #1b4faa;
   --enemy-color: #cc0000;
   --player-label: "USA";
   --enemy-label: "USSR";
   --victory-word: "VICTORY";
   --defeat-word: "DEFEAT";
-  --player-flag-accent: #b22234;
+  --player-flag-accent: #1b4faa;
 }
 
 #cold-war-root:has(.cw-side-picker) {
@@ -159,11 +159,188 @@ body:has(.cw-side-picker-container) {
   color: var(--cw-color-muted);
 }
 
+.cw-chart-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 20rem) minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.cw-chart-copy {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.cw-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+}
+
+.cw-chart-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid rgba(245, 242, 235, 0.12);
+  background: rgba(245, 242, 235, 0.03);
+}
+
+.cw-chart-legend__swatch {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgba(245, 242, 235, 0.14);
+}
+
+.cw-chart-legend__swatch--player {
+  background: var(--player-color);
+}
+
+.cw-chart-legend__swatch--enemy {
+  background: var(--enemy-color);
+}
+
+.cw-chart-legend__label {
+  font-family: var(--cw-font-data);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(245, 242, 235, 0.82);
+}
+
+.cw-chart-frame {
+  margin: 0;
+  border: 1px solid rgba(245, 242, 235, 0.12);
+  background:
+    linear-gradient(180deg, rgba(245, 242, 235, 0.03), rgba(245, 242, 235, 0)),
+    rgba(10, 10, 10, 0.86);
+  padding: 1rem;
+}
+
+.cw-chart-frame__meta {
+  margin: 0 0 0.9rem;
+  font-family: var(--cw-font-data);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(245, 242, 235, 0.62);
+}
+
+.cw-chart {
+  min-height: clamp(22rem, 54vw, 34rem);
+}
+
+.cw-chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.cw-chart__grid line {
+  stroke: rgba(245, 242, 235, 0.09);
+  stroke-dasharray: 4 6;
+}
+
+.cw-chart__area--player {
+  fill: var(--player-color);
+  fill-opacity: 0.06;
+}
+
+.cw-chart__area--enemy {
+  fill: var(--enemy-color);
+  fill-opacity: 0.06;
+}
+
+.cw-chart__line {
+  fill: none;
+  stroke-width: 3;
+}
+
+.cw-chart__line--player {
+  stroke: var(--player-color);
+}
+
+.cw-chart__line--enemy {
+  stroke: var(--enemy-color);
+}
+
+.cw-chart__point {
+  stroke: #0a0a0a;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.cw-chart__point--player {
+  fill: var(--player-color);
+}
+
+.cw-chart__point--enemy {
+  fill: var(--enemy-color);
+}
+
+.cw-chart__point.is-boycott {
+  stroke: var(--cw-color-gold);
+  stroke-width: 2.5;
+}
+
+.cw-chart__halo {
+  fill: rgba(201, 168, 76, 0.12);
+  stroke: rgba(201, 168, 76, 0.55);
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+  animation: cw-chart-pulse 1.8s ease-out infinite;
+}
+
+.cw-chart__annotation-line {
+  stroke: var(--cw-color-gold);
+  stroke-width: 1.25;
+  stroke-dasharray: 4 4;
+}
+
+.cw-chart__annotation-text,
+.cw-chart__axis text,
+.cw-chart__axis-label {
+  font-family: var(--cw-font-data);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cw-chart__annotation-text {
+  fill: var(--cw-color-gold-light);
+}
+
+.cw-chart__axis .domain,
+.cw-chart__axis line {
+  stroke: rgba(245, 242, 235, 0.22);
+}
+
+.cw-chart__axis text,
+.cw-chart__axis-label {
+  fill: rgba(245, 242, 235, 0.72);
+}
+
+@keyframes cw-chart-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
 .cw-side-picker {
   display: flex;
   width: 100vw;
   height: 100vh;
-  position: relative;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
 }
 
 .cw-side {
@@ -320,5 +497,13 @@ body:has(.cw-side-picker-container) {
 
   .cw-side__label {
     font-size: clamp(2rem, 8vw, 12vw);
+  }
+
+  .cw-chart-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .cw-chart-frame {
+    padding: 0.75rem;
   }
 }
