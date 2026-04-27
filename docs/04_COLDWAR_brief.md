@@ -537,6 +537,15 @@ CWG-10  Estadísticas finales + counter animation                 (verificar: n�
 CWG-11  Responsive móvil                                         (verificar: layout columna única)
 ```
 
+### Estado de ejecución (2026-04-27)
+
+- CWG-01 / Historia 215: en progreso
+- Implementado: shell cliente en `page.tsx`, estilos base en `cold-war.css`,
+  módulo `main.ts` con `initColdWar()`/`destroyColdWar()`, dataset tipado en
+  `data.ts`
+- Verificado: `npm run lint` sin errores
+- Siguiente historia: CWG-02 (Side Picker estático)
+
 ### Notas de integración Next.js
 
 - Importar D3 y GSAP como módulos npm (`d3`, `gsap`) — no CDN — para

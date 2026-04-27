@@ -1,0 +1,144 @@
+@import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Mono:wght@400;500&display=swap");
+
+.cw-page-shell {
+  min-height: 100vh;
+  color: #f5f2eb;
+  background:
+    radial-gradient(circle at 14% 18%, rgba(201, 168, 76, 0.22), transparent 34%),
+    radial-gradient(circle at 84% 10%, rgba(178, 34, 52, 0.2), transparent 36%),
+    #0a0a0a;
+}
+
+.cw-top-nav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: flex-start;
+  padding: 1.25rem 1.5rem;
+  background: linear-gradient(to bottom, rgba(10, 10, 10, 0.92), rgba(10, 10, 10, 0));
+}
+
+.cw-top-nav__link {
+  border: 1px solid rgba(245, 242, 235, 0.35);
+  border-radius: 999px;
+  padding: 0.5rem 0.95rem;
+  font-family: "DM Mono", monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #f5f2eb;
+  transition: border-color 0.25s ease, color 0.25s ease, background-color 0.25s ease;
+}
+
+.cw-top-nav__link:hover {
+  border-color: #c9a84c;
+  color: #c9a84c;
+  background-color: rgba(201, 168, 76, 0.08);
+}
+
+#cold-war-root {
+  --cw-color-bg: #0a0a0a;
+  --cw-color-bg-alt: #111111;
+  --cw-color-white: #f5f2eb;
+  --cw-color-muted: #8a8a8a;
+  --cw-color-gold: #c9a84c;
+  --cw-color-gold-light: #e8c96a;
+
+  --cw-font-display: "Bebas Neue", sans-serif;
+  --cw-font-body: "Cormorant Garamond", serif;
+  --cw-font-data: "DM Mono", monospace;
+
+  --player-color: #b22234;
+  --enemy-color: #cc0000;
+  --player-label: "USA";
+  --enemy-label: "USSR";
+  --victory-word: "VICTORY";
+  --defeat-word: "DEFEAT";
+  --player-flag-accent: #b22234;
+
+  width: min(1120px, 100% - 3rem);
+  margin: 0 auto;
+  padding: 0.5rem 0 4rem;
+}
+
+.cw-layout {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.cw-hero {
+  border: 1px solid rgba(245, 242, 235, 0.14);
+  background: linear-gradient(160deg, rgba(17, 17, 17, 0.96), rgba(17, 17, 17, 0.78));
+  padding: clamp(1.5rem, 5vw, 3rem);
+}
+
+.cw-kicker {
+  margin: 0;
+  font-family: var(--cw-font-data);
+  font-size: 0.72rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--cw-color-gold-light);
+}
+
+.cw-title {
+  margin: 0.4rem 0 0;
+  font-family: var(--cw-font-display);
+  font-size: clamp(2.8rem, 12vw, 8rem);
+  line-height: 0.9;
+  letter-spacing: 0.04em;
+  color: var(--cw-color-white);
+}
+
+.cw-subtitle {
+  margin: 0.9rem 0 0;
+  max-width: 58ch;
+  font-family: var(--cw-font-body);
+  font-size: clamp(1.08rem, 2.5vw, 1.45rem);
+  line-height: 1.5;
+  color: rgba(245, 242, 235, 0.8);
+}
+
+.cw-stage {
+  border: 1px solid rgba(245, 242, 235, 0.12);
+  background: var(--cw-color-bg-alt);
+  padding: clamp(1.2rem, 3vw, 2rem);
+}
+
+.cw-stage__title {
+  margin: 0;
+  font-family: var(--cw-font-display);
+  font-size: clamp(1.8rem, 6vw, 3rem);
+  letter-spacing: 0.04em;
+  color: var(--cw-color-gold);
+}
+
+.cw-stage__copy {
+  margin: 0.65rem 0 0;
+  max-width: 64ch;
+  font-family: var(--cw-font-body);
+  font-size: clamp(1.05rem, 2.35vw, 1.28rem);
+  line-height: 1.65;
+  color: rgba(245, 242, 235, 0.84);
+}
+
+.cw-stage__meta {
+  margin: 0.95rem 0 0;
+  font-family: var(--cw-font-data);
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cw-color-muted);
+}
+
+@media (max-width: 768px) {
+  #cold-war-root {
+    width: calc(100% - 1.5rem);
+    padding-bottom: 2.5rem;
+  }
+
+  .cw-top-nav {
+    padding: 1rem 0.75rem;
+  }
+}

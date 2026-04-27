@@ -1,12 +1,43 @@
-import { StoryPage } from "@/components/story-page";
+"use client";
+
+import Link from "next/link";
+import { useEffect, useRef } from "react";
+import "./cold-war.css";
 
 export default function ColdWarInGoldPage() {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!containerRef.current) {
+      return;
+    }
+
+    let mounted = true;
+
+    void import("./main").then(({ initColdWar }) => {
+      if (!mounted || !containerRef.current) {
+        return;
+      }
+
+      initColdWar(containerRef.current);
+    });
+
+    return () => {
+      mounted = false;
+      void import("./main").then(({ destroyColdWar }) => {
+        destroyColdWar();
+      });
+    };
+  }, []);
+
   return (
-    <StoryPage
-      slug="cold-war-in-gold"
-      title="Cold War in Gold"
-      subtitle="La guerra que no fue guerra"
-      description="Analiza la rivalidad geopolitica entre bloques a traves del medallero olimpico. La historia narrara como las tensiones globales se reflejaron en podios, boicots y picos de rendimiento."
-    />
+    <main className="cw-page-shell">
+      <header className="cw-top-nav" aria-label="Cold War in Gold navigation">
+        <Link href="/?menu=1" className="cw-top-nav__link">
+          Back to home
+        </Link>
+      </header>
+      <div ref={containerRef} id="cold-war-root" />
+    </main>
   );
 }
