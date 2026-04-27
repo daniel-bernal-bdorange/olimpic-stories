@@ -1,51 +1,33 @@
-import { coldWarMedalData } from "./data";
-
-let activeContainer: HTMLDivElement | null = null;
-
-function setInitialTheme(root: HTMLDivElement): void {
-  root.style.setProperty("--player-color", "#B22234");
-  root.style.setProperty("--enemy-color", "#CC0000");
-  root.style.setProperty("--player-label", "USA");
-  root.style.setProperty("--enemy-label", "USSR");
-  root.style.setProperty("--victory-word", "VICTORY");
-  root.style.setProperty("--defeat-word", "DEFEAT");
-  root.style.setProperty("--player-flag-accent", "#B22234");
-}
-
-function buildBaseMarkup(): string {
+export function buildSidePickerMarkup(): string {
   return `
-    <div class="cw-layout">
-      <section class="cw-hero" aria-labelledby="cw-hero-title">
-        <p class="cw-kicker">Data Story 01</p>
-        <h1 id="cw-hero-title" class="cw-title">Cold War in Gold</h1>
-        <p class="cw-subtitle">1952 - 2020 | The rivalry that shaped the medal table</p>
-      </section>
+    <div class="cw-side-picker" role="presentation">
+      <!-- USA Side -->
+      <div class="cw-side cw-side--usa" aria-labelledby="side-usa-label">
+        <div class="cw-side__backdrop"></div>
+        <div class="cw-side__overlay"></div>
+        <div class="cw-side__content">
+          <p class="cw-side__position" id="side-usa-position">01</p>
+          <p class="cw-side__period" id="side-usa-period">1952-1988</p>
+          <p class="cw-side__prompt">PLAY AS</p>
+          <h1 class="cw-side__label" id="side-usa-label">USA</h1>
+          <p class="cw-side__medals" id="side-usa-medals">44 GOLDS</p>
+          <button class="cw-side__button" data-side="usa" aria-label="Choose USA side">CHOOSE THIS SIDE</button>
+        </div>
+      </div>
 
-      <section class="cw-stage" aria-labelledby="cw-stage-title">
-        <h2 id="cw-stage-title" class="cw-stage__title">Story shell ready</h2>
-        <p class="cw-stage__copy">
-          CWG-01 is active: this route now uses local HTML structure, scoped CSS custom properties, and
-          dedicated typography tokens for the Cold War story.
-        </p>
-        <p class="cw-stage__meta">
-          Dataset loaded: ${coldWarMedalData.length} Olympic editions with USA vs USSR/Russia gold medals.
-        </p>
-      </section>
+      <!-- USSR Side -->
+      <div class="cw-side cw-side--ussr" aria-labelledby="side-ussr-label">
+        <div class="cw-side__backdrop"></div>
+        <div class="cw-side__overlay"></div>
+        <div class="cw-side__content">
+          <p class="cw-side__position" id="side-ussr-position">02</p>
+          <p class="cw-side__period" id="side-ussr-period">1952-1988</p>
+          <p class="cw-side__prompt">PLAY AS</p>
+          <h1 class="cw-side__label" id="side-ussr-label">USSR</h1>
+          <p class="cw-side__medals" id="side-ussr-medals">395 GOLDS</p>
+          <button class="cw-side__button" data-side="ussr" aria-label="Choose USSR side">CHOOSE THIS SIDE</button>
+        </div>
+      </div>
     </div>
   `;
-}
-
-export function initColdWar(container: HTMLDivElement): void {
-  activeContainer = container;
-  setInitialTheme(container);
-  container.innerHTML = buildBaseMarkup();
-}
-
-export function destroyColdWar(): void {
-  if (!activeContainer) {
-    return;
-  }
-
-  activeContainer.innerHTML = "";
-  activeContainer = null;
 }

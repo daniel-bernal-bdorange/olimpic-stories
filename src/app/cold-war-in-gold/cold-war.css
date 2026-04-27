@@ -1,5 +1,13 @@
 @import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Mono:wght@400;500&display=swap");
 
+html:has(.cw-side-picker-container) {
+  overflow: hidden;
+}
+
+body:has(.cw-side-picker-container) {
+  overflow: hidden;
+}
+
 .cw-page-shell {
   min-height: 100vh;
   color: #f5f2eb;
@@ -9,10 +17,20 @@
     #0a0a0a;
 }
 
+.cw-side-picker-container {
+  width: 100vw;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+  overflow: hidden;
+}
+
 .cw-top-nav {
   position: sticky;
   top: 0;
-  z-index: 20;
+  z-index: 10000;
   display: flex;
   justify-content: flex-start;
   padding: 1.25rem 1.5rem;
@@ -132,6 +150,142 @@
   color: var(--cw-color-muted);
 }
 
+.cw-side-picker {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+}
+
+.cw-side {
+  flex: 1 1 50%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.cw-side__backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url("/images/cold-war-bg.png");
+  background-size: cover;
+  background-position: center;
+  z-index: 0;
+}
+
+.cw-side--ussr .cw-side__backdrop {
+  filter: hue-rotate(200deg) saturate(0.8);
+}
+
+.cw-side__overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.cw-side--usa .cw-side__overlay {
+  background-color: rgba(27, 79, 170, 0.2);
+}
+
+.cw-side--ussr .cw-side__overlay {
+  background-color: rgba(204, 0, 0, 0.2);
+}
+
+.cw-side__content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem;
+}
+
+.cw-side__position {
+  margin: 0;
+  font-family: "DM Mono", monospace;
+  font-size: 0.875rem;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(245, 242, 235, 0.6);
+}
+
+.cw-side__period {
+  margin: 0.25rem 0 0;
+  font-family: "DM Mono", monospace;
+  font-size: 0.75rem;
+  font-weight: 400;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: rgba(245, 242, 235, 0.5);
+}
+
+.cw-side__prompt {
+  margin: 1.5rem 0 0;
+  font-family: "DM Mono", monospace;
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: #c9a84c;
+}
+
+.cw-side__label {
+  margin: 0.5rem 0 0;
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 12vw;
+  font-weight: 400;
+  line-height: 0.9;
+  letter-spacing: 0.05em;
+  color: #f5f2eb;
+}
+
+.cw-side__medals {
+  margin: 1.5rem 0 0;
+  font-family: "DM Mono", monospace;
+  font-size: 0.875rem;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #8a8a8a;
+}
+
+.cw-side__button {
+  margin: 2rem 0 0;
+  padding: 0.875rem 2rem;
+  font-family: "DM Mono", monospace;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #f5f2eb;
+  background: transparent;
+  border: 1px solid #f5f2eb;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cw-side__button:hover {
+  background-color: rgba(245, 242, 235, 0.1);
+  border-color: #c9a84c;
+  color: #c9a84c;
+}
+
+.cw-side__button:active {
+  background-color: rgba(245, 242, 235, 0.2);
+}
+
 @media (max-width: 768px) {
   #cold-war-root {
     width: calc(100% - 1.5rem);
@@ -140,5 +294,9 @@
 
   .cw-top-nav {
     padding: 1rem 0.75rem;
+  }
+
+  .cw-side__label {
+    font-size: clamp(2rem, 8vw, 12vw);
   }
 }

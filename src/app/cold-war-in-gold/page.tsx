@@ -1,34 +1,9 @@
-"use client";
-
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { buildSidePickerMarkup } from "./main";
 import "./cold-war.css";
 
 export default function ColdWarInGoldPage() {
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!containerRef.current) {
-      return;
-    }
-
-    let mounted = true;
-
-    void import("./main").then(({ initColdWar }) => {
-      if (!mounted || !containerRef.current) {
-        return;
-      }
-
-      initColdWar(containerRef.current);
-    });
-
-    return () => {
-      mounted = false;
-      void import("./main").then(({ destroyColdWar }) => {
-        destroyColdWar();
-      });
-    };
-  }, []);
+  const markup = buildSidePickerMarkup();
 
   return (
     <main className="cw-page-shell">
@@ -37,7 +12,11 @@ export default function ColdWarInGoldPage() {
           Back to home
         </Link>
       </header>
-      <div ref={containerRef} id="cold-war-root" />
+      <div
+        id="cold-war-root"
+        className="cw-side-picker-container"
+        dangerouslySetInnerHTML={{ __html: markup }}
+      />
     </main>
   );
 }
