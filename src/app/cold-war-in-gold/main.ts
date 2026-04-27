@@ -5,9 +5,18 @@ import { coldWarMedalData, type ColdWarMedalDatum } from "./data";
 
 type SideChoice = "usa" | "ussr";
 
+type PointSeriesKey = "player" | "enemy";
+
 type ChartPoint = ColdWarMedalDatum & {
   playerGold: number | null;
   enemyGold: number | null;
+};
+
+type InteractivePointDatum = ChartPoint & {
+  golds: number;
+  isBoycott: boolean;
+  series: PointSeriesKey;
+  baseRadius: number;
 };
 
 type ChartRenderOptions = {
@@ -31,6 +40,7 @@ let activeSideChoice: SideChoice | null = null;
 let chartResizeObserver: ResizeObserver | null = null;
 let resizeFrame = 0;
 let chartEntryTimeline: gsap.core.Timeline | null = null;
+let chartHoverCleanup: (() => void) | null = null;
 let sidePickerCleanupFns: Array<() => void> = [];
 
 function normalizeLabel(value: string): string {
@@ -97,9 +107,29 @@ function isDefined<T>(value: T | null): value is T {
   return value !== null;
 }
 
+function hasGolds(
+  datum: ChartPoint & {
+    golds: number | null;
+    isBoycott: boolean;
+    series: PointSeriesKey;
+    baseRadius: number;
+  }
+): datum is InteractivePointDatum {
+  return datum.golds !== null;
+}
+
+function formatGoldValue(value: number | null): string {
+  return value === null ? "N/A" : String(value);
+}
+
 function cleanupSidePickerListeners(): void {
   sidePickerCleanupFns.forEach((cleanup) => cleanup());
   sidePickerCleanupFns = [];
+}
+
+function cleanupChartHover(): void {
+  chartHoverCleanup?.();
+  chartHoverCleanup = null;
 }
 
 function disconnectChartResizeObserver(): void {
@@ -207,6 +237,138 @@ function addManagedListener<K extends keyof HTMLElementEventMap>(
   sidePickerCleanupFns.push(() => target.removeEventListener(eventName, listener as EventListener));
 }
 
+export function initHover(chartRoot: HTMLElement, playerLabel: string, enemyLabel: string): () => void {
+  const tooltip = document.createElement("div");
+  tooltip.className = "cw-chart-tooltip";
+  tooltip.setAttribute("role", "tooltip");
+  tooltip.setAttribute("aria-hidden", "true");
+  chartRoot.appendChild(tooltip);
+
+  const points = d3.select(chartRoot).selectAll<SVGCircleElement, InteractivePointDatum>(".cw-chart__point");
+
+  function positionTooltip(event: MouseEvent): void {
+    const bounds = chartRoot.getBoundingClientRect();
+    const tooltipBounds = tooltip.getBoundingClientRect();
+    const padding = 12;
+    const offset = 16;
+
+    let left = event.clientX - bounds.left + offset;
+    let top = event.clientY - bounds.top - tooltipBounds.height - offset;
+
+    if (left + tooltipBounds.width > bounds.width - padding) {
+      left = event.clientX - bounds.left - tooltipBounds.width - offset;
+    }
+
+    if (left < padding) {
+      left = padding;
+    }
+
+    if (top < padding) {
+      top = event.clientY - bounds.top + offset;
+    }
+
+    if (top + tooltipBounds.height > bounds.height - padding) {
+      top = bounds.height - tooltipBounds.height - padding;
+    }
+
+    if (top < padding) {
+      top = padding;
+    }
+
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+  }
+
+  function showTooltip(event: MouseEvent, datum: InteractivePointDatum): void {
+    tooltip.innerHTML = `
+      <p class="cw-chart-tooltip__title">${datum.city} ${datum.year}</p>
+      <div class="cw-chart-tooltip__row">
+        <span>${playerLabel}</span>
+        <strong>${formatGoldValue(datum.playerGold)}</strong>
+      </div>
+      <div class="cw-chart-tooltip__row">
+        <span>${enemyLabel}</span>
+        <strong>${formatGoldValue(datum.enemyGold)}</strong>
+      </div>
+    `;
+
+    tooltip.dataset.visible = "true";
+    tooltip.setAttribute("aria-hidden", "false");
+    positionTooltip(event);
+
+    gsap.killTweensOf(tooltip);
+    gsap.to(tooltip, {
+      autoAlpha: 1,
+      y: 0,
+      duration: 0.18,
+      ease: "power2.out",
+      overwrite: true,
+    });
+  }
+
+  function hideTooltip(): void {
+    delete tooltip.dataset.visible;
+    tooltip.setAttribute("aria-hidden", "true");
+
+    gsap.killTweensOf(tooltip);
+    gsap.to(tooltip, {
+      autoAlpha: 0,
+      y: 6,
+      duration: 0.14,
+      ease: "power2.out",
+      overwrite: true,
+    });
+  }
+
+  points
+    .style("cursor", "pointer")
+    .on("mouseover", function (event, datum) {
+      gsap.killTweensOf(this);
+      gsap.to(this, {
+        attr: { r: datum.baseRadius + 4 },
+        duration: 0.18,
+        ease: "power2.out",
+        overwrite: true,
+      });
+
+      showTooltip(event as MouseEvent, datum);
+    })
+    .on("mousemove", function (event, datum) {
+      if (tooltip.dataset.visible !== "true") return;
+      positionTooltip(event as MouseEvent);
+
+      const currentEvent = event as MouseEvent;
+      const point = this as SVGCircleElement;
+      point.setAttribute(
+        "aria-label",
+        `${datum.city} ${datum.year}: ${playerLabel} ${formatGoldValue(datum.playerGold)} golds, ${enemyLabel} ${formatGoldValue(datum.enemyGold)} golds`
+      );
+      if (currentEvent.buttons !== 0) {
+        hideTooltip();
+      }
+    })
+    .on("mouseout", function (_event, datum) {
+      gsap.killTweensOf(this);
+      gsap.to(this, {
+        attr: { r: datum.baseRadius },
+        duration: 0.16,
+        ease: "power2.out",
+        overwrite: true,
+      });
+
+      hideTooltip();
+    });
+
+  gsap.set(tooltip, { autoAlpha: 0, y: 6 });
+
+  return () => {
+    points.on("mouseover", null).on("mousemove", null).on("mouseout", null).style("cursor", null);
+    gsap.killTweensOf(tooltip);
+    gsap.killTweensOf(points.nodes());
+    tooltip.remove();
+  };
+}
+
 export function buildColdWarMarkup(): string {
   return `
     <div class="cw-layout">
@@ -288,6 +450,7 @@ export function initChart(side: SideChoice, options: ChartRenderOptions = {}): v
   if (!chartRoot || !storyRoot) return;
 
   activeSideChoice = side;
+  cleanupChartHover();
 
   chartRoot.innerHTML = "";
 
@@ -392,10 +555,12 @@ export function initChart(side: SideChoice, options: ChartRenderOptions = {}): v
         return {
           ...datum,
           golds,
+          series: series.key,
           isBoycott: isBoycottPoint(datum, side, series.key, golds),
+          baseRadius: isBoycottPoint(datum, side, series.key, golds) ? 7 : 5,
         };
       })
-      .filter((datum) => datum.golds !== null);
+      .filter(hasGolds);
 
     group
       .selectAll("g")
@@ -417,14 +582,17 @@ export function initChart(side: SideChoice, options: ChartRenderOptions = {}): v
           .attr("class", (datum) => `${series.className}${datum.isBoycott ? " is-boycott" : ""}`)
           .attr("cx", (datum) => x(datum.year))
           .attr("cy", (datum) => y(datum.golds ?? 0))
-          .attr("r", (datum) => (datum.isBoycott ? 7 : 5))
-          .attr("aria-label", (datum) => `${datum.city} ${datum.year}: ${datum.golds} gold medals`)
-          .append("title")
-          .text((datum) => `${datum.city} ${datum.year}: ${datum.golds} golds`);
+          .attr("r", (datum) => datum.baseRadius)
+          .attr(
+            "aria-label",
+            (datum) => `${datum.city} ${datum.year}: ${playerLabel} ${formatGoldValue(datum.playerGold)} golds, ${enemyLabel} ${formatGoldValue(datum.enemyGold)} golds`
+          );
 
         return pointGroup;
       });
   });
+
+  chartHoverCleanup = initHover(chartRoot, playerLabel, enemyLabel);
 
   const annotationGroup = chart.append("g").attr("class", "cw-chart__annotations");
 
@@ -557,6 +725,7 @@ export function initSidePicker(): void {
 
 export function destroyColdWar(): void {
   cleanupSidePickerListeners();
+  cleanupChartHover();
   disconnectChartResizeObserver();
   chartEntryTimeline?.kill();
   chartEntryTimeline = null;
