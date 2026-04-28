@@ -166,3 +166,23 @@ export const chartPanelContent: Record<SideChoice, ChartPanelContent> = {
     figureMeta: "Olympic gold medals per Summer Games edition · USSR/Russia vs USA",
   },
 };
+
+export const historicalContext: Record<number, string> = {
+  1952: "First Games with USSR participation. Helsinki becomes ground zero.",
+  1956: "Soviet tanks in Hungary. The Games go on in Melbourne.",
+  1960: "USSR pulls ahead in Rome. Cassius Clay wins gold for USA.",
+  1964: "Tokyo marks peak Olympic diplomacy. USSR leads 20-18.",
+  1968: "Mexico City. Protest and politics overshadow competition.",
+  1972: "Munich massacre. USSR dominates 29-18.",
+  1976: "Montreal financial disaster. USSR extends lead 31-18.",
+  1980: "USA boycotts Moscow after Soviet invasion of Afghanistan. 65 nations follow.",
+  1984: "USSR retaliates. Boycotts Los Angeles. 14 Eastern Bloc nations absent.",
+  1988: "Seoul. Last Cold War Games. USSR wins final showdown 33-19.",
+  1996: "Russia - not USSR - competes for the first time. USA dominates Atlanta.",
+  2000: "Sydney. Closest post-Cold War result: USA 37, Russia 32.",
+  2004: "Athens. USA edges Russia 36-28.",
+  2008: "Beijing. China enters the race. USA 36, Russia 24.",
+  2012: "London. USA asserts dominance 48-18.",
+  2016: "Rio. Russia doping scandal. Partial ban. USA 46, Russia 19.",
+  2020: "Tokyo. Russia competes as ROC. Geopolitics return to the podium.",
+};

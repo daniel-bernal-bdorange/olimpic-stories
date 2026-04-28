@@ -2,7 +2,7 @@ import * as d3 from "d3";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
-import { chartPanelContent, coldWarMedalData, narrativeText, type ColdWarMedalDatum, type SideChoice } from "./data";
+import { chartPanelContent, coldWarMedalData, historicalContext, narrativeText, type ColdWarMedalDatum, type SideChoice } from "./data";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -45,6 +45,9 @@ const CHART_HEIGHT = 780;
 const CHART_ENTRY_DURATION = 2.5;
 const CHART_ENTRY_DELAY = 0.3;
 const CHART_AREA_OPACITY = 0.06;
+const CHART_POINT_RADIUS = 10;
+const CHART_BOYCOTT_POINT_RADIUS = 12;
+const CHART_POINT_HOVER_DELTA = 6;
 const SIDE_STORAGE_KEY = "coldwar_side";
 
 const BOYCOTT_ANNOTATIONS = {
@@ -164,6 +167,52 @@ function hasGolds(
 
 function formatGoldValue(value: number | null): string {
   return value === null ? "N/A" : String(value);
+}
+
+function getOutcomeDescriptor(storyRoot: HTMLElement, playerGold: number | null, enemyGold: number | null): { label: string; color: string } {
+  const computedStyle = getComputedStyle(storyRoot);
+  const victoryWord = normalizeLabel(computedStyle.getPropertyValue("--victory-word")) || "VICTORY";
+  const defeatWord = normalizeLabel(computedStyle.getPropertyValue("--defeat-word")) || "DEFEAT";
+  const playerScore = playerGold ?? Number.NEGATIVE_INFINITY;
+  const enemyScore = enemyGold ?? Number.NEGATIVE_INFINITY;
+  const isVictory = playerScore >= enemyScore;
+
+  return {
+    label: isVictory ? victoryWord : defeatWord,
+    color: isVictory ? "var(--player-color)" : "var(--enemy-color)",
+  };
+}
+
+function updateContextCard(
+  storyRoot: HTMLElement,
+  playerLabel: string,
+  enemyLabel: string,
+  datum: Pick<InteractivePointDatum, "city" | "year" | "playerGold" | "enemyGold">
+): void {
+  const card = storyRoot.querySelector<HTMLElement>(".cw-context-card");
+  if (!card) return;
+
+  const cityNode = card.querySelector<HTMLElement>("[data-context-city]");
+  const yearNode = card.querySelector<HTMLElement>("[data-context-year]");
+  const playerLabelNode = card.querySelector<HTMLElement>('[data-context-label="player"]');
+  const enemyLabelNode = card.querySelector<HTMLElement>('[data-context-label="enemy"]');
+  const playerValueNode = card.querySelector<HTMLElement>('[data-context-value="player"]');
+  const enemyValueNode = card.querySelector<HTMLElement>('[data-context-value="enemy"]');
+  const bodyNode = card.querySelector<HTMLElement>("[data-context-body]");
+  const outcomeNode = card.querySelector<HTMLElement>("[data-context-outcome]");
+  const outcome = getOutcomeDescriptor(storyRoot, datum.playerGold, datum.enemyGold);
+
+  if (cityNode) cityNode.textContent = datum.city;
+  if (yearNode) yearNode.textContent = String(datum.year);
+  if (playerLabelNode) playerLabelNode.textContent = playerLabel;
+  if (enemyLabelNode) enemyLabelNode.textContent = enemyLabel;
+  if (playerValueNode) playerValueNode.textContent = formatGoldValue(datum.playerGold);
+  if (enemyValueNode) enemyValueNode.textContent = formatGoldValue(datum.enemyGold);
+  if (bodyNode) bodyNode.textContent = historicalContext[datum.year] ?? "";
+  if (outcomeNode) {
+    outcomeNode.textContent = outcome.label;
+    outcomeNode.style.color = outcome.color;
+  }
 }
 
 function persistSideChoice(side: SideChoice): void {
@@ -578,83 +627,94 @@ function initNarrativeScroll(): void {
 }
 
 export function initHover(chartRoot: HTMLElement, playerLabel: string, enemyLabel: string): () => void {
-  const tooltip = document.createElement("div");
-  tooltip.className = "cw-chart-tooltip";
-  tooltip.setAttribute("role", "tooltip");
-  tooltip.setAttribute("aria-hidden", "true");
-  chartRoot.appendChild(tooltip);
-
+  const storyRoot = document.getElementById("cold-war-root");
+  const narrativeTrack = document.getElementById("cw-narrative-track");
+  const contextCard = storyRoot?.querySelector<HTMLElement>(".cw-context-card") ?? null;
+  const panelChrome = Array.from(
+    document.querySelectorAll<HTMLElement>(".cw-chart-copy, .cw-chart-legend, .cw-chart-frame__meta")
+  );
+  const chartAreas = Array.from(chartRoot.querySelectorAll<SVGElement>(".cw-chart__area"));
+  const chartVisuals = Array.from(
+    chartRoot.querySelectorAll<SVGElement>(
+      ".cw-chart__grid, .cw-chart__line, .cw-chart__annotation-line, .cw-chart__annotation-text, .cw-chart__axis, .cw-chart__axis-label, .cw-chart__overlay"
+    )
+  );
+  const pointGroups = Array.from(chartRoot.querySelectorAll<SVGGElement>(".cw-chart__points g"));
   const points = d3.select(chartRoot).selectAll<SVGCircleElement, InteractivePointDatum>(".cw-chart__point");
 
-  function positionTooltip(event: MouseEvent): void {
-    const bounds = chartRoot.getBoundingClientRect();
-    const tooltipBounds = tooltip.getBoundingClientRect();
-    const padding = 12;
-    const offset = 16;
+  function showFrozenState(activePoint: SVGCircleElement, datum: InteractivePointDatum): void {
+    if (!storyRoot || !contextCard) return;
 
-    let left = event.clientX - bounds.left + offset;
-    let top = event.clientY - bounds.top - tooltipBounds.height - offset;
+    updateContextCard(storyRoot, playerLabel, enemyLabel, datum);
 
-    if (left + tooltipBounds.width > bounds.width - padding) {
-      left = event.clientX - bounds.left - tooltipBounds.width - offset;
-    }
-
-    if (left < padding) {
-      left = padding;
-    }
-
-    if (top < padding) {
-      top = event.clientY - bounds.top + offset;
-    }
-
-    if (top + tooltipBounds.height > bounds.height - padding) {
-      top = bounds.height - tooltipBounds.height - padding;
-    }
-
-    if (top < padding) {
-      top = padding;
-    }
-
-    tooltip.style.left = `${left}px`;
-    tooltip.style.top = `${top}px`;
-  }
-
-  function showTooltip(event: MouseEvent, datum: InteractivePointDatum): void {
-    tooltip.innerHTML = `
-      <p class="cw-chart-tooltip__title">${datum.city} ${datum.year}</p>
-      <div class="cw-chart-tooltip__row">
-        <span>${playerLabel}</span>
-        <strong>${formatGoldValue(datum.playerGold)}</strong>
-      </div>
-      <div class="cw-chart-tooltip__row">
-        <span>${enemyLabel}</span>
-        <strong>${formatGoldValue(datum.enemyGold)}</strong>
-      </div>
-    `;
-
-    tooltip.dataset.visible = "true";
-    tooltip.setAttribute("aria-hidden", "false");
-    positionTooltip(event);
-
-    gsap.killTweensOf(tooltip);
-    gsap.to(tooltip, {
-      autoAlpha: 1,
-      y: 0,
-      duration: 0.18,
+    gsap.killTweensOf([narrativeTrack, ...panelChrome, ...chartAreas, ...chartVisuals, ...pointGroups, contextCard].filter(isDefined));
+    gsap.to([narrativeTrack, ...panelChrome].filter(isDefined), {
+      opacity: 0.15,
+      duration: 0.25,
       ease: "power2.out",
       overwrite: true,
     });
+    gsap.to(chartAreas, {
+      opacity: CHART_AREA_OPACITY,
+      duration: 0.25,
+      ease: "power2.out",
+      overwrite: true,
+    });
+    gsap.to([...chartVisuals, ...pointGroups], {
+      opacity: 0.3,
+      duration: 0.25,
+      ease: "power2.out",
+      overwrite: true,
+    });
+
+    const activeGroup = activePoint.parentElement;
+    if (activeGroup) {
+      gsap.to(activeGroup, {
+        opacity: 1,
+        duration: 0.25,
+        ease: "power2.out",
+        overwrite: true,
+      });
+    }
+
+    contextCard.dataset.contextCardState = "visible";
+    contextCard.setAttribute("aria-hidden", "false");
+    gsap.fromTo(
+      contextCard,
+      { autoAlpha: 0, x: 20 },
+      {
+        autoAlpha: 1,
+        x: 0,
+        duration: 0.3,
+        ease: "power2.out",
+        overwrite: true,
+      }
+    );
   }
 
-  function hideTooltip(): void {
-    delete tooltip.dataset.visible;
-    tooltip.setAttribute("aria-hidden", "true");
+  function resetFrozenState(): void {
+    gsap.killTweensOf([narrativeTrack, ...panelChrome, ...chartAreas, ...chartVisuals, ...pointGroups, contextCard].filter(isDefined));
+    gsap.to(chartAreas, {
+      opacity: CHART_AREA_OPACITY,
+      duration: 0.2,
+      ease: "power2.out",
+      overwrite: true,
+    });
+    gsap.to([narrativeTrack, ...panelChrome, ...chartVisuals, ...pointGroups].filter(isDefined), {
+      opacity: 1,
+      duration: 0.2,
+      ease: "power2.out",
+      overwrite: true,
+    });
 
-    gsap.killTweensOf(tooltip);
-    gsap.to(tooltip, {
+    if (!contextCard) return;
+
+    contextCard.dataset.contextCardState = "hidden";
+    contextCard.setAttribute("aria-hidden", "true");
+    gsap.to(contextCard, {
       autoAlpha: 0,
-      y: 6,
-      duration: 0.14,
+      x: 20,
+      duration: 0.2,
       ease: "power2.out",
       overwrite: true,
     });
@@ -662,21 +722,18 @@ export function initHover(chartRoot: HTMLElement, playerLabel: string, enemyLabe
 
   points
     .style("cursor", "pointer")
-    .on("mouseover", function (event, datum) {
+    .on("mouseover", function (_event, datum) {
       gsap.killTweensOf(this);
       gsap.to(this, {
-        attr: { r: datum.baseRadius + 4 },
+        attr: { r: datum.baseRadius + CHART_POINT_HOVER_DELTA },
         duration: 0.18,
         ease: "power2.out",
         overwrite: true,
       });
 
-      showTooltip(event as MouseEvent, datum);
+      showFrozenState(this as SVGCircleElement, datum);
     })
     .on("mousemove", function (event, datum) {
-      if (tooltip.dataset.visible !== "true") return;
-      positionTooltip(event as MouseEvent);
-
       const currentEvent = event as MouseEvent;
       const point = this as SVGCircleElement;
       point.setAttribute(
@@ -684,7 +741,7 @@ export function initHover(chartRoot: HTMLElement, playerLabel: string, enemyLabe
         `${datum.city} ${datum.year}: ${playerLabel} ${formatGoldValue(datum.playerGold)} golds, ${enemyLabel} ${formatGoldValue(datum.enemyGold)} golds`
       );
       if (currentEvent.buttons !== 0) {
-        hideTooltip();
+        resetFrozenState();
       }
     })
     .on("mouseout", function (_event, datum) {
@@ -696,21 +753,25 @@ export function initHover(chartRoot: HTMLElement, playerLabel: string, enemyLabe
         overwrite: true,
       });
 
-      hideTooltip();
+      resetFrozenState();
     });
 
-  gsap.set(tooltip, { autoAlpha: 0, y: 6 });
+  if (contextCard) {
+    gsap.set(contextCard, { autoAlpha: 0, x: 20 });
+  }
 
   return () => {
     points.on("mouseover", null).on("mousemove", null).on("mouseout", null).style("cursor", null);
-    gsap.killTweensOf(tooltip);
+    resetFrozenState();
+    gsap.killTweensOf(contextCard);
     gsap.killTweensOf(points.nodes());
-    tooltip.remove();
   };
 }
 
 export function buildColdWarMarkup(): string {
   const initialPanelContent = chartPanelContent.usa;
+  const initialContextDatum = coldWarMedalData[0];
+  const initialContextCopy = historicalContext[initialContextDatum.year] ?? "";
 
   return `
     <div class="cw-layout">
@@ -742,6 +803,34 @@ export function buildColdWarMarkup(): string {
               <p class="cw-stage__copy" data-chart-copy="body">${initialPanelContent.copy}</p>
               <p class="cw-stage__meta" data-chart-copy="meta">${initialPanelContent.meta}</p>
             </div>
+
+            <aside class="cw-context-card" data-context-card-state="hidden" aria-hidden="true">
+              <p class="cw-context-card__eyebrow">
+                <span data-context-city>${initialContextDatum.city}</span>
+                <span data-context-year>${initialContextDatum.year}</span>
+              </p>
+
+              <div class="cw-context-card__divider" aria-hidden="true"></div>
+
+              <div class="cw-context-card__scoreboard" aria-label="Historical comparison card">
+                <section class="cw-context-card__column cw-context-card__column--player">
+                  <p class="cw-context-card__label" data-context-label="player">USA</p>
+                  <p class="cw-context-card__value" data-context-value="player">${initialContextDatum.usaGold}</p>
+                  <p class="cw-context-card__unit">GOLDS</p>
+                </section>
+
+                <section class="cw-context-card__column cw-context-card__column--enemy">
+                  <p class="cw-context-card__label" data-context-label="enemy">USSR</p>
+                  <p class="cw-context-card__value" data-context-value="enemy">${initialContextDatum.rivalGold ?? "-"}</p>
+                  <p class="cw-context-card__unit">GOLDS</p>
+                </section>
+              </div>
+
+              <div class="cw-context-card__divider" aria-hidden="true"></div>
+
+              <p class="cw-context-card__body" data-context-body>${initialContextCopy}</p>
+              <p class="cw-context-card__outcome" data-context-outcome>VICTORY</p>
+            </aside>
           </div>
         </aside>
       </section>
@@ -809,9 +898,15 @@ export function initChart(side: SideChoice, options: ChartRenderOptions = {}): v
   if (panelMeta) panelMeta.textContent = panelContent.meta;
   if (panelFigureMeta) panelFigureMeta.textContent = panelContent.figureMeta;
 
+  const data = getChartData(side);
+
+  const initialDatum = data[0];
+  if (initialDatum) {
+    updateContextCard(storyRoot, playerLabel, enemyLabel, initialDatum);
+  }
+
   const innerWidth = CHART_WIDTH - CHART_MARGIN.left - CHART_MARGIN.right;
   const innerHeight = CHART_HEIGHT - CHART_MARGIN.top - CHART_MARGIN.bottom;
-  const data = getChartData(side);
 
   const x = d3.scaleLinear().domain([1952, 2020]).range([0, innerWidth]);
   const y = d3.scaleLinear().domain([0, 60]).range([innerHeight, 0]);
@@ -902,7 +997,7 @@ export function initChart(side: SideChoice, options: ChartRenderOptions = {}): v
           golds,
           series: series.key,
           isBoycott: isBoycottPoint(datum, side, series.key, golds),
-          baseRadius: isBoycottPoint(datum, side, series.key, golds) ? 7 : 5,
+          baseRadius: isBoycottPoint(datum, side, series.key, golds) ? CHART_BOYCOTT_POINT_RADIUS : CHART_POINT_RADIUS,
         };
       })
       .filter(hasGolds);
@@ -919,7 +1014,7 @@ export function initChart(side: SideChoice, options: ChartRenderOptions = {}): v
           .attr("class", "cw-chart__halo")
           .attr("cx", (datum) => x(datum.year))
           .attr("cy", (datum) => y(datum.golds ?? 0))
-          .attr("r", 7)
+          .attr("r", (datum) => datum.baseRadius + 2)
           .style("transform-origin", (datum) => `${x(datum.year)}px ${y(datum.golds ?? 0)}px`);
 
         pointGroup
