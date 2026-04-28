@@ -1,9 +1,10 @@
 import * as d3 from "d3";
 import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 
-import { coldWarMedalData, type ColdWarMedalDatum } from "./data";
+import { coldWarMedalData, narrativeText, type ColdWarMedalDatum, type SideChoice } from "./data";
 
-type SideChoice = "usa" | "ussr";
+gsap.registerPlugin(ScrollTrigger);
 
 type PointSeriesKey = "player" | "enemy";
 
@@ -30,6 +31,7 @@ const CHART_HEIGHT = 620;
 const CHART_ENTRY_DURATION = 2.5;
 const CHART_ENTRY_DELAY = 0.3;
 const CHART_AREA_OPACITY = 0.06;
+const SIDE_STORAGE_KEY = "coldwar_side";
 
 const BOYCOTT_ANNOTATIONS = {
   1980: { dx: -148, dy: -70, text: "USA BOYCOTT - 6 GOLDS" },
@@ -42,6 +44,8 @@ let resizeFrame = 0;
 let chartEntryTimeline: gsap.core.Timeline | null = null;
 let chartHoverCleanup: (() => void) | null = null;
 let sidePickerCleanupFns: Array<() => void> = [];
+let narrativeScrollTriggers: ScrollTrigger[] = [];
+let activeNarrativeIndex = -1;
 
 function normalizeLabel(value: string): string {
   return value.replace(/"/g, "").trim();
@@ -130,6 +134,12 @@ function cleanupSidePickerListeners(): void {
 function cleanupChartHover(): void {
   chartHoverCleanup?.();
   chartHoverCleanup = null;
+}
+
+function cleanupNarrativeScroll(): void {
+  narrativeScrollTriggers.forEach((trigger) => trigger.kill());
+  narrativeScrollTriggers = [];
+  activeNarrativeIndex = -1;
 }
 
 function disconnectChartResizeObserver(): void {
@@ -235,6 +245,136 @@ function addManagedListener<K extends keyof HTMLElementEventMap>(
 ): void {
   target.addEventListener(eventName, listener as EventListener);
   sidePickerCleanupFns.push(() => target.removeEventListener(eventName, listener as EventListener));
+}
+
+function persistSideChoice(side: SideChoice): void {
+  try {
+    window.localStorage.setItem(SIDE_STORAGE_KEY, side);
+  } catch {
+    // Ignore storage failures in private browsing or restricted contexts.
+  }
+}
+
+function buildNarrativeBlocksMarkup(side: SideChoice): string {
+  return narrativeText[side]
+    .map(
+      (block, index) => `
+        <article class="cw-narrative-block${index === 0 ? " is-active" : ""}" id="${block.id}" data-block-index="${index}" data-scroll-state="${
+          index === 0 ? "active" : "upcoming"
+        }" aria-labelledby="${block.id}-title">
+          <div class="cw-narrative-block__inner">
+            <p class="cw-narrative-block__eyebrow">BLOCK 0${block.block}</p>
+            <h2 class="cw-narrative-block__title" id="${block.id}-title">${block.title}</h2>
+            <div class="cw-narrative-block__body">
+              ${block.body.map((paragraph) => `<p>${paragraph}</p>`).join("")}
+            </div>
+          </div>
+        </article>
+      `
+    )
+    .join("");
+}
+
+function renderNarrative(side: SideChoice): void {
+  const narrativeTrack = document.getElementById("cw-narrative-track");
+  if (!narrativeTrack) return;
+
+  narrativeTrack.innerHTML = buildNarrativeBlocksMarkup(side);
+}
+
+function setActiveNarrativeBlock(blocks: HTMLElement[], nextIndex: number): void {
+  if (activeNarrativeIndex === nextIndex) return;
+
+  activeNarrativeIndex = nextIndex;
+
+  blocks.forEach((block, index) => {
+    block.classList.toggle("is-active", index === nextIndex);
+
+    if (index < nextIndex) {
+      block.dataset.scrollState = "past";
+      return;
+    }
+
+    if (index > nextIndex) {
+      block.dataset.scrollState = "upcoming";
+      return;
+    }
+
+    block.dataset.scrollState = "active";
+  });
+
+  const activeBlock = blocks[nextIndex];
+  if (!activeBlock) return;
+
+  const animatedNodes = activeBlock.querySelectorAll(
+    ".cw-narrative-block__eyebrow, .cw-narrative-block__title, .cw-narrative-block__body p"
+  );
+
+  gsap.fromTo(
+    animatedNodes,
+    { autoAlpha: 0, y: 18 },
+    {
+      autoAlpha: 1,
+      y: 0,
+      duration: 0.45,
+      stagger: 0.05,
+      ease: "power3.out",
+      overwrite: true,
+    }
+  );
+}
+
+function initNarrativeScroll(): void {
+  cleanupNarrativeScroll();
+
+  const scrolly = document.querySelector<HTMLElement>(".cw-scrolly");
+  const chartPanel = document.querySelector<HTMLElement>(".cw-chart-panel");
+  const chartPanelInner = chartPanel?.querySelector<HTMLElement>(".cw-chart-panel__inner") ?? null;
+  const blocks = gsap.utils.toArray<HTMLElement>(".cw-narrative-block");
+  if (blocks.length === 0 || !scrolly || !chartPanel || !chartPanelInner) return;
+
+  setActiveNarrativeBlock(blocks, 0);
+
+  if (window.innerWidth > 768) {
+    narrativeScrollTriggers.push(
+      ScrollTrigger.create({
+        trigger: scrolly,
+        start: "top top+=60",
+        end: "bottom bottom",
+        pin: chartPanelInner,
+        pinSpacing: false,
+        invalidateOnRefresh: true,
+      })
+    );
+  }
+
+  narrativeScrollTriggers.push(
+    ...blocks.map((block, index) =>
+      ScrollTrigger.create({
+        trigger: block,
+        start: "top center",
+        end: "bottom center",
+        onEnter: () => {
+          setActiveNarrativeBlock(blocks, index);
+        },
+        onEnterBack: () => {
+          setActiveNarrativeBlock(blocks, index);
+        },
+        onLeave: () => {
+          if (index < blocks.length - 1) {
+            block.dataset.scrollState = "past";
+          }
+        },
+        onLeaveBack: () => {
+          if (index > 0) {
+            block.dataset.scrollState = "upcoming";
+          }
+        },
+      })
+    )
+  );
+
+  requestAnimationFrame(() => ScrollTrigger.refresh());
 }
 
 export function initHover(chartRoot: HTMLElement, playerLabel: string, enemyLabel: string): () => void {
@@ -372,43 +512,40 @@ export function initHover(chartRoot: HTMLElement, playerLabel: string, enemyLabe
 export function buildColdWarMarkup(): string {
   return `
     <div class="cw-layout">
-      <section class="cw-hero" aria-labelledby="cw-story-title">
-        <p class="cw-kicker">01 / 1952-2020</p>
-        <h1 class="cw-title" id="cw-story-title">Cold War in Gold</h1>
-        <p class="cw-subtitle">
-          Two superpowers turned the Olympic medal table into a geopolitical scoreboard.
-          The rivalry peaks in the boycott years and keeps echoing into the post-Soviet era.
-        </p>
-      </section>
+      <section class="cw-scrolly" aria-labelledby="cw-chart-title">
+        <div class="cw-narrative-track" id="cw-narrative-track">
+          ${buildNarrativeBlocksMarkup("usa")}
+        </div>
 
-      <section class="cw-stage" aria-labelledby="cw-chart-title">
-        <div class="cw-chart-shell">
-          <div class="cw-chart-copy">
-            <p class="cw-kicker">Static chart / CWG-04</p>
-            <h2 class="cw-stage__title" id="cw-chart-title">The scoreboard that changed history</h2>
-            <p class="cw-stage__copy">
-              A responsive D3 chart tracks Olympic gold medals from Helsinki 1952 to Tokyo 2020,
-              with the 1980 and 1984 boycotts pinned as visible narrative shocks.
-            </p>
-            <p class="cw-stage__meta">17 editions · curveMonotoneX · visible boycott annotations</p>
+        <aside class="cw-chart-panel">
+          <div class="cw-chart-panel__inner">
+            <div class="cw-chart-copy">
+              <p class="cw-kicker">Scrollytelling / CWG-07</p>
+              <h1 class="cw-stage__title" id="cw-chart-title">The scoreboard that changed history</h1>
+              <p class="cw-stage__copy">
+                Five narrative blocks track the Cold War rivalry while the medal chart stays pinned in view.
+                Scroll the left column to move through Helsinki 1952, the Soviet surge, the boycott years, and the post-wall era.
+              </p>
+              <p class="cw-stage__meta">5 blocks · 100vh each · sticky chart at 60px</p>
 
-            <div class="cw-chart-legend" aria-label="Chart legend">
-              <div class="cw-chart-legend__item">
-                <span class="cw-chart-legend__swatch cw-chart-legend__swatch--player"></span>
-                <span class="cw-chart-legend__label" data-chart-label="player">USA</span>
-              </div>
-              <div class="cw-chart-legend__item">
-                <span class="cw-chart-legend__swatch cw-chart-legend__swatch--enemy"></span>
-                <span class="cw-chart-legend__label" data-chart-label="enemy">USSR</span>
+              <div class="cw-chart-legend" aria-label="Chart legend">
+                <div class="cw-chart-legend__item">
+                  <span class="cw-chart-legend__swatch cw-chart-legend__swatch--player"></span>
+                  <span class="cw-chart-legend__label" data-chart-label="player">USA</span>
+                </div>
+                <div class="cw-chart-legend__item">
+                  <span class="cw-chart-legend__swatch cw-chart-legend__swatch--enemy"></span>
+                  <span class="cw-chart-legend__label" data-chart-label="enemy">USSR</span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <figure class="cw-chart-frame">
-            <figcaption class="cw-chart-frame__meta">Olympic gold medals per Summer Games edition</figcaption>
-            <div class="cw-chart" id="cw-chart" role="img" aria-label="Line chart comparing Olympic gold medals for the selected Cold War rivalry"></div>
-          </figure>
-        </div>
+            <figure class="cw-chart-frame">
+              <figcaption class="cw-chart-frame__meta">Olympic gold medals per Summer Games edition</figcaption>
+              <div class="cw-chart" id="cw-chart" role="img" aria-label="Line chart comparing Olympic gold medals for the selected Cold War rivalry"></div>
+            </figure>
+          </div>
+        </aside>
       </section>
     </div>
 
@@ -649,7 +786,7 @@ export function initChart(side: SideChoice, options: ChartRenderOptions = {}): v
 
   setupChartResize(chartRoot);
 
-  const stage = storyRoot.querySelector(".cw-stage");
+  const stage = storyRoot.querySelector(".cw-chart-panel__inner");
   if (stage && revealStage) {
     gsap.fromTo(stage, { autoAlpha: 0, y: 28 }, { autoAlpha: 1, y: 0, duration: 0.7, ease: "power3.out" });
   }
@@ -702,12 +839,16 @@ export function initSidePicker(): void {
 
   const handleSideChoice = async (side: SideChoice) => {
     setSideTheme(side);
+    persistSideChoice(side);
     await animatePickerOut(picker);
 
     picker.remove();
     root.classList.remove("cw-side-picker-container");
+    root.dataset.sideChoice = side;
     document.body.style.overflow = "";
+    renderNarrative(side);
     initChart(side);
+    initNarrativeScroll();
   };
 
   if (usaButton) {
@@ -726,6 +867,7 @@ export function initSidePicker(): void {
 export function destroyColdWar(): void {
   cleanupSidePickerListeners();
   cleanupChartHover();
+  cleanupNarrativeScroll();
   disconnectChartResizeObserver();
   chartEntryTimeline?.kill();
   chartEntryTimeline = null;
