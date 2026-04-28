@@ -16,6 +16,13 @@ export type NarrativeBlock = {
   body: string[];
 };
 
+export type ChartPanelContent = {
+  title: string;
+  copy: string;
+  meta: string;
+  figureMeta: string;
+};
+
 export const coldWarMedalData: ColdWarMedalDatum[] = [
   { year: 1952, city: "Helsinki", usaGold: 22, rivalGold: 22, era: "ussr", boycott: null },
   { year: 1956, city: "Melbourne", usaGold: 17, rivalGold: 22, era: "ussr", boycott: null },
@@ -141,4 +148,21 @@ export const narrativeText: Record<SideChoice, NarrativeBlock[]> = {
       ],
     },
   ],
+};
+
+export const chartPanelContent: Record<SideChoice, ChartPanelContent> = {
+  usa: {
+    title: "The scoreboard that changed history",
+    copy:
+      "Five narrative blocks follow the Cold War from the American side, keeping the medal chart pinned while Helsinki 1952, the Soviet surge, the boycott years, and the post-wall era unfold.",
+    meta: "USA perspective · 5 blocks · sticky chart at 60px",
+    figureMeta: "Olympic gold medals per Summer Games edition · USA vs USSR/Russia",
+  },
+  ussr: {
+    title: "The scoreboard that changed history",
+    copy:
+      "Five narrative blocks follow the Cold War from the Soviet side, keeping the medal chart pinned while Helsinki 1952, socialist dominance, the boycott years, and the post-wall aftermath unfold.",
+    meta: "USSR perspective · 5 blocks · sticky chart at 60px",
+    figureMeta: "Olympic gold medals per Summer Games edition · USSR/Russia vs USA",
+  },
 };

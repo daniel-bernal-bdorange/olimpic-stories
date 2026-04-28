@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 type StoryItem = {
   id: string;
@@ -365,7 +365,6 @@ const CompetitionTransition = ({
 
 export default function Home() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [activeStoryIndex, setActiveStoryIndex] = useState(0);
   const [showHeader, setShowHeader] = useState(false);
   const [transition, setTransition] = useState<TransitionState | null>(null);
@@ -401,13 +400,15 @@ export default function Home() {
   );
 
   useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+
     if (searchParams.get('menu') === '1') {
       // Saltar la portada hero y mostrar directamente el menú de historias
       window.scrollTo({ top: window.innerHeight, behavior: 'instant' });
     } else {
       window.scrollTo(0, 0);
     }
-  }, [searchParams]);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -452,6 +453,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
     const targetSlug = searchParams.get('target');
     if (!targetSlug || hasAutoTriggeredRef.current) {
       return;
@@ -470,7 +472,7 @@ export default function Home() {
     }, 520);
 
     return () => window.clearTimeout(autoTimer);
-  }, [searchParams, startTransition]);
+  }, [startTransition]);
 
   return (
     <div ref={containerRef} className="relative w-full overflow-x-hidden">

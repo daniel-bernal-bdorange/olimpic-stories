@@ -2,7 +2,7 @@ import * as d3 from "d3";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
-import { coldWarMedalData, narrativeText, type ColdWarMedalDatum, type SideChoice } from "./data";
+import { chartPanelContent, coldWarMedalData, narrativeText, type ColdWarMedalDatum, type SideChoice } from "./data";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -25,9 +25,23 @@ type ChartRenderOptions = {
   revealStage?: boolean;
 };
 
-const CHART_MARGIN = { top: 40, right: 60, bottom: 50, left: 50 };
-const CHART_WIDTH = 1100;
-const CHART_HEIGHT = 620;
+type HighlightRange = {
+  startYear: number;
+  endYear: number;
+  dimOutside?: boolean;
+  showFocus?: boolean;
+  specialYear?: number;
+};
+
+type ChartHighlightController = {
+  highlight: (blockIndex: number) => void;
+  reset: () => void;
+  destroy: () => void;
+};
+
+const CHART_MARGIN = { top: 44, right: 72, bottom: 68, left: 64 };
+const CHART_WIDTH = 1280;
+const CHART_HEIGHT = 780;
 const CHART_ENTRY_DURATION = 2.5;
 const CHART_ENTRY_DELAY = 0.3;
 const CHART_AREA_OPACITY = 0.06;
@@ -38,6 +52,14 @@ const BOYCOTT_ANNOTATIONS = {
   1984: { dx: 44, dy: -82, text: "USSR BOYCOTT - 6 GOLDS" },
 } as const;
 
+const BLOCK_HIGHLIGHT_RANGES: HighlightRange[] = [
+  { startYear: 1952, endYear: 1952, dimOutside: false, showFocus: false },
+  { startYear: 1960, endYear: 1976, dimOutside: true, showFocus: true },
+  { startYear: 1980, endYear: 1980, dimOutside: true, showFocus: true, specialYear: 1980 },
+  { startYear: 1984, endYear: 1984, dimOutside: true, showFocus: true },
+  { startYear: 1996, endYear: 2020, dimOutside: false, showFocus: true },
+];
+
 let activeSideChoice: SideChoice | null = null;
 let chartResizeObserver: ResizeObserver | null = null;
 let resizeFrame = 0;
@@ -46,6 +68,7 @@ let chartHoverCleanup: (() => void) | null = null;
 let sidePickerCleanupFns: Array<() => void> = [];
 let narrativeScrollTriggers: ScrollTrigger[] = [];
 let activeNarrativeIndex = -1;
+let chartHighlightController: ChartHighlightController | null = null;
 
 function normalizeLabel(value: string): string {
   return value.replace(/"/g, "").trim();
@@ -53,6 +76,7 @@ function normalizeLabel(value: string): string {
 
 function setSideTheme(side: SideChoice): void {
   const root = document.getElementById("cold-war-root") ?? document.documentElement;
+  const shell = document.querySelector<HTMLElement>(".cw-page-shell");
 
   if (side === "usa") {
     root.style.setProperty("--player-color", "#1B4FAA");
@@ -62,6 +86,9 @@ function setSideTheme(side: SideChoice): void {
     root.style.setProperty("--victory-word", '"VICTORY"');
     root.style.setProperty("--defeat-word", '"DEFEAT"');
     root.style.setProperty("--player-flag-accent", "#1B4FAA");
+    shell?.style.setProperty("--cw-shell-band-color", "rgba(27, 79, 170, 0.34)");
+    shell?.style.setProperty("--cw-shell-side-tint", "rgba(27, 79, 170, 0.3)");
+    shell?.style.setProperty("--cw-shell-page-wash", "rgba(27, 79, 170, 0.18)");
     return;
   }
 
@@ -72,6 +99,9 @@ function setSideTheme(side: SideChoice): void {
   root.style.setProperty("--victory-word", '"VICTORY"');
   root.style.setProperty("--defeat-word", '"DEFEAT"');
   root.style.setProperty("--player-flag-accent", "#CC0000");
+  shell?.style.setProperty("--cw-shell-band-color", "rgba(204, 0, 0, 0.34)");
+  shell?.style.setProperty("--cw-shell-side-tint", "rgba(204, 0, 0, 0.28)");
+  shell?.style.setProperty("--cw-shell-page-wash", "rgba(204, 0, 0, 0.16)");
 }
 
 function animatePickerOut(picker: Element): Promise<void> {
@@ -126,6 +156,14 @@ function formatGoldValue(value: number | null): string {
   return value === null ? "N/A" : String(value);
 }
 
+function persistSideChoice(side: SideChoice): void {
+  try {
+    window.localStorage.setItem(SIDE_STORAGE_KEY, side);
+  } catch {
+    // Ignore storage failures in private browsing or restricted contexts.
+  }
+}
+
 function cleanupSidePickerListeners(): void {
   sidePickerCleanupFns.forEach((cleanup) => cleanup());
   sidePickerCleanupFns = [];
@@ -136,10 +174,156 @@ function cleanupChartHover(): void {
   chartHoverCleanup = null;
 }
 
+function cleanupChartHighlight(): void {
+  chartHighlightController?.destroy();
+  chartHighlightController = null;
+}
+
 function cleanupNarrativeScroll(): void {
   narrativeScrollTriggers.forEach((trigger) => trigger.kill());
   narrativeScrollTriggers = [];
   activeNarrativeIndex = -1;
+}
+
+function buildBlockHighlightRange(index: number): HighlightRange | null {
+  return BLOCK_HIGHLIGHT_RANGES[index] ?? null;
+}
+
+function getHighlightBounds(range: HighlightRange, x: d3.ScaleLinear<number, number>): { left: number; right: number } {
+  const years = coldWarMedalData.map((datum) => datum.year);
+  const startIndex = years.indexOf(range.startYear);
+  const endIndex = years.indexOf(range.endYear);
+  const [chartLeft, chartRight] = x.range();
+
+  if (startIndex === -1 || endIndex === -1) {
+    return { left: chartLeft, right: chartRight };
+  }
+
+  const previousYear = years[startIndex - 1] ?? range.startYear;
+  const nextYear = years[endIndex + 1] ?? range.endYear;
+  const left = startIndex === 0 ? chartLeft : x((previousYear + range.startYear) / 2);
+  const right = endIndex === years.length - 1 ? chartRight : x((range.endYear + nextYear) / 2);
+
+  return { left, right };
+}
+
+function createChartHighlightController(
+  chart: d3.Selection<SVGGElement, unknown, null, undefined>,
+  x: d3.ScaleLinear<number, number>,
+  innerHeight: number
+): ChartHighlightController {
+  const overlayGroup = chart.append("g").attr("class", "cw-chart__overlay-group").attr("aria-hidden", "true");
+
+  const focusOverlay = overlayGroup
+    .append("rect")
+    .attr("class", "cw-chart__overlay cw-chart__overlay--focus")
+    .attr("x", 0)
+    .attr("y", 0)
+    .attr("width", 0)
+    .attr("height", innerHeight)
+    .attr("rx", 18)
+    .attr("ry", 18)
+    .attr("opacity", 0);
+
+  const leftOverlay = overlayGroup
+    .append("rect")
+    .attr("class", "cw-chart__overlay cw-chart__overlay--left")
+    .attr("x", 0)
+    .attr("y", 0)
+    .attr("width", 0)
+    .attr("height", innerHeight)
+    .attr("fill", "#0a0a0a")
+    .attr("opacity", 0);
+
+  const rightOverlay = overlayGroup
+    .append("rect")
+    .attr("class", "cw-chart__overlay cw-chart__overlay--right")
+    .attr("x", 0)
+    .attr("y", 0)
+    .attr("width", 0)
+    .attr("height", innerHeight)
+    .attr("fill", "#0a0a0a")
+    .attr("opacity", 0);
+
+  const haloNodes = chart.selectAll<SVGCircleElement, InteractivePointDatum>(".cw-chart__halo");
+  const moscowHalo = haloNodes.filter((datum) => datum.year === 1980);
+
+  function setMoscowPulse(isActive: boolean): void {
+    moscowHalo.classed("is-highlighted", isActive);
+  }
+
+  function resetChartHighlight(): void {
+    gsap.to([leftOverlay.node(), rightOverlay.node(), focusOverlay.node()].filter(isDefined), {
+      opacity: 0,
+      duration: 0.5,
+      ease: "power2.inOut",
+      overwrite: true,
+    });
+    setMoscowPulse(false);
+  }
+
+  function highlightChartSection(range: HighlightRange): void {
+    if (!range.showFocus && !range.dimOutside) {
+      resetChartHighlight();
+      return;
+    }
+
+    const { left, right } = getHighlightBounds(range, x);
+    const [chartLeft, chartRight] = x.range();
+    const leftWidth = Math.max(0, left - chartLeft);
+    const rightX = Math.min(right, chartRight);
+    const rightWidth = Math.max(0, chartRight - rightX);
+    const dimOutside = range.dimOutside ?? true;
+    const showFocus = range.showFocus ?? true;
+
+    gsap.to(leftOverlay.node(), {
+      attr: { x: chartLeft, width: leftWidth },
+      opacity: dimOutside && leftWidth > 0 ? 0.6 : 0,
+      duration: 0.5,
+      ease: "power2.inOut",
+      overwrite: true,
+    });
+
+    gsap.to(rightOverlay.node(), {
+      attr: { x: rightX, width: rightWidth },
+      opacity: dimOutside && rightWidth > 0 ? 0.6 : 0,
+      duration: 0.5,
+      ease: "power2.inOut",
+      overwrite: true,
+    });
+
+    gsap.to(focusOverlay.node(), {
+      attr: { x: left, width: Math.max(0, right - left) },
+      opacity: showFocus ? 1 : 0,
+      duration: 0.5,
+      ease: "power2.inOut",
+      overwrite: true,
+    });
+
+    setMoscowPulse(range.specialYear === 1980);
+  }
+
+  return {
+    highlight: (blockIndex: number) => {
+      const range = buildBlockHighlightRange(blockIndex);
+      if (!range) return;
+      highlightChartSection(range);
+    },
+    reset: resetChartHighlight,
+    destroy: () => {
+      gsap.killTweensOf([leftOverlay.node(), rightOverlay.node(), focusOverlay.node()].filter(isDefined));
+      setMoscowPulse(false);
+      overlayGroup.remove();
+    },
+  };
+}
+
+function dispatchChartHighlight(blockIndex: number): void {
+  chartHighlightController?.highlight(blockIndex);
+}
+
+function dispatchChartHighlightReset(): void {
+  chartHighlightController?.reset();
 }
 
 function disconnectChartResizeObserver(): void {
@@ -230,8 +414,10 @@ function setupChartResize(chartRoot: HTMLElement): void {
     }
 
     resizeFrame = requestAnimationFrame(() => {
+      const currentSideChoice = activeSideChoice;
       resizeFrame = 0;
-      initChart(activeSideChoice, { animateEntry: false, revealStage: false });
+      if (!currentSideChoice) return;
+      initChart(currentSideChoice, { animateEntry: false, revealStage: false });
     });
   });
 
@@ -247,14 +433,6 @@ function addManagedListener<K extends keyof HTMLElementEventMap>(
   sidePickerCleanupFns.push(() => target.removeEventListener(eventName, listener as EventListener));
 }
 
-function persistSideChoice(side: SideChoice): void {
-  try {
-    window.localStorage.setItem(SIDE_STORAGE_KEY, side);
-  } catch {
-    // Ignore storage failures in private browsing or restricted contexts.
-  }
-}
-
 function buildNarrativeBlocksMarkup(side: SideChoice): string {
   return narrativeText[side]
     .map(
@@ -263,7 +441,6 @@ function buildNarrativeBlocksMarkup(side: SideChoice): string {
           index === 0 ? "active" : "upcoming"
         }" aria-labelledby="${block.id}-title">
           <div class="cw-narrative-block__inner">
-            <p class="cw-narrative-block__eyebrow">BLOCK 0${block.block}</p>
             <h2 class="cw-narrative-block__title" id="${block.id}-title">${block.title}</h2>
             <div class="cw-narrative-block__body">
               ${block.body.map((paragraph) => `<p>${paragraph}</p>`).join("")}
@@ -306,9 +483,7 @@ function setActiveNarrativeBlock(blocks: HTMLElement[], nextIndex: number): void
   const activeBlock = blocks[nextIndex];
   if (!activeBlock) return;
 
-  const animatedNodes = activeBlock.querySelectorAll(
-    ".cw-narrative-block__eyebrow, .cw-narrative-block__title, .cw-narrative-block__body p"
-  );
+  const animatedNodes = activeBlock.querySelectorAll(".cw-narrative-block__title, .cw-narrative-block__body p");
 
   gsap.fromTo(
     animatedNodes,
@@ -334,6 +509,7 @@ function initNarrativeScroll(): void {
   if (blocks.length === 0 || !scrolly || !chartPanel || !chartPanelInner) return;
 
   setActiveNarrativeBlock(blocks, 0);
+  dispatchChartHighlight(0);
 
   if (window.innerWidth > 768) {
     narrativeScrollTriggers.push(
@@ -356,18 +532,24 @@ function initNarrativeScroll(): void {
         end: "bottom center",
         onEnter: () => {
           setActiveNarrativeBlock(blocks, index);
+          dispatchChartHighlight(index);
         },
         onEnterBack: () => {
           setActiveNarrativeBlock(blocks, index);
+          dispatchChartHighlight(index);
         },
         onLeave: () => {
           if (index < blocks.length - 1) {
             block.dataset.scrollState = "past";
+          } else {
+            dispatchChartHighlightReset();
           }
         },
         onLeaveBack: () => {
           if (index > 0) {
             block.dataset.scrollState = "upcoming";
+          } else {
+            dispatchChartHighlightReset();
           }
         },
       })
@@ -510,6 +692,8 @@ export function initHover(chartRoot: HTMLElement, playerLabel: string, enemyLabe
 }
 
 export function buildColdWarMarkup(): string {
+  const initialPanelContent = chartPanelContent.usa;
+
   return `
     <div class="cw-layout">
       <section class="cw-scrolly" aria-labelledby="cw-chart-title">
@@ -519,31 +703,27 @@ export function buildColdWarMarkup(): string {
 
         <aside class="cw-chart-panel">
           <div class="cw-chart-panel__inner">
-            <div class="cw-chart-copy">
-              <p class="cw-kicker">Scrollytelling / CWG-07</p>
-              <h1 class="cw-stage__title" id="cw-chart-title">The scoreboard that changed history</h1>
-              <p class="cw-stage__copy">
-                Five narrative blocks track the Cold War rivalry while the medal chart stays pinned in view.
-                Scroll the left column to move through Helsinki 1952, the Soviet surge, the boycott years, and the post-wall era.
-              </p>
-              <p class="cw-stage__meta">5 blocks · 100vh each · sticky chart at 60px</p>
+            <figure class="cw-chart-frame">
+              <figcaption class="cw-chart-frame__meta" data-chart-copy="figure-meta">${initialPanelContent.figureMeta}</figcaption>
+              <div class="cw-chart" id="cw-chart" role="img" aria-label="Line chart comparing Olympic gold medals for the selected Cold War rivalry"></div>
+            </figure>
 
-              <div class="cw-chart-legend" aria-label="Chart legend">
-                <div class="cw-chart-legend__item">
-                  <span class="cw-chart-legend__swatch cw-chart-legend__swatch--player"></span>
-                  <span class="cw-chart-legend__label" data-chart-label="player">USA</span>
-                </div>
-                <div class="cw-chart-legend__item">
-                  <span class="cw-chart-legend__swatch cw-chart-legend__swatch--enemy"></span>
-                  <span class="cw-chart-legend__label" data-chart-label="enemy">USSR</span>
-                </div>
+            <div class="cw-chart-legend" aria-label="Chart legend">
+              <div class="cw-chart-legend__item">
+                <span class="cw-chart-legend__swatch cw-chart-legend__swatch--player"></span>
+                <span class="cw-chart-legend__label" data-chart-label="player">USA</span>
+              </div>
+              <div class="cw-chart-legend__item">
+                <span class="cw-chart-legend__swatch cw-chart-legend__swatch--enemy"></span>
+                <span class="cw-chart-legend__label" data-chart-label="enemy">USSR</span>
               </div>
             </div>
 
-            <figure class="cw-chart-frame">
-              <figcaption class="cw-chart-frame__meta">Olympic gold medals per Summer Games edition</figcaption>
-              <div class="cw-chart" id="cw-chart" role="img" aria-label="Line chart comparing Olympic gold medals for the selected Cold War rivalry"></div>
-            </figure>
+            <div class="cw-chart-copy">
+              <h1 class="cw-stage__title" id="cw-chart-title" data-chart-copy="title">${initialPanelContent.title}</h1>
+              <p class="cw-stage__copy" data-chart-copy="body">${initialPanelContent.copy}</p>
+              <p class="cw-stage__meta" data-chart-copy="meta">${initialPanelContent.meta}</p>
+            </div>
           </div>
         </aside>
       </section>
@@ -588,18 +768,28 @@ export function initChart(side: SideChoice, options: ChartRenderOptions = {}): v
 
   activeSideChoice = side;
   cleanupChartHover();
+  cleanupChartHighlight();
 
   chartRoot.innerHTML = "";
 
   const computedStyle = getComputedStyle(storyRoot);
   const playerLabel = normalizeLabel(computedStyle.getPropertyValue("--player-label")) || (side === "usa" ? "USA" : "USSR");
   const enemyLabel = normalizeLabel(computedStyle.getPropertyValue("--enemy-label")) || (side === "usa" ? "USSR" : "USA");
+  const panelContent = chartPanelContent[side];
 
   const playerLegend = storyRoot.querySelector('[data-chart-label="player"]');
   const enemyLegend = storyRoot.querySelector('[data-chart-label="enemy"]');
+  const panelTitle = storyRoot.querySelector('[data-chart-copy="title"]');
+  const panelBody = storyRoot.querySelector('[data-chart-copy="body"]');
+  const panelMeta = storyRoot.querySelector('[data-chart-copy="meta"]');
+  const panelFigureMeta = storyRoot.querySelector('[data-chart-copy="figure-meta"]');
 
   if (playerLegend) playerLegend.textContent = playerLabel;
   if (enemyLegend) enemyLegend.textContent = enemyLabel;
+  if (panelTitle) panelTitle.textContent = panelContent.title;
+  if (panelBody) panelBody.textContent = panelContent.copy;
+  if (panelMeta) panelMeta.textContent = panelContent.meta;
+  if (panelFigureMeta) panelFigureMeta.textContent = panelContent.figureMeta;
 
   const innerWidth = CHART_WIDTH - CHART_MARGIN.left - CHART_MARGIN.right;
   const innerHeight = CHART_HEIGHT - CHART_MARGIN.top - CHART_MARGIN.bottom;
@@ -728,6 +918,8 @@ export function initChart(side: SideChoice, options: ChartRenderOptions = {}): v
         return pointGroup;
       });
   });
+
+  chartHighlightController = createChartHighlightController(chart, x, innerHeight);
 
   chartHoverCleanup = initHover(chartRoot, playerLabel, enemyLabel);
 
@@ -867,6 +1059,7 @@ export function initSidePicker(): void {
 export function destroyColdWar(): void {
   cleanupSidePickerListeners();
   cleanupChartHover();
+  cleanupChartHighlight();
   cleanupNarrativeScroll();
   disconnectChartResizeObserver();
   chartEntryTimeline?.kill();
