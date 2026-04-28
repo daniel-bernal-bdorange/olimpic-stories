@@ -29,6 +29,12 @@ Abrir en `http://localhost:3000`.
 
 La referencia de decisiones del proyecto esta en `docs/project-context.md`.
 
+## Skills compartidas
+
+El proyecto versiona skills de agente en `.agents/skills/` junto con `skills-lock.json`.
+
+Esto permite que el workflow de GitHub Copilot en este repo sea compartido y reproducible para cualquier persona que abra el workspace, en lugar de depender de instalaciones locales no versionadas.
+
 ## Backlog en Azure DevOps
 
 Hay un script para crear Epic/Features/Tasks automaticamente:
