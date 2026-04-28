@@ -1,5 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Mono:wght@400;500&display=swap");
-
 html:has(.cw-side-picker-container) {
   overflow: hidden;
 }
@@ -90,9 +88,9 @@ body:has(.cw-side-picker-container) {
   --cw-color-gold: #c9a84c;
   --cw-color-gold-light: #e8c96a;
 
-  --cw-font-display: "Bebas Neue", sans-serif;
-  --cw-font-body: "Cormorant Garamond", serif;
-  --cw-font-data: "DM Mono", monospace;
+  --cw-font-display: var(--font-cw-display), sans-serif;
+  --cw-font-body: var(--font-cw-body), serif;
+  --cw-font-data: var(--font-cw-data), monospace;
 
   --player-color: #1b4faa;
   --enemy-color: #cc0000;
@@ -108,6 +106,23 @@ body:has(.cw-side-picker-container) {
   height: 100%;
   margin: 0;
   padding: 0;
+}
+
+#cold-war-root.cw-side-picker-container--revealing:has(.cw-side-picker) {
+  width: min(1400px, 100% - 3rem);
+  height: auto;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 0 0 4rem;
+  position: relative;
+  top: auto;
+  left: auto;
+  z-index: auto;
+  overflow: visible;
+}
+
+#cold-war-root.cw-side-picker-container--revealing .cw-side-picker {
+  position: fixed;
 }
 
 #cold-war-root:not(:has(.cw-side-picker)) {

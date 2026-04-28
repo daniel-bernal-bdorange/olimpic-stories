@@ -115,6 +115,16 @@ function animatePickerOut(picker: Element): Promise<void> {
   });
 }
 
+function waitForNextPaint(): Promise<void> {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        resolve();
+      });
+    });
+  });
+}
+
 function getChartData(side: SideChoice): ChartPoint[] {
   return coldWarMedalData.map((datum) => ({
     ...datum,
@@ -459,8 +469,10 @@ function renderNarrative(side: SideChoice): void {
   narrativeTrack.innerHTML = buildNarrativeBlocksMarkup(side);
 }
 
-function setActiveNarrativeBlock(blocks: HTMLElement[], nextIndex: number): void {
+function setActiveNarrativeBlock(blocks: HTMLElement[], nextIndex: number, options: { animate?: boolean } = {}): void {
   if (activeNarrativeIndex === nextIndex) return;
+
+  const { animate = true } = options;
 
   activeNarrativeIndex = nextIndex;
 
@@ -485,6 +497,12 @@ function setActiveNarrativeBlock(blocks: HTMLElement[], nextIndex: number): void
 
   const animatedNodes = activeBlock.querySelectorAll(".cw-narrative-block__title, .cw-narrative-block__body p");
 
+  if (!animate) {
+    gsap.killTweensOf(animatedNodes);
+    gsap.set(animatedNodes, { autoAlpha: 1, y: 0, clearProps: "opacity,visibility,transform" });
+    return;
+  }
+
   gsap.fromTo(
     animatedNodes,
     { autoAlpha: 0, y: 18 },
@@ -508,7 +526,7 @@ function initNarrativeScroll(): void {
   const blocks = gsap.utils.toArray<HTMLElement>(".cw-narrative-block");
   if (blocks.length === 0 || !scrolly || !chartPanel || !chartPanelInner) return;
 
-  setActiveNarrativeBlock(blocks, 0);
+  setActiveNarrativeBlock(blocks, 0, { animate: false });
   dispatchChartHighlight(0);
 
   if (window.innerWidth > 768) {
@@ -1030,16 +1048,36 @@ export function initSidePicker(): void {
   });
 
   const handleSideChoice = async (side: SideChoice) => {
+    if (picker instanceof HTMLElement && picker.dataset.isClosing === "true") {
+      return;
+    }
+
+    if (picker instanceof HTMLElement) {
+      picker.dataset.isClosing = "true";
+    }
+
+    if (usaButton) {
+      usaButton.disabled = true;
+    }
+
+    if (ussrButton) {
+      ussrButton.disabled = true;
+    }
+
     setSideTheme(side);
     persistSideChoice(side);
+    root.dataset.sideChoice = side;
+    root.classList.remove("cw-side-picker-container");
+    root.classList.add("cw-side-picker-container--revealing");
+    document.body.style.overflow = "";
+    renderNarrative(side);
+    initChart(side, { revealStage: false });
+    await waitForNextPaint();
     await animatePickerOut(picker);
 
     picker.remove();
-    root.classList.remove("cw-side-picker-container");
-    root.dataset.sideChoice = side;
+    root.classList.remove("cw-side-picker-container--revealing");
     document.body.style.overflow = "";
-    renderNarrative(side);
-    initChart(side);
     initNarrativeScroll();
   };
 

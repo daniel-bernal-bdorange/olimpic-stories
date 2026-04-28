@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { RouteTransitionReady, useRouteTransition } from '@/components/route-transition';
 
 type StoryItem = {
   id: string;
@@ -17,13 +18,6 @@ type StoryItem = {
     label: string;
     stats: string[];
   };
-};
-
-type TransitionState = {
-  destinationSlug: string;
-  destinationTitle: string;
-  destinationNumber: string;
-  sourceNumber?: string;
 };
 
 const storiesData: StoryItem[] = [
@@ -328,75 +322,28 @@ const Footer = () => (
   </footer>
 );
 
-const CompetitionTransition = ({
-  transition,
-}: {
-  transition: TransitionState | null;
-}) => {
-  if (!transition) {
-    return null;
-  }
-
-  const sourceLabel = transition.sourceNumber ? `HEAT ${transition.sourceNumber}` : 'HOME ARENA';
-  const destinationLabel = `HEAT ${transition.destinationNumber}`;
-
-  return (
-    <div className="competition-transition" role="status" aria-live="polite">
-      <div className="competition-transition__scanline" />
-      <div className="competition-transition__score" />
-      <div className="competition-transition__content">
-        <p className="competition-transition__eyebrow">QUALIFICATION TRANSFER</p>
-        <h2 className="competition-transition__title">
-          {sourceLabel}
-          <span>{destinationLabel}</span>
-        </h2>
-        <p className="competition-transition__subtitle">{transition.destinationTitle}</p>
-        <div className="competition-transition__rings" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-          <span />
-          <span />
-        </div>
-      </div>
-    </div>
-  );
-};
-
 export default function Home() {
   const router = useRouter();
+  const { startTransition: beginRouteTransition } = useRouteTransition();
   const [activeStoryIndex, setActiveStoryIndex] = useState(0);
   const [showHeader, setShowHeader] = useState(false);
-  const [transition, setTransition] = useState<TransitionState | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const transitionTimeoutRef = useRef<number | null>(null);
-  const hasAutoTriggeredRef = useRef(false);
 
   const startTransition = useCallback(
-    (destinationSlug: string, sourceSlug?: string) => {
-      if (transitionTimeoutRef.current !== null) {
-        return;
-      }
-
+    (destinationSlug: string) => {
       const destinationStory = storiesData.find((story) => story.slug === destinationSlug);
       if (!destinationStory) {
         return;
       }
 
-      const sourceStory = sourceSlug ? storiesData.find((story) => story.slug === sourceSlug) : undefined;
-
-      setTransition({
-        destinationSlug,
-        destinationTitle: destinationStory.title,
-        destinationNumber: destinationStory.number,
-        sourceNumber: sourceStory?.number,
+      beginRouteTransition({
+        href: `/${destinationSlug}`,
+        sourceLabel: 'HOME ARENA',
+        destinationLabel: `HEAT ${destinationStory.number}`,
+        title: destinationStory.title,
       });
-
-      transitionTimeoutRef.current = window.setTimeout(() => {
-        router.push(`/${destinationSlug}`);
-      }, 1000);
     },
-    [router],
+    [beginRouteTransition],
   );
 
   useEffect(() => {
@@ -411,12 +358,10 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    return () => {
-      if (transitionTimeoutRef.current !== null) {
-        window.clearTimeout(transitionTimeoutRef.current);
-      }
-    };
-  }, []);
+    storiesData.forEach((story) => {
+      router.prefetch(`/${story.slug}`);
+    });
+  }, [router]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -452,30 +397,9 @@ export default function Home() {
     return () => window.removeEventListener('wheel', handleWheel);
   }, []);
 
-  useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const targetSlug = searchParams.get('target');
-    if (!targetSlug || hasAutoTriggeredRef.current) {
-      return;
-    }
-
-    const targetIndex = storiesData.findIndex((story) => story.slug === targetSlug);
-    if (targetIndex < 0) {
-      return;
-    }
-
-    hasAutoTriggeredRef.current = true;
-
-    const fromSlug = searchParams.get('from') || undefined;
-    const autoTimer = window.setTimeout(() => {
-      startTransition(targetSlug, fromSlug);
-    }, 520);
-
-    return () => window.clearTimeout(autoTimer);
-  }, [startTransition]);
-
   return (
     <div ref={containerRef} className="relative w-full overflow-x-hidden">
+      <RouteTransitionReady />
       <section className="relative w-full h-screen flex flex-col items-center justify-center bg-white bg-cover bg-center" style={{ backgroundImage: "url('/images/hero_bg.png')" }}>
         <div className="absolute inset-0 bg-white/65" />
 
@@ -516,8 +440,6 @@ export default function Home() {
 
         <Footer />
       </div>
-
-      <CompetitionTransition transition={transition} />
     </div>
   );
 }
