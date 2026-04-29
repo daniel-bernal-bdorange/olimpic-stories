@@ -42,3 +42,6 @@ next-env.d.ts
 
 # local editor settings
 .vscode/
+
+# local Azure DevOps artifacts
+.ado-feature-178-summary.json
