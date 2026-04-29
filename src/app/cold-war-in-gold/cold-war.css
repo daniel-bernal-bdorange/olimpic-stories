@@ -979,8 +979,43 @@ body:has(.cw-side-picker-container) {
   background-color: rgba(245, 242, 235, 0.2);
 }
 
-@media (max-width: 768px) {
-  #cold-war-root {
+@media (max-width: 1024px) {
+  .cw-scrolly {
+    grid-template-columns: minmax(22rem, 46%) minmax(0, 54%);
+    gap: clamp(1rem, 1.8vw, 1.5rem);
+  }
+
+  .cw-chart-panel__inner {
+    padding: 1rem;
+  }
+
+  .cw-chart-frame__meta {
+    font-size: 0.98rem;
+  }
+
+  .cw-context-card {
+    width: min(18rem, calc(100% - 1.5rem));
+  }
+
+  .cw-chart__annotation-text,
+  .cw-chart__axis text,
+  .cw-chart__axis-label {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 767px) {
+  .cw-page-shell {
+    background-attachment: scroll, scroll, scroll, scroll, scroll;
+  }
+
+  .cw-side-picker-container,
+  .cw-side-picker {
+    height: 100dvh;
+  }
+
+  #cold-war-root:not(:has(.cw-side-picker)),
+  #cold-war-root.cw-side-picker-container--revealing:has(.cw-side-picker) {
     width: calc(100% - 1.5rem);
     padding-bottom: 2.5rem;
   }
@@ -991,28 +1026,46 @@ body:has(.cw-side-picker-container) {
 
   .cw-scrolly {
     grid-template-columns: 1fr;
-    gap: 0;
+    gap: 1rem;
+  }
+
+  .cw-narrative-track {
+    order: 1;
+    padding-right: 0;
   }
 
   .cw-chart-panel {
+    order: 2;
     position: relative;
     top: 0;
     height: auto;
+    min-height: auto;
     padding-bottom: 0;
-    margin-bottom: 1rem;
+    margin-bottom: 0;
+  }
+
+  .cw-chart-panel__inner {
+    min-height: auto;
+    gap: 0.75rem;
+    padding: 0.85rem;
   }
 
   .cw-narrative-block {
     min-height: auto;
-    padding: 2.5rem 0;
+    padding: clamp(1.75rem, 8vw, 2.5rem) 0;
   }
 
   .cw-narrative-block__inner {
     max-width: none;
   }
 
-  .cw-side__label {
-    font-size: clamp(2rem, 8vw, 12vw);
+  .cw-narrative-block__title {
+    max-width: 12ch;
+    font-size: clamp(2.2rem, 13vw, 4rem);
+  }
+
+  .cw-narrative-block__body p {
+    font-size: clamp(1.05rem, 5vw, 1.28rem);
   }
 
   .cw-chart-shell {
@@ -1020,7 +1073,68 @@ body:has(.cw-side-picker-container) {
   }
 
   .cw-chart-frame {
-    padding: 0.75rem;
+    padding: 0.6rem 0.6rem 0.25rem;
+  }
+
+  .cw-chart-frame__meta {
+    font-size: 0.82rem;
+    line-height: 1.45;
+  }
+
+  .cw-chart {
+    min-height: clamp(22rem, 62vh, 30rem);
+  }
+
+  .cw-context-card {
+    position: fixed;
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 0.75rem);
+    z-index: 10001;
+    width: auto;
+    max-width: none;
+    gap: 0.75rem;
+    padding: 0.85rem 0.9rem 1rem;
+    border-color: rgba(201, 168, 76, 0.28);
+    border-radius: 1rem 1rem 0.65rem 0.65rem;
+    background:
+      linear-gradient(180deg, rgba(201, 168, 76, 0.12), rgba(10, 10, 10, 0.02) 30%),
+      rgba(10, 10, 10, 0.94);
+    box-shadow: 0 -18px 40px rgba(0, 0, 0, 0.4);
+  }
+
+  .cw-context-card__eyebrow {
+    font-size: 0.72rem;
+  }
+
+  .cw-context-card__value {
+    font-size: clamp(2rem, 13vw, 3rem);
+  }
+
+  .cw-context-card__body {
+    font-size: 0.96rem;
+    line-height: 1.5;
+  }
+
+  .cw-chart__annotation-line {
+    stroke-width: 1.6;
+  }
+
+  .cw-chart__annotation-text,
+  .cw-chart__axis text,
+  .cw-chart__axis-label {
+    font-size: 24px;
+  }
+
+  .cw-chart__annotation-text {
+    paint-order: stroke;
+    stroke: rgba(10, 10, 10, 0.9);
+    stroke-width: 6px;
+    stroke-linejoin: round;
+  }
+
+  .cw-final-stats {
+    padding: 1.25rem 1rem 1.4rem;
   }
 
   .cw-final-stats__grid {
@@ -1038,5 +1152,38 @@ body:has(.cw-side-picker-container) {
 
   .cw-final-stats__label {
     min-height: auto;
+  }
+
+  .cw-final-stats__cta {
+    flex-direction: column;
+  }
+
+  .cw-final-stats__link {
+    width: 100%;
+  }
+
+  .cw-side__content {
+    padding: 1.25rem 0.75rem;
+  }
+
+  .cw-side__prompt {
+    margin-top: 1rem;
+    font-size: 0.66rem;
+    letter-spacing: 0.2em;
+  }
+
+  .cw-side__label {
+    font-size: clamp(4.75rem, 20vw, 7rem);
+  }
+
+  .cw-side__medals {
+    margin-top: 1rem;
+    font-size: 0.72rem;
+  }
+
+  .cw-side__button {
+    width: 100%;
+    max-width: 11rem;
+    padding: 0.8rem 1rem;
   }
 }

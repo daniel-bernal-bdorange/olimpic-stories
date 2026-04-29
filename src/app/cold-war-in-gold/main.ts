@@ -56,10 +56,25 @@ const CHART_POINT_RADIUS = 10;
 const CHART_BOYCOTT_POINT_RADIUS = 12;
 const CHART_POINT_HOVER_DELTA = 6;
 const SIDE_STORAGE_KEY = "coldwar_side";
+const MOBILE_BREAKPOINT = 768;
+const TABLET_BREAKPOINT = 1024;
 
-const BOYCOTT_ANNOTATIONS = {
+const MOBILE_X_TICK_YEARS = [1952, 1968, 1980, 1996, 2008, 2020];
+const TABLET_X_TICK_YEARS = [1952, 1960, 1968, 1976, 1984, 1996, 2004, 2012, 2020];
+
+const DESKTOP_BOYCOTT_ANNOTATIONS = {
   1980: { dx: -148, dy: -70, text: "USA BOYCOTT - 6 GOLDS" },
   1984: { dx: 44, dy: -82, text: "USSR BOYCOTT - 6 GOLDS" },
+} as const;
+
+const TABLET_BOYCOTT_ANNOTATIONS = {
+  1980: { dx: -116, dy: -68, text: "USA BOYCOTT - 6 GOLDS" },
+  1984: { dx: 20, dy: -70, text: "USSR BOYCOTT - 6 GOLDS" },
+} as const;
+
+const MOBILE_BOYCOTT_ANNOTATIONS = {
+  1980: { dx: -88, dy: -52, text: "USA BOYCOTT" },
+  1984: { dx: 12, dy: -56, text: "USSR BOYCOTT" },
 } as const;
 
 const BLOCK_HIGHLIGHT_RANGES: HighlightRange[] = [
@@ -134,6 +149,42 @@ function waitForNextPaint(): Promise<void> {
       });
     });
   });
+}
+
+function isMobileViewport(): boolean {
+  return typeof window !== "undefined" && window.innerWidth < MOBILE_BREAKPOINT;
+}
+
+function isTabletViewport(): boolean {
+  return typeof window !== "undefined" && window.innerWidth < TABLET_BREAKPOINT;
+}
+
+function getChartTickYears(): number[] {
+  if (isMobileViewport()) {
+    return MOBILE_X_TICK_YEARS;
+  }
+
+  if (isTabletViewport()) {
+    return TABLET_X_TICK_YEARS;
+  }
+
+  return coldWarMedalData.map((datum) => datum.year);
+}
+
+function getBoycottAnnotations() {
+  if (isMobileViewport()) {
+    return MOBILE_BOYCOTT_ANNOTATIONS;
+  }
+
+  if (isTabletViewport()) {
+    return TABLET_BOYCOTT_ANNOTATIONS;
+  }
+
+  return DESKTOP_BOYCOTT_ANNOTATIONS;
+}
+
+function getContextCardOffset(): { x: number; y: number } {
+  return isMobileViewport() ? { x: 0, y: 24 } : { x: 20, y: 0 };
 }
 
 function getChartData(side: SideChoice): ChartPoint[] {
@@ -594,7 +645,7 @@ function initNarrativeScroll(): void {
   setActiveNarrativeBlock(blocks, 0, { animate: false });
   dispatchChartHighlight(0);
 
-  if (window.innerWidth > 768) {
+  if (window.innerWidth >= MOBILE_BREAKPOINT) {
     narrativeScrollTriggers.push(
       ScrollTrigger.create({
         trigger: scrolly,
@@ -723,15 +774,49 @@ export function initHover(chartRoot: HTMLElement, playerLabel: string, enemyLabe
   );
   const pointGroups = Array.from(chartRoot.querySelectorAll<SVGGElement>(".cw-chart__points g"));
   const points = d3.select(chartRoot).selectAll<SVGCircleElement, InteractivePointDatum>(".cw-chart__point");
+  const usesTouchInteractions = typeof window !== "undefined" && window.matchMedia("(hover: none), (pointer: coarse)").matches;
+  let activeTouchPoint: SVGCircleElement | null = null;
+  let activeTouchDatum: InteractivePointDatum | null = null;
+
+  function getDimTargets(): HTMLElement[] {
+    if (isMobileViewport()) {
+      return panelChrome;
+    }
+
+    return [narrativeTrack, ...panelChrome].filter(isDefined);
+  }
+
+  function animatePointRadius(point: SVGCircleElement, radius: number): void {
+    gsap.killTweensOf(point);
+    gsap.to(point, {
+      attr: { r: radius },
+      duration: 0.18,
+      ease: "power2.out",
+      overwrite: true,
+    });
+  }
+
+  function clearTouchSelection(): void {
+    if (activeTouchPoint && activeTouchDatum) {
+      animatePointRadius(activeTouchPoint, activeTouchDatum.baseRadius);
+    }
+
+    activeTouchPoint = null;
+    activeTouchDatum = null;
+  }
 
   function showFrozenState(activePoint: SVGCircleElement, datum: InteractivePointDatum): void {
     if (!storyRoot || !contextCard) return;
 
     updateContextCard(storyRoot, playerLabel, enemyLabel, datum);
 
-    gsap.killTweensOf([narrativeTrack, ...panelChrome, ...chartAreas, ...chartVisuals, ...pointGroups, contextCard].filter(isDefined));
-    gsap.to([narrativeTrack, ...panelChrome].filter(isDefined), {
-      opacity: 0.15,
+    const dimTargets = getDimTargets();
+    const dimOpacity = isMobileViewport() ? 0.28 : 0.15;
+    const hiddenOffset = getContextCardOffset();
+
+    gsap.killTweensOf([...dimTargets, ...chartAreas, ...chartVisuals, ...pointGroups, contextCard].filter(isDefined));
+    gsap.to(dimTargets, {
+      opacity: dimOpacity,
       duration: 0.25,
       ease: "power2.out",
       overwrite: true,
@@ -763,10 +848,11 @@ export function initHover(chartRoot: HTMLElement, playerLabel: string, enemyLabe
     contextCard.setAttribute("aria-hidden", "false");
     gsap.fromTo(
       contextCard,
-      { autoAlpha: 0, x: 20 },
+      { autoAlpha: 0, x: hiddenOffset.x, y: hiddenOffset.y },
       {
         autoAlpha: 1,
         x: 0,
+        y: 0,
         duration: 0.3,
         ease: "power2.out",
         overwrite: true,
@@ -775,14 +861,17 @@ export function initHover(chartRoot: HTMLElement, playerLabel: string, enemyLabe
   }
 
   function resetFrozenState(): void {
-    gsap.killTweensOf([narrativeTrack, ...panelChrome, ...chartAreas, ...chartVisuals, ...pointGroups, contextCard].filter(isDefined));
+    const dimTargets = getDimTargets();
+    const hiddenOffset = getContextCardOffset();
+
+    gsap.killTweensOf([...dimTargets, ...chartAreas, ...chartVisuals, ...pointGroups, contextCard].filter(isDefined));
     gsap.to(chartAreas, {
       opacity: CHART_AREA_OPACITY,
       duration: 0.2,
       ease: "power2.out",
       overwrite: true,
     });
-    gsap.to([narrativeTrack, ...panelChrome, ...chartVisuals, ...pointGroups].filter(isDefined), {
+    gsap.to([...dimTargets, ...chartVisuals, ...pointGroups], {
       opacity: 1,
       duration: 0.2,
       ease: "power2.out",
@@ -795,23 +884,69 @@ export function initHover(chartRoot: HTMLElement, playerLabel: string, enemyLabe
     contextCard.setAttribute("aria-hidden", "true");
     gsap.to(contextCard, {
       autoAlpha: 0,
-      x: 20,
+      x: hiddenOffset.x,
+      y: hiddenOffset.y,
       duration: 0.2,
       ease: "power2.out",
       overwrite: true,
     });
   }
 
+  if (usesTouchInteractions) {
+    const dismissTouchState = (event: PointerEvent) => {
+      const target = event.target as Element | null;
+      if (target?.closest(".cw-chart__point")) {
+        return;
+      }
+
+      clearTouchSelection();
+      resetFrozenState();
+    };
+
+    points.style("cursor", "pointer").on("click", function (event, datum) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const point = this as SVGCircleElement;
+
+      if (activeTouchPoint === point) {
+        clearTouchSelection();
+        resetFrozenState();
+        return;
+      }
+
+      clearTouchSelection();
+      activeTouchPoint = point;
+      activeTouchDatum = datum;
+      animatePointRadius(point, datum.baseRadius + CHART_POINT_HOVER_DELTA);
+      showFrozenState(point, datum);
+    });
+
+    if (storyRoot) {
+      storyRoot.addEventListener("pointerdown", dismissTouchState);
+    }
+
+    if (contextCard) {
+      const hiddenOffset = getContextCardOffset();
+      gsap.set(contextCard, { autoAlpha: 0, x: hiddenOffset.x, y: hiddenOffset.y });
+    }
+
+    return () => {
+      points.on("click", null).style("cursor", null);
+      if (storyRoot) {
+        storyRoot.removeEventListener("pointerdown", dismissTouchState);
+      }
+      clearTouchSelection();
+      resetFrozenState();
+      gsap.killTweensOf(contextCard);
+      gsap.killTweensOf(points.nodes());
+    };
+  }
+
   points
     .style("cursor", "pointer")
     .on("mouseover", function (_event, datum) {
-      gsap.killTweensOf(this);
-      gsap.to(this, {
-        attr: { r: datum.baseRadius + CHART_POINT_HOVER_DELTA },
-        duration: 0.18,
-        ease: "power2.out",
-        overwrite: true,
-      });
+      animatePointRadius(this as SVGCircleElement, datum.baseRadius + CHART_POINT_HOVER_DELTA);
 
       showFrozenState(this as SVGCircleElement, datum);
     })
@@ -827,19 +962,14 @@ export function initHover(chartRoot: HTMLElement, playerLabel: string, enemyLabe
       }
     })
     .on("mouseout", function (_event, datum) {
-      gsap.killTweensOf(this);
-      gsap.to(this, {
-        attr: { r: datum.baseRadius },
-        duration: 0.16,
-        ease: "power2.out",
-        overwrite: true,
-      });
+      animatePointRadius(this as SVGCircleElement, datum.baseRadius);
 
       resetFrozenState();
     });
 
   if (contextCard) {
-    gsap.set(contextCard, { autoAlpha: 0, x: 20 });
+    const hiddenOffset = getContextCardOffset();
+    gsap.set(contextCard, { autoAlpha: 0, x: hiddenOffset.x, y: hiddenOffset.y });
   }
 
   return () => {
@@ -1146,10 +1276,12 @@ export function initChart(side: SideChoice, options: ChartRenderOptions = {}): v
 
   const annotationGroup = chart.append("g").attr("class", "cw-chart__annotations");
 
+  const boycottAnnotations = getBoycottAnnotations();
+
   data
     .filter((datum) => datum.boycott !== null)
     .forEach((datum) => {
-      const annotation = BOYCOTT_ANNOTATIONS[datum.year as keyof typeof BOYCOTT_ANNOTATIONS];
+      const annotation = boycottAnnotations[datum.year as keyof typeof boycottAnnotations];
       const boycottValue = datum.boycott === "usa" ? datum.usaGold : datum.rivalGold;
       if (!annotation || boycottValue === null) return;
 
@@ -1178,7 +1310,7 @@ export function initChart(side: SideChoice, options: ChartRenderOptions = {}): v
     .append("g")
     .attr("class", "cw-chart__axis cw-chart__axis--x")
     .attr("transform", `translate(0,${innerHeight})`)
-    .call(d3.axisBottom(x).tickValues(coldWarMedalData.map((datum) => datum.year)).tickFormat(d3.format("d")));
+    .call(d3.axisBottom(x).tickValues(getChartTickYears()).tickFormat(d3.format("d")));
 
   chart.append("g").attr("class", "cw-chart__axis cw-chart__axis--y").call(d3.axisLeft(y).ticks(6).tickFormat(d3.format("d")));
 
