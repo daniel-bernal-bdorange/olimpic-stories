@@ -3,6 +3,21 @@
 import { useEffect, useRef, useState } from "react";
 import { Bebas_Neue, Cormorant_Garamond, DM_Mono } from "next/font/google";
 import { TransitionLink, useRouteTransition } from "@/components/route-transition";
+import {
+  atlasHeroImpact,
+  atlasViews,
+  formatAtlasMetricValue,
+  getAtlasContextCopy,
+  getAtlasMetricLabel,
+  getAtlasSportCount,
+  getOlympicAverage,
+  getSortedAtlasProfiles,
+  initialAtlasSort,
+  initialAtlasView,
+  sortOptions,
+  type AtlasView,
+  type SortMetric,
+} from "./data";
 
 const atlasDisplayFont = Bebas_Neue({
   weight: "400",
@@ -23,121 +38,7 @@ const atlasDataFont = DM_Mono({
   variable: "--font-atlas-data",
 });
 
-type AtlasView = "male" | "female";
-type SortMetric = "height" | "weight" | "bmi";
-
-type AthleteProfile = {
-  height: number;
-  weight: number;
-  bmi: number;
-  detail: string;
-};
-
-type PreviewSport = {
-  sport: string;
-  male: AthleteProfile;
-  female: AthleteProfile;
-};
-
-const atlasViews: Array<{ key: AtlasView; label: string }> = [
-  { key: "male", label: "Male" },
-  { key: "female", label: "Female" },
-];
-
-const initialAtlasView: AtlasView = "male";
-const initialAtlasSort: SortMetric = "height";
-
-const sortOptions: Array<{ key: SortMetric; label: string }> = [
-  { key: "height", label: "Height" },
-  { key: "weight", label: "Weight" },
-  { key: "bmi", label: "BMI" },
-];
-
-const atlasSportCount = 20;
-const previewSports = [
-  {
-    sport: "Basketball",
-    male: {
-      height: 191.2,
-      weight: 85.7,
-      bmi: 23.4,
-      detail: "The tallest Olympic profile, built around reach and floor coverage.",
-    },
-    female: {
-      height: 182.1,
-      weight: 74.3,
-      bmi: 22.4,
-      detail: "A long frame optimized for verticality, spacing and repeated jumps.",
-    },
-  },
-  {
-    sport: "Artistic Gymnastics",
-    male: {
-      height: 162.9,
-      weight: 63.4,
-      bmi: 23.9,
-      detail: "Compact leverage keeps rotation fast without sacrificing control.",
-    },
-    female: {
-      height: 154.6,
-      weight: 47.8,
-      bmi: 20.0,
-      detail: "The shortest silhouette in the atlas, tuned for precision and airtime.",
-    },
-  },
-  {
-    sport: "Weightlifting",
-    male: {
-      height: 173.7,
-      weight: 83.8,
-      bmi: 27.8,
-      detail: "The densest build in the sample, where mass concentrates into power.",
-    },
-    female: {
-      height: 160.4,
-      weight: 69.7,
-      bmi: 27.1,
-      detail: "Explosive strength sits in a shorter frame with unusually high density.",
-    },
-  },
-  {
-    sport: "Rowing",
-    male: {
-      height: 189.0,
-      weight: 89.4,
-      bmi: 25.0,
-      detail: "Length and power combine to maximize stroke distance and rhythm.",
-    },
-    female: {
-      height: 180.2,
-      weight: 76.6,
-      bmi: 23.6,
-      detail: "A tall, efficient profile designed to convert reach into sustained force.",
-    },
-  },
-] satisfies PreviewSport[];
-
-function formatMetricValue(metric: SortMetric, value: number) {
-  if (metric === "bmi") {
-    return `BMI ${value.toFixed(1)}`;
-  }
-
-  return `${value.toFixed(1)} ${metric === "height" ? "CM" : "KG"}`;
-}
-
-function getContextCopy(view: AtlasView, metric: SortMetric) {
-  const audience = view === "male" ? "male" : "female";
-
-  if (metric === "height") {
-    return `Sorting the ${audience} dataset by height exposes how each sport stretches or compresses the Olympic silhouette before the full D3 atlas loads.`;
-  }
-
-  if (metric === "weight") {
-    return `Sorting the ${audience} dataset by weight surfaces where power adds visible mass and where technique keeps the body lighter without losing output.`;
-  }
-
-  return `Sorting the ${audience} dataset by BMI reveals the densest builds against the leanest frames, framing the analytical promise of the atlas at a glance.`;
-}
+const initialAtlasSportCount = getAtlasSportCount(initialAtlasView);
 
 export default function AtlasCuerpoOlimpicoPage() {
   const atlasRootRef = useRef<HTMLDivElement | null>(null);
@@ -149,13 +50,13 @@ export default function AtlasCuerpoOlimpicoPage() {
   const [controlsBarHeight, setControlsBarHeight] = useState(0);
   const [isControlsPinned, setIsControlsPinned] = useState(false);
 
+  const atlasSportCount = getAtlasSportCount(selectedView);
+  const selectedAverages = getOlympicAverage(selectedView);
   const selectedViewLabel = atlasViews.find(({ key }) => key === selectedView)?.label ?? "Male";
-  const selectedSortLabel = sortOptions.find(({ key }) => key === selectedSort)?.label ?? "Height";
-  const contextualCopy = getContextCopy(selectedView, selectedSort);
-  const sortedPreviewSports = [...previewSports].sort(
-    (left, right) => right[selectedView][selectedSort] - left[selectedView][selectedSort],
-  );
-  const maxMetricValue = sortedPreviewSports[0]?.[selectedView][selectedSort] ?? 1;
+  const selectedSortLabel = getAtlasMetricLabel(selectedSort);
+  const contextualCopy = getAtlasContextCopy(selectedView, selectedSort);
+  const sortedPreviewSports = getSortedAtlasProfiles(selectedView, selectedSort);
+  const maxMetricValue = sortedPreviewSports[0]?.[selectedSort] ?? 1;
 
   useEffect(() => {
     let cancelled = false;
@@ -168,7 +69,7 @@ export default function AtlasCuerpoOlimpicoPage() {
         }
 
         initBodyAtlas(atlasRootRef.current, {
-          sportCount: atlasSportCount,
+          sportCount: initialAtlasSportCount,
           sort: initialAtlasSort,
           view: initialAtlasView,
         });
@@ -200,7 +101,7 @@ export default function AtlasCuerpoOlimpicoPage() {
       .catch((error) => {
         console.error("Body Atlas control sync failed", error);
       });
-  }, [selectedSort, selectedView]);
+  }, [atlasSportCount, selectedSort, selectedView]);
 
   useEffect(() => {
     const controlsNode = controlsBarRef.current;
@@ -337,13 +238,13 @@ export default function AtlasCuerpoOlimpicoPage() {
                 className="text-[clamp(3.5rem,8vw,5.5rem)] uppercase leading-none text-white"
                 style={{ fontFamily: "var(--font-atlas-display)" }}
               >
-                28.3 CM
+                {atlasHeroImpact.value.toFixed(1)} {atlasHeroImpact.unit}
               </p>
               <p
                 className="text-xl italic text-white/72 sm:text-2xl"
                 style={{ fontFamily: "var(--font-atlas-body)" }}
               >
-                Separate the shortest Olympic silhouette from the tallest one on the floor.
+                {atlasHeroImpact.caption}
               </p>
             </div>
 
@@ -376,9 +277,9 @@ export default function AtlasCuerpoOlimpicoPage() {
                 Context panel
               </p>
               <div className="mt-4 space-y-3 text-white/74" style={{ fontFamily: "var(--font-atlas-data)" }}>
-                <p>20 SPORTS IN DATASET</p>
+                <p>{atlasSportCount} SPORTS IN {selectedViewLabel.toUpperCase()} DATASET</p>
                 <p>2 DATA VIEWS</p>
-                <p>3 SORT LENSES</p>
+                <p>AVG BMI {selectedAverages.bmi.toFixed(1)}</p>
               </div>
             </aside>
           </div>
@@ -514,14 +415,13 @@ export default function AtlasCuerpoOlimpicoPage() {
               Preview slice
             </p>
             <p className="text-xl italic text-white/72 sm:text-2xl" style={{ fontFamily: "var(--font-atlas-body)" }}>
-              {selectedViewLabel} athletes ranked by {selectedSortLabel.toLowerCase()}. The live D3 atlas can now inherit the same control state and contextual framing.
+              {selectedViewLabel} athletes ranked by {selectedSortLabel.toLowerCase()}. Olympic average: {formatAtlasMetricValue(selectedSort, selectedAverages[selectedSort])}.
             </p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {sortedPreviewSports.map((item) => {
-              const profile = item[selectedView];
-              const metricValue = profile[selectedSort];
+              const metricValue = item[selectedSort];
               const silhouetteHeight = `${Math.max(36, (metricValue / maxMetricValue) * 100)}%`;
 
               return (
@@ -537,7 +437,7 @@ export default function AtlasCuerpoOlimpicoPage() {
                     </div>
                     <div className="w-28 text-right">
                       <p className="text-3xl uppercase text-white" style={{ fontFamily: "var(--font-atlas-display)" }}>
-                        {formatMetricValue(selectedSort, metricValue)}
+                        {formatAtlasMetricValue(selectedSort, metricValue)}
                       </p>
                     </div>
                   </div>
@@ -550,7 +450,7 @@ export default function AtlasCuerpoOlimpicoPage() {
                       {item.sport}
                     </p>
                     <p className="text-lg italic text-white/68" style={{ fontFamily: "var(--font-atlas-body)" }}>
-                      {profile.detail}
+                      {item.detail}
                     </p>
                   </div>
                 </article>
@@ -568,7 +468,7 @@ export default function AtlasCuerpoOlimpicoPage() {
                   Next slice
                 </p>
                 <p className="text-2xl text-white sm:text-3xl" style={{ fontFamily: "var(--font-atlas-display)" }}>
-                  Sticky controls are ready. The D3 silhouette grid can mount into this shell next.
+                  Data model, metadata and analytical rules are ready. The D3 silhouette grid can mount into this shell next.
                 </p>
               </div>
 
