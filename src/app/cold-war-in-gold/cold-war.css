@@ -14,7 +14,8 @@ body:has(.cw-side-picker-container) {
   isolation: isolate;
   color: #f5f2eb;
   background:
-    linear-gradient(180deg, var(--cw-shell-band-color) 0%, var(--cw-shell-page-wash) 22%, rgba(10, 10, 10, 0.2) 58%, rgba(10, 10, 10, 0.1) 100%),
+    linear-gradient(180deg, var(--cw-shell-band-color) 0%, rgba(10, 10, 10, 0) 34%, rgba(10, 10, 10, 0) 58%),
+    linear-gradient(180deg, rgba(10, 10, 10, 0) 52%, rgba(201, 168, 76, 0.03) 76%, var(--cw-shell-page-wash) 100%),
     linear-gradient(180deg, rgba(10, 10, 10, 0.58) 0%, rgba(10, 10, 10, 0.34) 26%, rgba(10, 10, 10, 0.16) 64%, rgba(10, 10, 10, 0.08) 100%),
     url("/images/cold-war-bg.png"),
     #0a0a0a;
@@ -27,17 +28,17 @@ body:has(.cw-side-picker-container) {
     cover,
     cover;
   background-repeat: no-repeat;
-  background-attachment: scroll, scroll, fixed, fixed;
+  background-attachment: scroll, scroll, scroll, fixed, fixed;
 }
 
 .cw-page-shell:has(#cold-war-root[data-side-choice="usa"]) {
   --cw-shell-band-color: rgba(27, 79, 170, 0.34);
-  --cw-shell-page-wash: rgba(27, 79, 170, 0.18);
+  --cw-shell-page-wash: rgba(201, 168, 76, 0.12);
 }
 
 .cw-page-shell:has(#cold-war-root[data-side-choice="ussr"]) {
   --cw-shell-band-color: rgba(204, 0, 0, 0.34);
-  --cw-shell-page-wash: rgba(204, 0, 0, 0.16);
+  --cw-shell-page-wash: rgba(201, 168, 76, 0.12);
 }
 
 .cw-side-picker-container {
@@ -77,7 +78,7 @@ body:has(.cw-side-picker-container) {
 .cw-top-nav__link:hover {
   border-color: #c9a84c;
   color: #c9a84c;
-  background-color: rgba(201, 168, 76, 0.08);
+  gap: 0.55rem;
 }
 
 #cold-war-root {
@@ -93,12 +94,14 @@ body:has(.cw-side-picker-container) {
   --cw-font-data: var(--font-cw-data), monospace;
 
   --player-color: #1b4faa;
+  gap: 0.45rem;
   --enemy-color: #cc0000;
   --player-label: "USA";
   --enemy-label: "USSR";
   --victory-word: "VICTORY";
   --defeat-word: "DEFEAT";
   --player-flag-accent: #1b4faa;
+  margin-top: 0.15rem;
 }
 
 #cold-war-root:has(.cw-side-picker) {
@@ -155,6 +158,135 @@ body:has(.cw-side-picker-container) {
 
 .cw-layout {
   display: block;
+}
+
+.cw-final-stats {
+  margin-top: clamp(3rem, 7vw, 6rem);
+  padding: clamp(1.5rem, 3vw, 2rem);
+  border: 1px solid rgba(245, 242, 235, 0.12);
+  background:
+    linear-gradient(180deg, rgba(201, 168, 76, 0.08), rgba(10, 10, 10, 0) 28%),
+    rgba(17, 17, 17, 0.9);
+}
+
+.cw-final-stats__intro {
+  max-width: 44rem;
+}
+
+.cw-final-stats__title {
+  margin: 0.45rem 0 0;
+  font-family: var(--cw-font-display);
+  font-size: clamp(2.2rem, 5vw, 4.6rem);
+  line-height: 0.92;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--cw-color-gold);
+}
+
+.cw-final-stats__copy {
+  margin: 0.9rem 0 0;
+  max-width: 52ch;
+  font-family: var(--cw-font-body);
+  font-size: clamp(1.05rem, 1.7vw, 1.3rem);
+  line-height: 1.55;
+  font-style: italic;
+  color: #9a9a9a;
+}
+
+.cw-final-stats__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: clamp(1.5rem, 3vw, 2.4rem);
+  border-top: 1px solid rgba(245, 242, 235, 0.12);
+  border-bottom: 1px solid rgba(245, 242, 235, 0.12);
+}
+
+.cw-final-stats__item {
+  padding: clamp(1.25rem, 3vw, 2rem) clamp(0.85rem, 1.5vw, 1.15rem);
+}
+
+.cw-final-stats__item + .cw-final-stats__item {
+  border-left: 1px solid rgba(245, 242, 235, 0.12);
+}
+
+.cw-final-stats__label {
+  margin: 0;
+  min-height: 2.8em;
+  font-family: var(--cw-font-data);
+  font-size: 0.65rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #9a9a9a;
+}
+
+.cw-final-stats__value {
+  margin: 0.75rem 0 0;
+  font-family: var(--cw-font-display);
+  font-size: clamp(3.4rem, 8vw, 6.5rem);
+  line-height: 0.88;
+  letter-spacing: 0.04em;
+  color: var(--cw-color-gold);
+}
+
+.cw-final-stats__item--player-total .cw-final-stats__value,
+.cw-final-stats__item--player-wins .cw-final-stats__value {
+  color: var(--player-color);
+}
+
+.cw-final-stats__item--enemy-total .cw-final-stats__value,
+.cw-final-stats__item--enemy-wins .cw-final-stats__value {
+  color: var(--enemy-color);
+}
+
+.cw-final-stats__closing {
+  margin-top: clamp(1.35rem, 2.2vw, 1.8rem);
+  text-align: center;
+}
+
+.cw-final-stats__closing-line {
+  margin: 0;
+  font-family: var(--cw-font-body);
+  font-size: clamp(1.1rem, 1.9vw, 1.3rem);
+  line-height: 1.45;
+  font-style: italic;
+  color: #9a9a9a;
+}
+
+.cw-final-stats__closing-line + .cw-final-stats__closing-line {
+  margin-top: 0.15rem;
+}
+
+.cw-final-stats__cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  margin-top: clamp(1.35rem, 2.5vw, 2rem);
+}
+
+.cw-final-stats__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.8rem;
+  padding: 0.7rem 1rem;
+  border: 1px solid rgba(245, 242, 235, 0.2);
+  font-family: var(--cw-font-data);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cw-color-white);
+  text-decoration: none;
+  transition: border-color 0.25s ease, color 0.25s ease, background-color 0.25s ease;
+}
+
+.cw-final-stats__link:hover {
+  border-color: var(--cw-color-gold);
+  color: var(--cw-color-gold-light);
+  background-color: rgba(201, 168, 76, 0.08);
+}
+
+.cw-final-stats__link--accent {
+  border-color: rgba(201, 168, 76, 0.38);
 }
 
 .cw-scrolly {
@@ -452,7 +584,7 @@ body:has(.cw-side-picker-container) {
 .cw-chart-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.8rem;
+  gap: 0.7rem;
 }
 
 .cw-chart-legend__item {
@@ -491,26 +623,28 @@ body:has(.cw-side-picker-container) {
   margin: 0;
   border: 1px solid rgba(245, 242, 235, 0.12);
   background: transparent;
-  padding: 0.7rem 0.7rem 0.45rem;
+  padding: 0.7rem 0.7rem 0.3rem;
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
+  gap: 0.2rem;
 }
 
 .cw-chart-frame__meta {
-  margin: 0 0 0.55rem;
+  margin: 0;
   font-family: var(--cw-font-data);
-  font-size: 1rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: rgba(245, 242, 235, 0.62);
+  font-size: 1.14rem;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  white-space: pre-line;
+  color: #9a9a9a;
 }
 
 .cw-chart {
   position: relative;
   flex: 1;
-  min-height: clamp(26rem, 62vh, 44rem);
+  min-height: clamp(30rem, 70vh, 52rem);
 }
 
 .cw-chart svg {
@@ -887,5 +1021,22 @@ body:has(.cw-side-picker-container) {
 
   .cw-chart-frame {
     padding: 0.75rem;
+  }
+
+  .cw-final-stats__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cw-final-stats__item:nth-child(3),
+  .cw-final-stats__item:nth-child(4) {
+    border-top: 1px solid rgba(245, 242, 235, 0.12);
+  }
+
+  .cw-final-stats__item:nth-child(3) {
+    border-left: 0;
+  }
+
+  .cw-final-stats__label {
+    min-height: auto;
   }
 }

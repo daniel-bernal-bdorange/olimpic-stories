@@ -1,0 +1,101 @@
+COLD WAR IN GOLD — MISSING COPY
+Olympic Data Stories · Chart caption + Duel in Totals
+======================================================
+
+
+1. CHART CAPTION (pie de gráfico)
+==================================
+
+Texto pequeño bajo el gráfico D3, en DM Mono 0.7rem, color #666666.
+Dos líneas máximo.
+
+- - -
+
+Olympic Summer Games gold medals · 1952–2020
+USSR data ends 1988. Russia (RUS / ROC) from 1996 onwards.
+1980 and 1984 figures reflect boycotted editions.
+
+- - -
+
+
+2. THE DUEL IN TOTALS (sección de estadísticas finales)
+=========================================================
+
+Título de sección encima de las cuatro columnas de estadísticas.
+En Bebas Neue, tamaño 5vw, color #C9A84C (dorado).
+
+TÍTULO:
+"THE DUEL IN TOTALS"
+
+Subtítulo opcional debajo del título, en Cormorant Garamond italic 1.1rem, color #666666:
+"Summer Games only · 1952–2020 · Boycotted editions included"
+
+
+ETIQUETAS DE LAS CUATRO COLUMNAS
+----------------------------------
+
+Columna 1 — número grande + label:
+  [número] ← total oros del bando elegido (USA: 483 · USSR/RUS: 473)
+  label: "YOUR SIDE GOLDS"   ← DM Mono 0.65rem #666666
+
+Columna 2 — número grande + label:
+  [número] ← total oros del bando rival
+  label: "ENEMY GOLDS"       ← DM Mono 0.65rem #666666
+
+Columna 3 — número grande + label:
+  [número] ← ediciones ganadas por el bando elegido (más oros ese año)
+  label: "EDITIONS WON"      ← DM Mono 0.65rem #666666
+
+Columna 4 — número grande + label:
+  [número] ← ediciones ganadas por el rival
+  label: "EDITIONS LOST"     ← DM Mono 0.65rem #666666
+
+
+VALORES POR BANDO
+------------------
+
+Si el usuario eligió USA:
+  Col 1: 483  YOUR SIDE GOLDS
+  Col 2: 473  ENEMY GOLDS
+  Col 3: 9    EDITIONS WON
+  Col 4: 7    EDITIONS LOST
+
+Si el usuario eligió USSR:
+  Col 1: 473  YOUR SIDE GOLDS
+  Col 2: 483  ENEMY GOLDS
+  Col 3: 7    EDITIONS WON
+  Col 4: 9    EDITIONS LOST
+
+
+TEXTO DE CIERRE BAJO LAS ESTADÍSTICAS
+---------------------------------------
+
+En Cormorant Garamond italic, 1.3rem, color #888888, centrado.
+Dos líneas. Cambia según el bando elegido.
+
+[USA VERSION]
+"Ten editions won. A rival that no longer exists.
+The Cold War is over — America's record stands."
+
+[USSR VERSION]
+"Seven editions won. A nation dissolved, a legacy intact.
+No country in history has matched the Soviet Olympic record."
+
+
+======================================================
+IMPLEMENTATION NOTE
+======================================================
+
+Los valores numéricos de las cuatro columnas están hardcoded en data.js
+bajo la misma estructura que el texto narrativo:
+
+const duellTotals = {
+  usa:  { side: 483, enemy: 473, won: 9, lost: 7 },
+  ussr: { side: 473, enemy: 483, won: 7, lost: 9 },
+}
+
+El texto de cierre sigue el mismo patrón que narrativeText:
+accede a closingText[side] al cargar la página.
+
+======================================================
+END OF COPY

@@ -2,11 +2,18 @@ import * as d3 from "d3";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
-import { chartPanelContent, coldWarMedalData, historicalContext, narrativeText, type ColdWarMedalDatum, type SideChoice } from "./data";
+import { chartPanelContent, closingText, coldWarMedalData, duelTotals, historicalContext, narrativeText, type ColdWarMedalDatum, type SideChoice } from "./data";
 
 gsap.registerPlugin(ScrollTrigger);
 
 type PointSeriesKey = "player" | "enemy";
+
+type FinalStats = {
+  playerTotalGolds: number;
+  enemyTotalGolds: number;
+  playerWins: number;
+  enemyWins: number;
+};
 
 type ChartPoint = ColdWarMedalDatum & {
   playerGold: number | null;
@@ -39,9 +46,9 @@ type ChartHighlightController = {
   destroy: () => void;
 };
 
-const CHART_MARGIN = { top: 44, right: 72, bottom: 68, left: 64 };
+const CHART_MARGIN = { top: 40, right: 72, bottom: 34, left: 64 };
 const CHART_WIDTH = 1280;
-const CHART_HEIGHT = 780;
+const CHART_HEIGHT = 920;
 const CHART_ENTRY_DURATION = 2.5;
 const CHART_ENTRY_DELAY = 0.3;
 const CHART_AREA_OPACITY = 0.06;
@@ -72,6 +79,7 @@ let sidePickerCleanupFns: Array<() => void> = [];
 let narrativeScrollTriggers: ScrollTrigger[] = [];
 let activeNarrativeIndex = -1;
 let chartHighlightController: ChartHighlightController | null = null;
+let finalStatsScrollTriggers: ScrollTrigger[] = [];
 
 function normalizeLabel(value: string): string {
   return value.replace(/"/g, "").trim();
@@ -91,7 +99,7 @@ function setSideTheme(side: SideChoice): void {
     root.style.setProperty("--player-flag-accent", "#1B4FAA");
     shell?.style.setProperty("--cw-shell-band-color", "rgba(27, 79, 170, 0.34)");
     shell?.style.setProperty("--cw-shell-side-tint", "rgba(27, 79, 170, 0.3)");
-    shell?.style.setProperty("--cw-shell-page-wash", "rgba(27, 79, 170, 0.18)");
+    shell?.style.setProperty("--cw-shell-page-wash", "rgba(201, 168, 76, 0.12)");
     return;
   }
 
@@ -104,7 +112,7 @@ function setSideTheme(side: SideChoice): void {
   root.style.setProperty("--player-flag-accent", "#CC0000");
   shell?.style.setProperty("--cw-shell-band-color", "rgba(204, 0, 0, 0.34)");
   shell?.style.setProperty("--cw-shell-side-tint", "rgba(204, 0, 0, 0.28)");
-  shell?.style.setProperty("--cw-shell-page-wash", "rgba(204, 0, 0, 0.16)");
+  shell?.style.setProperty("--cw-shell-page-wash", "rgba(201, 168, 76, 0.12)");
 }
 
 function animatePickerOut(picker: Element): Promise<void> {
@@ -242,6 +250,14 @@ function cleanupNarrativeScroll(): void {
   narrativeScrollTriggers.forEach((trigger) => trigger.kill());
   narrativeScrollTriggers = [];
   activeNarrativeIndex = -1;
+}
+
+function cleanupFinalStats(): void {
+  finalStatsScrollTriggers.forEach((trigger) => trigger.kill());
+  finalStatsScrollTriggers = [];
+
+  const finalStatValues = document.querySelectorAll<HTMLElement>("[data-final-value]");
+  gsap.killTweensOf(finalStatValues);
 }
 
 function buildBlockHighlightRange(index: number): HighlightRange | null {
@@ -626,6 +642,72 @@ function initNarrativeScroll(): void {
   requestAnimationFrame(() => ScrollTrigger.refresh());
 }
 
+function initFinalStats(side: SideChoice): void {
+  cleanupFinalStats();
+
+  const storyRoot = document.getElementById("cold-war-root");
+  const statsSection = storyRoot?.querySelector<HTMLElement>(".cw-final-stats");
+  if (!storyRoot || !statsSection) return;
+
+  const sourceTotals = duelTotals[side];
+  const finalStats: FinalStats = {
+    playerTotalGolds: sourceTotals.side,
+    enemyTotalGolds: sourceTotals.enemy,
+    playerWins: sourceTotals.won,
+    enemyWins: sourceTotals.lost,
+  };
+
+  const labelMap: Record<string, string> = {
+    "player-total": "YOUR SIDE GOLDS",
+    "enemy-total": "ENEMY GOLDS",
+    "player-wins": "EDITIONS WON",
+    "enemy-wins": "EDITIONS LOST",
+  };
+
+  const valueMap: Record<string, number> = {
+    "player-total": finalStats.playerTotalGolds,
+    "enemy-total": finalStats.enemyTotalGolds,
+    "player-wins": finalStats.playerWins,
+    "enemy-wins": finalStats.enemyWins,
+  };
+
+  storyRoot.querySelectorAll<HTMLElement>("[data-final-label]").forEach((labelNode) => {
+    const key = labelNode.dataset.finalLabel;
+    if (!key) return;
+
+    labelNode.textContent = labelMap[key] ?? "";
+  });
+
+  storyRoot.querySelectorAll<HTMLElement>("[data-final-closing-line]").forEach((lineNode) => {
+    const index = Number(lineNode.dataset.finalClosingLine);
+    lineNode.textContent = closingText[side][index] ?? "";
+  });
+
+  storyRoot.querySelectorAll<HTMLElement>("[data-final-value]").forEach((valueNode) => {
+    const key = valueNode.dataset.finalValue;
+    if (!key) return;
+
+    const targetValue = valueMap[key] ?? 0;
+    valueNode.innerHTML = "0";
+
+    const tween = gsap.to(valueNode, {
+      innerHTML: targetValue,
+      duration: 2,
+      ease: "power1.out",
+      snap: { innerHTML: 1 },
+      scrollTrigger: {
+        trigger: statsSection,
+        start: "top 80%",
+        once: true,
+      },
+    });
+
+    if (tween.scrollTrigger) {
+      finalStatsScrollTriggers.push(tween.scrollTrigger);
+    }
+  });
+}
+
 export function initHover(chartRoot: HTMLElement, playerLabel: string, enemyLabel: string): () => void {
   const storyRoot = document.getElementById("cold-war-root");
   const narrativeTrack = document.getElementById("cw-narrative-track");
@@ -775,7 +857,7 @@ export function buildColdWarMarkup(): string {
 
   return `
     <div class="cw-layout">
-      <section class="cw-scrolly" aria-labelledby="cw-chart-title">
+      <section class="cw-scrolly" aria-label="Cold War medal chart and narrative blocks">
         <div class="cw-narrative-track" id="cw-narrative-track">
           ${buildNarrativeBlocksMarkup("usa")}
         </div>
@@ -783,26 +865,19 @@ export function buildColdWarMarkup(): string {
         <aside class="cw-chart-panel">
           <div class="cw-chart-panel__inner">
             <figure class="cw-chart-frame">
-              <figcaption class="cw-chart-frame__meta" data-chart-copy="figure-meta">${initialPanelContent.figureMeta}</figcaption>
               <div class="cw-chart" id="cw-chart" role="img" aria-label="Line chart comparing Olympic gold medals for the selected Cold War rivalry"></div>
+              <div class="cw-chart-legend" aria-label="Chart legend">
+                <div class="cw-chart-legend__item">
+                  <span class="cw-chart-legend__swatch cw-chart-legend__swatch--player"></span>
+                  <span class="cw-chart-legend__label" data-chart-label="player">USA</span>
+                </div>
+                <div class="cw-chart-legend__item">
+                  <span class="cw-chart-legend__swatch cw-chart-legend__swatch--enemy"></span>
+                  <span class="cw-chart-legend__label" data-chart-label="enemy">USSR</span>
+                </div>
+              </div>
+              <figcaption class="cw-chart-frame__meta" data-chart-copy="figure-meta">${initialPanelContent.figureMeta}</figcaption>
             </figure>
-
-            <div class="cw-chart-legend" aria-label="Chart legend">
-              <div class="cw-chart-legend__item">
-                <span class="cw-chart-legend__swatch cw-chart-legend__swatch--player"></span>
-                <span class="cw-chart-legend__label" data-chart-label="player">USA</span>
-              </div>
-              <div class="cw-chart-legend__item">
-                <span class="cw-chart-legend__swatch cw-chart-legend__swatch--enemy"></span>
-                <span class="cw-chart-legend__label" data-chart-label="enemy">USSR</span>
-              </div>
-            </div>
-
-            <div class="cw-chart-copy">
-              <h1 class="cw-stage__title" id="cw-chart-title" data-chart-copy="title">${initialPanelContent.title}</h1>
-              <p class="cw-stage__copy" data-chart-copy="body">${initialPanelContent.copy}</p>
-              <p class="cw-stage__meta" data-chart-copy="meta">${initialPanelContent.meta}</p>
-            </div>
 
             <aside class="cw-context-card" data-context-card-state="hidden" aria-hidden="true">
               <p class="cw-context-card__eyebrow">
@@ -833,6 +908,45 @@ export function buildColdWarMarkup(): string {
             </aside>
           </div>
         </aside>
+      </section>
+
+      <section class="cw-final-stats" aria-labelledby="cw-final-stats-title">
+        <div class="cw-final-stats__intro">
+          <h2 class="cw-final-stats__title" id="cw-final-stats-title">THE DUEL IN TOTALS</h2>
+          <p class="cw-final-stats__copy">Summer Games only · 1952-2020 · Boycotted editions included</p>
+        </div>
+
+        <div class="cw-final-stats__grid" aria-label="Final Cold War medal statistics">
+          <article class="cw-final-stats__item cw-final-stats__item--player-total">
+            <p class="cw-final-stats__label" data-final-label="player-total">YOUR SIDE GOLDS</p>
+            <p class="cw-final-stats__value" data-final-value="player-total">0</p>
+          </article>
+
+          <article class="cw-final-stats__item cw-final-stats__item--enemy-total">
+            <p class="cw-final-stats__label" data-final-label="enemy-total">ENEMY GOLDS</p>
+            <p class="cw-final-stats__value" data-final-value="enemy-total">0</p>
+          </article>
+
+          <article class="cw-final-stats__item cw-final-stats__item--player-wins">
+            <p class="cw-final-stats__label" data-final-label="player-wins">EDITIONS WON</p>
+            <p class="cw-final-stats__value" data-final-value="player-wins">0</p>
+          </article>
+
+          <article class="cw-final-stats__item cw-final-stats__item--enemy-wins">
+            <p class="cw-final-stats__label" data-final-label="enemy-wins">EDITIONS LOST</p>
+            <p class="cw-final-stats__value" data-final-value="enemy-wins">0</p>
+          </article>
+        </div>
+
+        <div class="cw-final-stats__closing" aria-label="Cold War closing statement">
+          <p class="cw-final-stats__closing-line" data-final-closing-line="0">Ten editions won. A rival that no longer exists.</p>
+          <p class="cw-final-stats__closing-line" data-final-closing-line="1">The Cold War is over - America's record stands.</p>
+        </div>
+
+        <div class="cw-final-stats__cta" aria-label="Cold War story actions">
+          <a class="cw-final-stats__link" href="/?menu=1">Back to home</a>
+          <a class="cw-final-stats__link cw-final-stats__link--accent" href="/atlas-cuerpo-olimpico">Next story</a>
+        </div>
       </section>
     </div>
 
@@ -886,16 +1000,10 @@ export function initChart(side: SideChoice, options: ChartRenderOptions = {}): v
 
   const playerLegend = storyRoot.querySelector('[data-chart-label="player"]');
   const enemyLegend = storyRoot.querySelector('[data-chart-label="enemy"]');
-  const panelTitle = storyRoot.querySelector('[data-chart-copy="title"]');
-  const panelBody = storyRoot.querySelector('[data-chart-copy="body"]');
-  const panelMeta = storyRoot.querySelector('[data-chart-copy="meta"]');
   const panelFigureMeta = storyRoot.querySelector('[data-chart-copy="figure-meta"]');
 
   if (playerLegend) playerLegend.textContent = playerLabel;
   if (enemyLegend) enemyLegend.textContent = enemyLabel;
-  if (panelTitle) panelTitle.textContent = panelContent.title;
-  if (panelBody) panelBody.textContent = panelContent.copy;
-  if (panelMeta) panelMeta.textContent = panelContent.meta;
   if (panelFigureMeta) panelFigureMeta.textContent = panelContent.figureMeta;
 
   const data = getChartData(side);
@@ -1078,7 +1186,7 @@ export function initChart(side: SideChoice, options: ChartRenderOptions = {}): v
     .append("text")
     .attr("class", "cw-chart__axis-label")
     .attr("x", innerWidth)
-    .attr("y", innerHeight + 42)
+    .attr("y", innerHeight + 26)
     .attr("text-anchor", "end")
     .text("SUMMER GAMES EDITION");
 
@@ -1167,6 +1275,7 @@ export function initSidePicker(): void {
     document.body.style.overflow = "";
     renderNarrative(side);
     initChart(side, { revealStage: false });
+    initFinalStats(side);
     await waitForNextPaint();
     await animatePickerOut(picker);
 
@@ -1194,6 +1303,7 @@ export function destroyColdWar(): void {
   cleanupChartHover();
   cleanupChartHighlight();
   cleanupNarrativeScroll();
+  cleanupFinalStats();
   disconnectChartResizeObserver();
   chartEntryTimeline?.kill();
   chartEntryTimeline = null;

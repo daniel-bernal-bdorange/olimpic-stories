@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { Bebas_Neue, Cormorant_Garamond, DM_Mono } from "next/font/google";
 import { TransitionLink, useRouteTransition } from "@/components/route-transition";
 import { buildColdWarMarkup, destroyColdWar, initSidePicker } from "./main";
@@ -26,9 +26,9 @@ const cwDataFont = DM_Mono({
 });
 
 export default function ColdWarInGoldPage() {
-  const markup = buildColdWarMarkup();
+  const markup = useMemo(() => buildColdWarMarkup(), []);
   const fontClassName = `${cwDisplayFont.variable} ${cwBodyFont.variable} ${cwDataFont.variable}`;
-  const { markPageReady } = useRouteTransition();
+  const { markPageReady, isTransitioning } = useRouteTransition();
 
   useEffect(() => {
     initSidePicker();
@@ -38,6 +38,12 @@ export default function ColdWarInGoldPage() {
       destroyColdWar();
     };
   }, [markPageReady]);
+
+  useEffect(() => {
+    if (isTransitioning) return;
+
+    initSidePicker();
+  }, [isTransitioning]);
 
   return (
     <main className={`cw-page-shell ${fontClassName}`}>

@@ -23,6 +23,13 @@ export type ChartPanelContent = {
   figureMeta: string;
 };
 
+export type DuelTotals = {
+  side: number;
+  enemy: number;
+  won: number;
+  lost: number;
+};
+
 export const coldWarMedalData: ColdWarMedalDatum[] = [
   { year: 1952, city: "Helsinki", usaGold: 22, rivalGold: 22, era: "ussr", boycott: null },
   { year: 1956, city: "Melbourne", usaGold: 17, rivalGold: 22, era: "ussr", boycott: null },
@@ -156,15 +163,33 @@ export const chartPanelContent: Record<SideChoice, ChartPanelContent> = {
     copy:
       "Five narrative blocks follow the Cold War from the American side, keeping the medal chart pinned while Helsinki 1952, the Soviet surge, the boycott years, and the post-wall era unfold.",
     meta: "USA perspective · 5 blocks · sticky chart at 60px",
-    figureMeta: "Olympic gold medals per Summer Games edition · USA vs USSR/Russia",
+    figureMeta:
+      "Olympic Summer Games gold medals · 1952-2020\nUSSR data ends 1988. Russia (RUS / ROC) from 1996 onwards. 1980 and 1984 figures reflect boycotted editions.",
   },
   ussr: {
     title: "The scoreboard that changed history",
     copy:
       "Five narrative blocks follow the Cold War from the Soviet side, keeping the medal chart pinned while Helsinki 1952, socialist dominance, the boycott years, and the post-wall aftermath unfold.",
     meta: "USSR perspective · 5 blocks · sticky chart at 60px",
-    figureMeta: "Olympic gold medals per Summer Games edition · USSR/Russia vs USA",
+    figureMeta:
+      "Olympic Summer Games gold medals · 1952-2020\nUSSR data ends 1988. Russia (RUS / ROC) from 1996 onwards. 1980 and 1984 figures reflect boycotted editions.",
   },
+};
+
+export const duelTotals: Record<SideChoice, DuelTotals> = {
+  usa: { side: 483, enemy: 473, won: 9, lost: 7 },
+  ussr: { side: 473, enemy: 483, won: 7, lost: 9 },
+};
+
+export const closingText: Record<SideChoice, string[]> = {
+  usa: [
+    "Ten editions won. A rival that no longer exists.",
+    "The Cold War is over - America's record stands.",
+  ],
+  ussr: [
+    "Seven editions won. A nation dissolved, a legacy intact.",
+    "No country in history has matched the Soviet Olympic record.",
+  ],
 };
 
 export const historicalContext: Record<number, string> = {
