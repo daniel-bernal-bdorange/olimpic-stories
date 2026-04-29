@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Bebas_Neue, Cormorant_Garamond, DM_Mono } from "next/font/google";
 import { TransitionLink, useRouteTransition } from "@/components/route-transition";
 
@@ -23,16 +23,139 @@ const atlasDataFont = DM_Mono({
   variable: "--font-atlas-data",
 });
 
-const sortOptions = ["Height", "Weight", "BMI"];
-const previewSports = [
-  { sport: "Basketball", metric: "191.2 CM", detail: "Tallest Olympic profile" },
-  { sport: "Artistic Gymnastics", metric: "162.9 CM", detail: "Shortest baseline" },
-  { sport: "Weightlifting", metric: "BMI 27.8", detail: "Highest mass density" },
+type AtlasView = "male" | "female";
+type SortMetric = "height" | "weight" | "bmi";
+
+type AthleteProfile = {
+  height: number;
+  weight: number;
+  bmi: number;
+  detail: string;
+};
+
+type PreviewSport = {
+  sport: string;
+  male: AthleteProfile;
+  female: AthleteProfile;
+};
+
+const atlasViews: Array<{ key: AtlasView; label: string }> = [
+  { key: "male", label: "Male" },
+  { key: "female", label: "Female" },
 ];
+
+const initialAtlasView: AtlasView = "male";
+const initialAtlasSort: SortMetric = "height";
+
+const sortOptions: Array<{ key: SortMetric; label: string }> = [
+  { key: "height", label: "Height" },
+  { key: "weight", label: "Weight" },
+  { key: "bmi", label: "BMI" },
+];
+
+const atlasSportCount = 20;
+const previewSports = [
+  {
+    sport: "Basketball",
+    male: {
+      height: 191.2,
+      weight: 85.7,
+      bmi: 23.4,
+      detail: "The tallest Olympic profile, built around reach and floor coverage.",
+    },
+    female: {
+      height: 182.1,
+      weight: 74.3,
+      bmi: 22.4,
+      detail: "A long frame optimized for verticality, spacing and repeated jumps.",
+    },
+  },
+  {
+    sport: "Artistic Gymnastics",
+    male: {
+      height: 162.9,
+      weight: 63.4,
+      bmi: 23.9,
+      detail: "Compact leverage keeps rotation fast without sacrificing control.",
+    },
+    female: {
+      height: 154.6,
+      weight: 47.8,
+      bmi: 20.0,
+      detail: "The shortest silhouette in the atlas, tuned for precision and airtime.",
+    },
+  },
+  {
+    sport: "Weightlifting",
+    male: {
+      height: 173.7,
+      weight: 83.8,
+      bmi: 27.8,
+      detail: "The densest build in the sample, where mass concentrates into power.",
+    },
+    female: {
+      height: 160.4,
+      weight: 69.7,
+      bmi: 27.1,
+      detail: "Explosive strength sits in a shorter frame with unusually high density.",
+    },
+  },
+  {
+    sport: "Rowing",
+    male: {
+      height: 189.0,
+      weight: 89.4,
+      bmi: 25.0,
+      detail: "Length and power combine to maximize stroke distance and rhythm.",
+    },
+    female: {
+      height: 180.2,
+      weight: 76.6,
+      bmi: 23.6,
+      detail: "A tall, efficient profile designed to convert reach into sustained force.",
+    },
+  },
+] satisfies PreviewSport[];
+
+function formatMetricValue(metric: SortMetric, value: number) {
+  if (metric === "bmi") {
+    return `BMI ${value.toFixed(1)}`;
+  }
+
+  return `${value.toFixed(1)} ${metric === "height" ? "CM" : "KG"}`;
+}
+
+function getContextCopy(view: AtlasView, metric: SortMetric) {
+  const audience = view === "male" ? "male" : "female";
+
+  if (metric === "height") {
+    return `Sorting the ${audience} dataset by height exposes how each sport stretches or compresses the Olympic silhouette before the full D3 atlas loads.`;
+  }
+
+  if (metric === "weight") {
+    return `Sorting the ${audience} dataset by weight surfaces where power adds visible mass and where technique keeps the body lighter without losing output.`;
+  }
+
+  return `Sorting the ${audience} dataset by BMI reveals the densest builds against the leanest frames, framing the analytical promise of the atlas at a glance.`;
+}
 
 export default function AtlasCuerpoOlimpicoPage() {
   const atlasRootRef = useRef<HTMLDivElement | null>(null);
+  const controlsBarRef = useRef<HTMLDivElement | null>(null);
+  const controlsShellRef = useRef<HTMLDivElement | null>(null);
   const { markPageReady } = useRouteTransition();
+  const [selectedView, setSelectedView] = useState<AtlasView>(initialAtlasView);
+  const [selectedSort, setSelectedSort] = useState<SortMetric>(initialAtlasSort);
+  const [controlsBarHeight, setControlsBarHeight] = useState(0);
+  const [isControlsPinned, setIsControlsPinned] = useState(false);
+
+  const selectedViewLabel = atlasViews.find(({ key }) => key === selectedView)?.label ?? "Male";
+  const selectedSortLabel = sortOptions.find(({ key }) => key === selectedSort)?.label ?? "Height";
+  const contextualCopy = getContextCopy(selectedView, selectedSort);
+  const sortedPreviewSports = [...previewSports].sort(
+    (left, right) => right[selectedView][selectedSort] - left[selectedView][selectedSort],
+  );
+  const maxMetricValue = sortedPreviewSports[0]?.[selectedView][selectedSort] ?? 1;
 
   useEffect(() => {
     let cancelled = false;
@@ -44,13 +167,18 @@ export default function AtlasCuerpoOlimpicoPage() {
           return;
         }
 
-        initBodyAtlas(atlasRootRef.current);
+        initBodyAtlas(atlasRootRef.current, {
+          sportCount: atlasSportCount,
+          sort: initialAtlasSort,
+          view: initialAtlasView,
+        });
         dispose = () => {
           destroyBodyAtlas();
         };
         markPageReady();
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error("Body Atlas init failed", error);
         markPageReady();
       });
 
@@ -59,6 +187,80 @@ export default function AtlasCuerpoOlimpicoPage() {
       dispose();
     };
   }, [markPageReady]);
+
+  useEffect(() => {
+    void import("./main")
+      .then(({ updateBodyAtlasControls }) => {
+        updateBodyAtlasControls({
+          sportCount: atlasSportCount,
+          sort: selectedSort,
+          view: selectedView,
+        });
+      })
+      .catch((error) => {
+        console.error("Body Atlas control sync failed", error);
+      });
+  }, [selectedSort, selectedView]);
+
+  useEffect(() => {
+    const controlsNode = controlsBarRef.current;
+
+    if (!controlsNode) {
+      return;
+    }
+
+    const syncHeight = () => {
+      setControlsBarHeight(controlsNode.getBoundingClientRect().height);
+    };
+
+    syncHeight();
+
+    const observer = new ResizeObserver(() => {
+      syncHeight();
+    });
+
+    observer.observe(controlsNode);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    const controlsShellNode = controlsShellRef.current;
+
+    if (!controlsShellNode) {
+      return;
+    }
+
+    let frameId = 0;
+
+    const syncPinnedState = () => {
+      frameId = 0;
+      setIsControlsPinned(controlsShellNode.getBoundingClientRect().top <= 73);
+    };
+
+    const requestSync = () => {
+      if (frameId !== 0) {
+        return;
+      }
+
+      frameId = window.requestAnimationFrame(syncPinnedState);
+    };
+
+    requestSync();
+    window.addEventListener("scroll", requestSync, { passive: true });
+    window.addEventListener("resize", requestSync);
+
+    return () => {
+      if (frameId !== 0) {
+        window.cancelAnimationFrame(frameId);
+      }
+
+      window.removeEventListener("scroll", requestSync);
+      window.removeEventListener("resize", requestSync);
+    };
+  }, []);
 
   return (
     <main
@@ -86,7 +288,7 @@ export default function AtlasCuerpoOlimpicoPage() {
               02 / Body Atlas
             </p>
             <p className="text-xs uppercase tracking-[0.22em] text-white/55">
-              Shell cliente y hero base
+              Controles exploratorios y copy contextual
             </p>
           </div>
         </div>
@@ -174,69 +376,131 @@ export default function AtlasCuerpoOlimpicoPage() {
                 Context panel
               </p>
               <div className="mt-4 space-y-3 text-white/74" style={{ fontFamily: "var(--font-atlas-data)" }}>
-                <p>15 SPORTS ANALYZED</p>
-                <p>100K+ ATHLETES</p>
-                <p>LAYOUT READY FOR D3</p>
+                <p>20 SPORTS IN DATASET</p>
+                <p>2 DATA VIEWS</p>
+                <p>3 SORT LENSES</p>
               </div>
             </aside>
           </div>
         </div>
       </section>
 
-      <section className="relative border-t border-white/10 bg-[#050505]">
-        <div className="sticky top-[73px] z-40 border-b border-white/10 bg-black/88 backdrop-blur-xl">
-          <div className="mx-auto flex max-w-7xl flex-col gap-5 px-5 py-5 sm:px-8 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex flex-wrap items-center gap-3">
-              <span
+      <div
+        ref={controlsShellRef}
+        className="relative z-40"
+        style={isControlsPinned && controlsBarHeight > 0 ? { height: controlsBarHeight } : undefined}
+      >
+        <div
+          ref={controlsBarRef}
+          className={`${isControlsPinned ? "fixed inset-x-0 top-[73px] border-y border-white/10 bg-black/88 backdrop-blur-xl" : "border-y border-white/10 bg-black/88 backdrop-blur-xl"}`}
+        >
+          <div className="mx-auto max-w-7xl px-5 py-5 sm:px-8">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <fieldset className="flex flex-wrap items-center gap-3" aria-label="Select athlete dataset">
+              <legend
                 className="text-[11px] uppercase tracking-[0.28em] text-white/48"
                 style={{ fontFamily: "var(--font-atlas-data)" }}
               >
                 View
-              </span>
-              <button
-                type="button"
-                className="rounded-full bg-[#c9a84c] px-4 py-2 text-[11px] uppercase tracking-[0.25em] text-black"
-                style={{ fontFamily: "var(--font-atlas-data)" }}
-              >
-                Male
-              </button>
-              <button
-                type="button"
-                className="rounded-full border border-white/16 px-4 py-2 text-[11px] uppercase tracking-[0.25em] text-white/72"
-                style={{ fontFamily: "var(--font-atlas-data)" }}
-              >
-                Female
-              </button>
-            </div>
+              </legend>
+              {atlasViews.map((option) => {
+                const isActive = option.key === selectedView;
 
-            <div className="flex flex-wrap items-center gap-3">
-              <span
+                return (
+                  <button
+                    key={option.key}
+                    type="button"
+                    aria-pressed={isActive}
+                    aria-controls="body-atlas-root"
+                    aria-label={`Show ${option.label.toLowerCase()} athlete dataset`}
+                    onClick={() => {
+                      setSelectedView(option.key);
+                    }}
+                    className={`rounded-full px-4 py-2 text-[11px] uppercase tracking-[0.25em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
+                      isActive
+                        ? "bg-[#c9a84c] text-black"
+                        : "border border-white/16 text-white/72 hover:border-[#c9a84c]/50 hover:text-white"
+                    }`}
+                    style={{ fontFamily: "var(--font-atlas-data)" }}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </fieldset>
+
+            <fieldset className="flex flex-wrap items-center gap-3" aria-label="Sort sports by metric">
+              <legend
                 className="text-[11px] uppercase tracking-[0.28em] text-white/48"
                 style={{ fontFamily: "var(--font-atlas-data)" }}
               >
                 Sort by
-              </span>
-              {sortOptions.map((option, index) => (
-                <button
-                  key={option}
-                  type="button"
-                  className={index === 0 ? "rounded-full bg-white px-4 py-2 text-[11px] uppercase tracking-[0.25em] text-black" : "rounded-full border border-white/16 px-4 py-2 text-[11px] uppercase tracking-[0.25em] text-white/72"}
-                  style={{ fontFamily: "var(--font-atlas-data)" }}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
+              </legend>
+              {sortOptions.map((option) => {
+                const isActive = option.key === selectedSort;
+
+                return (
+                  <button
+                    key={option.key}
+                    type="button"
+                    aria-pressed={isActive}
+                    aria-controls="body-atlas-root"
+                    aria-label={`Sort sports by ${option.label.toLowerCase()}`}
+                    onClick={() => {
+                      setSelectedSort(option.key);
+                    }}
+                    className={`rounded-full px-4 py-2 text-[11px] uppercase tracking-[0.25em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
+                      isActive
+                        ? "bg-white text-black"
+                        : "border border-white/16 text-white/72 hover:border-[#c9a84c]/50 hover:text-white"
+                    }`}
+                    style={{ fontFamily: "var(--font-atlas-data)" }}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </fieldset>
 
             <p
+              aria-live="polite"
               className="text-[11px] uppercase tracking-[0.28em] text-white/48"
               style={{ fontFamily: "var(--font-atlas-data)" }}
             >
-              Showing 20 sports
+              Showing {atlasSportCount} sports
+            </p>
+          </div>
+
+          <div className="mt-5 grid gap-3 border-t border-white/10 pt-4 lg:grid-cols-[minmax(0,18rem)_minmax(0,1fr)] lg:items-start lg:gap-8">
+            <div className="space-y-2">
+              <p
+                className="text-[11px] uppercase tracking-[0.28em] text-[#c9a84c]"
+                style={{ fontFamily: "var(--font-atlas-data)" }}
+              >
+                Active lens
+              </p>
+              <p
+                aria-live="polite"
+                className="text-sm uppercase tracking-[0.24em] text-white/72"
+                style={{ fontFamily: "var(--font-atlas-data)" }}
+              >
+                {selectedViewLabel} athletes · sorted by {selectedSortLabel}
+              </p>
+            </div>
+
+            <p
+              aria-live="polite"
+              className="max-w-4xl text-lg italic text-white/78 sm:text-xl"
+              style={{ fontFamily: "var(--font-atlas-body)" }}
+            >
+              {contextualCopy}
             </p>
           </div>
         </div>
+      </div>
+      </div>
 
+      <section className="relative bg-[#050505]">
         <div
           ref={atlasRootRef}
           id="body-atlas-root"
@@ -247,45 +511,51 @@ export default function AtlasCuerpoOlimpicoPage() {
               className="text-[11px] uppercase tracking-[0.28em] text-[#c9a84c]"
               style={{ fontFamily: "var(--font-atlas-data)" }}
             >
-              Body atlas shell
+              Preview slice
             </p>
             <p className="text-xl italic text-white/72 sm:text-2xl" style={{ fontFamily: "var(--font-atlas-body)" }}>
-              Showing average height and weight of Olympic athletes by sport. Data from 100,000+ athletes across 128 years of competition.
+              {selectedViewLabel} athletes ranked by {selectedSortLabel.toLowerCase()}. The live D3 atlas can now inherit the same control state and contextual framing.
             </p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {previewSports.map((item) => (
-              <article
-                key={item.sport}
-                className="rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-6"
-              >
-                <div className="flex min-h-56 items-end justify-between gap-6">
-                  <div className="flex-1">
-                    <div className="flex h-48 items-end justify-center rounded-[1.5rem] border border-dashed border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.08))] px-6 pb-5">
-                      <div className="h-full w-14 rounded-t-full bg-[#c9a84c]/55" />
+            {sortedPreviewSports.map((item) => {
+              const profile = item[selectedView];
+              const metricValue = profile[selectedSort];
+              const silhouetteHeight = `${Math.max(36, (metricValue / maxMetricValue) * 100)}%`;
+
+              return (
+                <article
+                  key={item.sport}
+                  className="rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-6 transition-colors hover:border-[#c9a84c]/40"
+                >
+                  <div className="flex min-h-56 items-end justify-between gap-6">
+                    <div className="flex-1">
+                      <div className="flex h-48 items-end justify-center rounded-[1.5rem] border border-dashed border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.08))] px-6 pb-5">
+                        <div className="w-14 rounded-t-full bg-[#c9a84c]/55 transition-[height] duration-500" style={{ height: silhouetteHeight }} />
+                      </div>
+                    </div>
+                    <div className="w-28 text-right">
+                      <p className="text-3xl uppercase text-white" style={{ fontFamily: "var(--font-atlas-display)" }}>
+                        {formatMetricValue(selectedSort, metricValue)}
+                      </p>
                     </div>
                   </div>
-                  <div className="w-28 text-right">
-                    <p className="text-3xl uppercase text-white" style={{ fontFamily: "var(--font-atlas-display)" }}>
-                      {item.metric}
+
+                  <div className="mt-5 space-y-2">
+                    <p
+                      className="text-[11px] uppercase tracking-[0.28em] text-[#c9a84c]"
+                      style={{ fontFamily: "var(--font-atlas-data)" }}
+                    >
+                      {item.sport}
+                    </p>
+                    <p className="text-lg italic text-white/68" style={{ fontFamily: "var(--font-atlas-body)" }}>
+                      {profile.detail}
                     </p>
                   </div>
-                </div>
-
-                <div className="mt-5 space-y-2">
-                  <p
-                    className="text-[11px] uppercase tracking-[0.28em] text-[#c9a84c]"
-                    style={{ fontFamily: "var(--font-atlas-data)" }}
-                  >
-                    {item.sport}
-                  </p>
-                  <p className="text-lg italic text-white/68" style={{ fontFamily: "var(--font-atlas-body)" }}>
-                    {item.detail}
-                  </p>
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
 
           <div className="rounded-[2rem] border border-white/10 bg-[#0d0d0d] p-6 sm:p-8">
