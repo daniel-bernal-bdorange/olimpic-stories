@@ -23,6 +23,9 @@ let lastPublishedSignature = "";
 let controlsChangeHandler: EventListener | null = null;
 let hoveredSport: string | null = null;
 let focusedSport: string | null = null;
+let activeTooltipNode: HTMLDivElement | null = null;
+let activeTooltipTarget: HTMLElement | null = null;
+let tooltipViewportHandler: (() => void) | null = null;
 
 const activeSportByView: Partial<Record<AtlasView, string>> = {};
 
@@ -42,8 +45,18 @@ const BODY_ATLAS_WIDTH_GUIDE_Y = 92;
 const BODY_ATLAS_DEFAULT_SILHOUETTE = "#3a3a3a";
 const BODY_ATLAS_DEFAULT_BORDER = "rgba(255,255,255,0.10)";
 const BODY_ATLAS_DEFAULT_BG = "rgba(255,255,255,0.03)";
+const BODY_ATLAS_TOOLTIP_GAP = 14;
+const BODY_ATLAS_TOOLTIP_EDGE_OFFSET = 16;
 
 type CardVisualState = "default" | "hover" | "active";
+
+type BodyAtlasTooltipData = {
+  accent: string;
+  bmi: string;
+  height: string;
+  sport: string;
+  weight: string;
+};
 
 function hexToRgb(hex: string) {
   const normalized = hex.replace("#", "");
@@ -68,6 +81,192 @@ function toRgba(hex: string, alpha: number) {
 
 function getSportAccentColor(accent: string | undefined) {
   return accent && accent.trim().length > 0 ? accent : "#C9A84C";
+}
+
+function ensureBodyAtlasTooltip() {
+  if (activeTooltipNode || typeof document === "undefined") {
+    return activeTooltipNode;
+  }
+
+  const tooltipNode = document.createElement("div");
+  tooltipNode.setAttribute("aria-hidden", "true");
+  tooltipNode.dataset.state = "hidden";
+  tooltipNode.style.position = "fixed";
+  tooltipNode.style.left = "0";
+  tooltipNode.style.top = "0";
+  tooltipNode.style.zIndex = "80";
+  tooltipNode.style.pointerEvents = "none";
+  tooltipNode.style.width = "min(16rem, calc(100vw - 2rem))";
+  tooltipNode.style.border = "1px solid rgba(255,255,255,0.14)";
+  tooltipNode.style.borderRadius = "1.25rem";
+  tooltipNode.style.background = "rgba(10,10,10,0.94)";
+  tooltipNode.style.boxShadow = "0 24px 70px rgba(0,0,0,0.34)";
+  tooltipNode.style.backdropFilter = "blur(16px)";
+  tooltipNode.style.padding = "0.95rem 1rem";
+  tooltipNode.style.opacity = "0";
+  tooltipNode.style.transform = "translate3d(0, 8px, 0) scale(0.98)";
+  tooltipNode.style.transition = "opacity 160ms ease, transform 180ms ease, border-color 180ms ease";
+  tooltipNode.innerHTML = `
+    <p data-atlas-tooltip-role="sport" style="margin:0 0 0.7rem 0;font-family:var(--font-atlas-display);font-size:1.55rem;line-height:0.95;text-transform:uppercase;color:#ffffff"></p>
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0.6rem;border-top:1px solid rgba(255,255,255,0.08);padding-top:0.7rem;font-family:var(--font-atlas-data)">
+      <div>
+        <p style="margin:0 0 0.2rem 0;font-size:0.58rem;letter-spacing:0.18em;text-transform:uppercase;color:rgba(245,242,235,0.44)">Height</p>
+        <p data-atlas-tooltip-role="height" style="margin:0;font-size:0.76rem;letter-spacing:0.08em;text-transform:uppercase;color:#f5f2eb"></p>
+      </div>
+      <div>
+        <p style="margin:0 0 0.2rem 0;font-size:0.58rem;letter-spacing:0.18em;text-transform:uppercase;color:rgba(245,242,235,0.44)">Weight</p>
+        <p data-atlas-tooltip-role="weight" style="margin:0;font-size:0.76rem;letter-spacing:0.08em;text-transform:uppercase;color:#f5f2eb"></p>
+      </div>
+      <div>
+        <p style="margin:0 0 0.2rem 0;font-size:0.58rem;letter-spacing:0.18em;text-transform:uppercase;color:rgba(245,242,235,0.44)">BMI</p>
+        <p data-atlas-tooltip-role="bmi" style="margin:0;font-size:0.76rem;letter-spacing:0.08em;text-transform:uppercase;color:#f5f2eb"></p>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(tooltipNode);
+  activeTooltipNode = tooltipNode;
+  return activeTooltipNode;
+}
+
+function readTooltipData(cardNode: HTMLElement): BodyAtlasTooltipData {
+  const sport = cardNode.dataset.sport ?? "Sport";
+  const accent = getSportAccentColor(cardNode.dataset.accent);
+  const height = `${Number(cardNode.dataset.height ?? "0").toFixed(1)} cm`;
+  const weight = `${Number(cardNode.dataset.weight ?? "0").toFixed(1)} kg`;
+  const bmi = Number(cardNode.dataset.bmi ?? "0").toFixed(1);
+
+  return {
+    accent,
+    bmi,
+    height,
+    sport,
+    weight,
+  };
+}
+
+function positionBodyAtlasTooltip(target: HTMLElement) {
+  if (!activeTooltipNode || typeof window === "undefined") {
+    return;
+  }
+
+  const tooltipRect = activeTooltipNode.getBoundingClientRect();
+  const targetRect = target.getBoundingClientRect();
+  const maxLeft = window.innerWidth - tooltipRect.width - BODY_ATLAS_TOOLTIP_EDGE_OFFSET;
+  const centeredLeft = targetRect.left + targetRect.width / 2 - tooltipRect.width / 2;
+  const left = Math.min(
+    Math.max(centeredLeft, BODY_ATLAS_TOOLTIP_EDGE_OFFSET),
+    Math.max(BODY_ATLAS_TOOLTIP_EDGE_OFFSET, maxLeft),
+  );
+  const preferredTop = targetRect.top - tooltipRect.height - BODY_ATLAS_TOOLTIP_GAP;
+  const fallbackTop = targetRect.bottom + BODY_ATLAS_TOOLTIP_GAP;
+  const maxTop = window.innerHeight - tooltipRect.height - BODY_ATLAS_TOOLTIP_EDGE_OFFSET;
+  const top = preferredTop >= BODY_ATLAS_TOOLTIP_EDGE_OFFSET
+    ? preferredTop
+    : Math.min(fallbackTop, Math.max(BODY_ATLAS_TOOLTIP_EDGE_OFFSET, maxTop));
+
+  activeTooltipNode.style.left = `${left}px`;
+  activeTooltipNode.style.top = `${top}px`;
+}
+
+function syncBodyAtlasTooltipPosition() {
+  if (activeTooltipTarget) {
+    positionBodyAtlasTooltip(activeTooltipTarget);
+  }
+}
+
+function bindTooltipViewportHandlers() {
+  if (tooltipViewportHandler || typeof window === "undefined") {
+    return;
+  }
+
+  tooltipViewportHandler = () => {
+    syncBodyAtlasTooltipPosition();
+  };
+
+  window.addEventListener("resize", tooltipViewportHandler);
+  window.addEventListener("scroll", tooltipViewportHandler, { passive: true });
+}
+
+function unbindTooltipViewportHandlers() {
+  if (!tooltipViewportHandler || typeof window === "undefined") {
+    return;
+  }
+
+  window.removeEventListener("resize", tooltipViewportHandler);
+  window.removeEventListener("scroll", tooltipViewportHandler);
+  tooltipViewportHandler = null;
+}
+
+function showBodyAtlasTooltip(cardNode: HTMLElement) {
+  const tooltipNode = ensureBodyAtlasTooltip();
+
+  if (!tooltipNode) {
+    return;
+  }
+
+  const tooltipData = readTooltipData(cardNode);
+  const sportNode = tooltipNode.querySelector<HTMLElement>("[data-atlas-tooltip-role='sport']");
+  const heightNode = tooltipNode.querySelector<HTMLElement>("[data-atlas-tooltip-role='height']");
+  const weightNode = tooltipNode.querySelector<HTMLElement>("[data-atlas-tooltip-role='weight']");
+  const bmiNode = tooltipNode.querySelector<HTMLElement>("[data-atlas-tooltip-role='bmi']");
+
+  if (sportNode) {
+    sportNode.textContent = tooltipData.sport;
+    sportNode.style.color = tooltipData.accent;
+  }
+
+  if (heightNode) {
+    heightNode.textContent = tooltipData.height;
+  }
+
+  if (weightNode) {
+    weightNode.textContent = tooltipData.weight;
+  }
+
+  if (bmiNode) {
+    bmiNode.textContent = tooltipData.bmi;
+  }
+
+  tooltipNode.style.borderColor = toRgba(tooltipData.accent, 0.42);
+  activeTooltipTarget = cardNode;
+  bindTooltipViewportHandlers();
+  positionBodyAtlasTooltip(cardNode);
+
+  requestAnimationFrame(() => {
+    if (!activeTooltipNode || activeTooltipTarget !== cardNode) {
+      return;
+    }
+
+    activeTooltipNode.dataset.state = "visible";
+    activeTooltipNode.style.opacity = "1";
+    activeTooltipNode.style.transform = "translate3d(0, 0, 0) scale(1)";
+  });
+}
+
+function hideBodyAtlasTooltip() {
+  activeTooltipTarget = null;
+
+  if (!activeTooltipNode) {
+    unbindTooltipViewportHandlers();
+    return;
+  }
+
+  activeTooltipNode.dataset.state = "hidden";
+  activeTooltipNode.style.opacity = "0";
+  activeTooltipNode.style.transform = "translate3d(0, 8px, 0) scale(0.98)";
+  unbindTooltipViewportHandlers();
+}
+
+function destroyBodyAtlasTooltip() {
+  hideBodyAtlasTooltip();
+
+  if (!activeTooltipNode) {
+    return;
+  }
+
+  activeTooltipNode.remove();
+  activeTooltipNode = null;
 }
 
 function applyCardPresentation(cardNode: HTMLElement, accent: string, state: CardVisualState, hasFocus: boolean) {
@@ -182,6 +381,7 @@ function bindBodyAtlasCardInteractions(view: AtlasView) {
 
     cardNode.addEventListener("mouseenter", () => {
       hoveredSport = sport;
+      showBodyAtlasTooltip(cardNode);
       syncBodyAtlasCardStates(view);
     });
 
@@ -190,11 +390,13 @@ function bindBodyAtlasCardInteractions(view: AtlasView) {
         hoveredSport = null;
       }
 
+      hideBodyAtlasTooltip();
       syncBodyAtlasCardStates(view);
     });
 
     cardNode.addEventListener("focus", () => {
       focusedSport = sport;
+      showBodyAtlasTooltip(cardNode);
       syncBodyAtlasCardStates(view);
     });
 
@@ -203,6 +405,7 @@ function bindBodyAtlasCardInteractions(view: AtlasView) {
         focusedSport = null;
       }
 
+      hideBodyAtlasTooltip();
       syncBodyAtlasCardStates(view);
     });
 
@@ -519,6 +722,8 @@ function renderBodyAtlasGrid() {
     return;
   }
 
+  hideBodyAtlasTooltip();
+
   const profiles = getSortedAtlasProfiles(controls.view, controls.sort);
   const olympicAverage = getOlympicAverage(controls.view);
   const minHeight = Math.min(...profiles.map((profile) => profile.height));
@@ -565,7 +770,7 @@ function renderBodyAtlasGrid() {
     .append("p")
     .attr("class", "text-[11px] uppercase tracking-[0.26em] text-white/48")
     .style("font-family", "var(--font-atlas-data)")
-    .text("Hover to preview each sport color. Click or press Enter to lock an active card.");
+    .text("Hover to preview sport metrics and color. Click or press Enter to lock an active card.");
 
   const grid = shell.append("div").attr("class", "grid gap-4 md:grid-cols-2 xl:grid-cols-4");
 
@@ -615,6 +820,7 @@ export function destroyBodyAtlas() {
   hoveredSport = null;
   focusedSport = null;
   lastPublishedSignature = "";
+  destroyBodyAtlasTooltip();
   activeRoot.removeAttribute(READY_ATTRIBUTE);
   activeRoot.removeAttribute(VIEW_ATTRIBUTE);
   activeRoot.removeAttribute(SORT_ATTRIBUTE);
