@@ -55,7 +55,7 @@ with sync_playwright() as playwright:
 
         female_state = get_root_state(page)
         assert female_state["view"] == "female"
-        page.get_by_text("Female athletes · sorted by Height").wait_for()
+        page.locator("#body-atlas-root").get_by_text("Female athletes · sorted by Height", exact=True).wait_for()
 
         page.get_by_role("button", name="Sort sports by bmi").click()
         page.wait_for_function(
@@ -64,7 +64,7 @@ with sync_playwright() as playwright:
 
         bmi_state = get_root_state(page)
         assert bmi_state == {"ready": "true", "count": "20", "sort": "bmi", "view": "female"}
-        page.get_by_text("Female athletes ranked by bmi.", exact=False).wait_for()
+        page.locator("body").get_by_text("Sorting the female dataset by BMI", exact=False).first.wait_for()
 
         sticky_text = page.get_by_text("Showing 20 sports")
         initial_top = sticky_text.evaluate("node => Math.round(node.getBoundingClientRect().top)")
@@ -85,7 +85,7 @@ with sync_playwright() as playwright:
 
         assert abs(top_after - top_before) <= 8, (top_before, top_after)
 
-        first_metric = page.locator("article").first.get_by_text("BMI", exact=False)
+        first_metric = page.locator("[data-atlas-card='true'] [data-atlas-role='metric-label']").first
         first_metric.wait_for()
 
         print("Body Atlas controls smoke test passed")

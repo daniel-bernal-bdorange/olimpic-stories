@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Bebas_Neue, Cormorant_Garamond, DM_Mono } from "next/font/google";
 import { TransitionLink, useRouteTransition } from "@/components/route-transition";
 import {
@@ -40,11 +40,13 @@ const initialAtlasSportCount = getAtlasSportCount(initialAtlasView);
 
 export default function AtlasCuerpoOlimpicoPage() {
   const atlasRootRef = useRef<HTMLDivElement | null>(null);
+  const headerRef = useRef<HTMLElement | null>(null);
   const controlsBarRef = useRef<HTMLDivElement | null>(null);
   const controlsShellRef = useRef<HTMLDivElement | null>(null);
   const { markPageReady } = useRouteTransition();
   const [selectedView, setSelectedView] = useState<AtlasView>(initialAtlasView);
   const [selectedSort, setSelectedSort] = useState<SortMetric>(initialAtlasSort);
+  const [headerHeight, setHeaderHeight] = useState(73);
   const [controlsBarHeight, setControlsBarHeight] = useState(0);
   const [isControlsPinned, setIsControlsPinned] = useState(false);
 
@@ -100,6 +102,30 @@ export default function AtlasCuerpoOlimpicoPage() {
   }, [atlasSportCount, selectedSort, selectedView]);
 
   useEffect(() => {
+    const headerNode = headerRef.current;
+
+    if (!headerNode) {
+      return;
+    }
+
+    const syncHeight = () => {
+      setHeaderHeight(headerNode.getBoundingClientRect().height);
+    };
+
+    syncHeight();
+
+    const observer = new ResizeObserver(() => {
+      syncHeight();
+    });
+
+    observer.observe(headerNode);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
     const controlsNode = controlsBarRef.current;
 
     if (!controlsNode) {
@@ -134,7 +160,7 @@ export default function AtlasCuerpoOlimpicoPage() {
 
     const syncPinnedState = () => {
       frameId = 0;
-      setIsControlsPinned(controlsShellNode.getBoundingClientRect().top <= 73);
+      setIsControlsPinned(controlsShellNode.getBoundingClientRect().top <= headerHeight);
     };
 
     const requestSync = () => {
@@ -157,14 +183,19 @@ export default function AtlasCuerpoOlimpicoPage() {
       window.removeEventListener("scroll", requestSync);
       window.removeEventListener("resize", requestSync);
     };
-  }, []);
+  }, [headerHeight]);
+
+  const atlasPanelTop = headerHeight + controlsBarHeight + 16;
+  const atlasRootStyle = {
+    "--atlas-panel-top": `${atlasPanelTop}px`,
+  } as CSSProperties;
 
   return (
     <main
       className={`${atlasDisplayFont.variable} ${atlasBodyFont.variable} ${atlasDataFont.variable} relative min-h-screen bg-[#050505] text-[#f5f2eb]`}
     >
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-black/75 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
+      <header ref={headerRef} className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-black/75 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl flex-col items-start gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8">
           <TransitionLink
             href="/?menu=1"
             transition={{
@@ -177,7 +208,7 @@ export default function AtlasCuerpoOlimpicoPage() {
             Volver a home
           </TransitionLink>
 
-          <div className="text-right">
+          <div className="text-left sm:text-right">
             <p
               className="text-[11px] uppercase tracking-[0.32em] text-[#c9a84c]"
               style={{ fontFamily: "var(--font-atlas-data)" }}
@@ -289,7 +320,8 @@ export default function AtlasCuerpoOlimpicoPage() {
       >
         <div
           ref={controlsBarRef}
-          className={`${isControlsPinned ? "fixed inset-x-0 top-[73px] border-y border-white/10 bg-black/88 backdrop-blur-xl" : "border-y border-white/10 bg-black/88 backdrop-blur-xl"}`}
+          className={`${isControlsPinned ? "fixed inset-x-0 border-y border-white/10 bg-black/88 backdrop-blur-xl" : "border-y border-white/10 bg-black/88 backdrop-blur-xl"}`}
+          style={isControlsPinned ? { top: headerHeight } : undefined}
         >
           <div className="mx-auto max-w-7xl px-5 py-5 sm:px-8">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
@@ -415,16 +447,17 @@ export default function AtlasCuerpoOlimpicoPage() {
             ref={atlasRootRef}
             id="body-atlas-root"
             className="min-h-[72rem]"
+            style={atlasRootStyle}
           >
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4" aria-hidden="true">
+            <div className="grid grid-cols-2 gap-4 xl:grid-cols-4" aria-hidden="true">
               {Array.from({ length: initialAtlasSportCount }).map((_, index) => (
                 <div
                   key={`atlas-grid-skeleton-${index}`}
-                  className="rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-6"
+                  className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4 sm:rounded-[1.75rem] sm:p-6"
                 >
                   <div className="h-4 w-24 rounded-full bg-white/10" />
                   <div className="mt-3 h-16 w-full rounded-[1.25rem] bg-white/[0.04]" />
-                  <div className="mt-6 flex h-[18rem] items-end justify-center rounded-[1.5rem] border border-dashed border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.08))] px-4 pb-4 pt-3">
+                  <div className="mt-6 flex h-[13rem] items-end justify-center rounded-[1.35rem] border border-dashed border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.08))] px-3 pb-3 pt-2 sm:h-[18rem] sm:rounded-[1.5rem] sm:px-4 sm:pb-4 sm:pt-3">
                     <div className="h-full w-full max-w-[9rem] rounded-[999px_999px_0_0] bg-[#c9a84c]/15" />
                   </div>
                   <div className="mt-5 h-12 rounded-[1rem] bg-white/[0.04]" />

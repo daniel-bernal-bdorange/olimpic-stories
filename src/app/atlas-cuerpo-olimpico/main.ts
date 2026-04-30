@@ -27,6 +27,9 @@ let activeTooltipNode: HTMLDivElement | null = null;
 let activeTooltipTarget: HTMLElement | null = null;
 let tooltipViewportHandler: (() => void) | null = null;
 let lastRenderedControls: BodyAtlasControls | null = null;
+let selectionLayerCleanup: (() => void) | null = null;
+let selectionReturnFocusNode: HTMLElement | null = null;
+let selectionBodyOverflow = "";
 
 const activeSportByView: Partial<Record<AtlasView, string>> = {};
 
@@ -50,6 +53,7 @@ const BODY_ATLAS_TOOLTIP_GAP = 14;
 const BODY_ATLAS_TOOLTIP_EDGE_OFFSET = 16;
 const BODY_ATLAS_SORT_TRANSITION_MS = 600;
 const BODY_ATLAS_METRICS: SortMetric[] = ["height", "weight", "bmi"];
+const BODY_ATLAS_MOBILE_BREAKPOINT = 768;
 
 type CardVisualState = "default" | "hover" | "active";
 
@@ -84,6 +88,34 @@ function toRgba(hex: string, alpha: number) {
 
 function getSportAccentColor(accent: string | undefined) {
   return accent && accent.trim().length > 0 ? accent : "#C9A84C";
+}
+
+function isMobileAtlasViewport() {
+  return typeof window !== "undefined" && window.innerWidth < BODY_ATLAS_MOBILE_BREAKPOINT;
+}
+
+function getBodyAtlasCssVariable(name: string, fallback: string) {
+  if (!activeRoot || typeof window === "undefined") {
+    return fallback;
+  }
+
+  const value = window.getComputedStyle(activeRoot).getPropertyValue(name).trim();
+  return value.length > 0 ? value : fallback;
+}
+
+function cleanupBodyAtlasSelectionLayer(options: { restoreFocus?: boolean } = {}) {
+  selectionLayerCleanup?.();
+  selectionLayerCleanup = null;
+
+  if (typeof document !== "undefined") {
+    document.body.style.overflow = selectionBodyOverflow;
+  }
+
+  selectionBodyOverflow = "";
+
+  if (options.restoreFocus && selectionReturnFocusNode) {
+    selectionReturnFocusNode.focus();
+  }
 }
 
 function ensureBodyAtlasTooltip() {
@@ -413,6 +445,7 @@ function bindBodyAtlasCardInteractions(view: AtlasView) {
     });
 
     cardNode.addEventListener("click", () => {
+      selectionReturnFocusNode = cardNode;
       activeSportByView[view] = activeSportByView[view] === sport ? "" : sport;
       syncBodyAtlasCardStates(view);
 
@@ -596,10 +629,10 @@ function getAtlasComparisonCardsMarkup(profile: AtlasProfile, controls: BodyAtla
 
     return `
       <article class="rounded-[1.5rem] border p-5" style="border-color:${isActiveMetric ? toRgba(accent, 0.38) : "rgba(255,255,255,0.10)"};background:${isActiveMetric ? toRgba(accent, 0.08) : "rgba(255,255,255,0.03)"}">
-        <div class="flex items-start justify-between gap-3">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p class="text-[11px] uppercase tracking-[0.28em] text-white/52" style="font-family:var(--font-atlas-data)">${escapeHtml(getAtlasMetricLabel(metric))}</p>
-            <p class="mt-3 text-3xl uppercase leading-none text-white" style="font-family:var(--font-atlas-display)">${escapeHtml(formatAtlasMetricValue(metric, profileValue))}</p>
+            <p class="mt-3 text-[clamp(2rem,7vw,3rem)] uppercase leading-none text-white" style="font-family:var(--font-atlas-display)">${escapeHtml(formatAtlasMetricValue(metric, profileValue))}</p>
           </div>
           <span class="rounded-full border px-3 py-1 text-[10px] uppercase tracking-[0.24em] text-white/72" style="border-color:${toRgba(accent, isActiveMetric ? 0.42 : 0.18)};font-family:var(--font-atlas-data)">${escapeHtml(getAtlasMetricDeltaLabel(metric, profileValue - averageValue))}</span>
         </div>
@@ -628,7 +661,8 @@ function getAtlasComparisonCardsMarkup(profile: AtlasProfile, controls: BodyAtla
   }).join("");
 }
 
-function closeBodyAtlasEditorialLayer(view: AtlasView) {
+function closeBodyAtlasEditorialLayer(view: AtlasView, options: { restoreFocus?: boolean } = {}) {
+  cleanupBodyAtlasSelectionLayer(options);
   activeSportByView[view] = "";
   syncBodyAtlasCardStates(view);
 
@@ -653,6 +687,7 @@ function updateBodyAtlasEditorialLayer(controls: BodyAtlasControls) {
   const activeSport = activeSportByView[controls.view] ?? "";
 
   if (!activeSport) {
+    cleanupBodyAtlasSelectionLayer();
     layerNode.innerHTML = "";
     return;
   }
@@ -661,43 +696,51 @@ function updateBodyAtlasEditorialLayer(controls: BodyAtlasControls) {
   const profile = profiles.find((candidate) => candidate.sport === activeSport);
 
   if (!profile) {
+    cleanupBodyAtlasSelectionLayer();
     layerNode.innerHTML = "";
     return;
   }
+
+  cleanupBodyAtlasSelectionLayer();
 
   const accent = getSportAccentColor(profile.accent);
   const selectedViewLabel = controls.view === "male" ? "Male" : "Female";
   const selectedMetricLabel = getAtlasMetricLabel(controls.sort);
   const lead = getAtlasEditorialLead(profile, controls);
-  const drawerTop = "9.75rem";
+  const panelTop = getBodyAtlasCssVariable("--atlas-panel-top", "9.75rem");
+  const isMobilePanel = isMobileAtlasViewport();
+  const panelTransform = isMobilePanel ? "translateY(110%)" : "translateX(110%)";
+  const panelLayout = isMobilePanel
+    ? `left:0.75rem;right:0.75rem;top:${panelTop};bottom:0.75rem;width:auto;max-width:none;border-radius:1.5rem;`
+    : `top:${panelTop};right:1rem;bottom:1rem;width:min(30vw, 28rem);max-width:calc(100vw - 2rem);border-radius:2rem;`;
 
   layerNode.innerHTML = `
-    <div data-atlas-role="selection-backdrop" style="position:fixed;left:0;right:0;top:${drawerTop};bottom:0;background:rgba(5,5,5,0.4);backdrop-filter:blur(3px);opacity:0;transition:opacity 220ms ease;z-index:60"></div>
+    <div data-atlas-role="selection-backdrop" style="position:fixed;left:0;right:0;top:${panelTop};bottom:0;background:rgba(5,5,5,0.4);backdrop-filter:blur(3px);opacity:0;transition:opacity 220ms ease;z-index:60"></div>
     <aside
       data-atlas-role="selection-panel"
       aria-label="Selected sport details"
       aria-live="polite"
       role="dialog"
-      style="position:fixed;top:${drawerTop};right:1rem;bottom:1rem;width:min(30vw, 28rem);max-width:calc(100vw - 2rem);border:1px solid ${toRgba(accent, 0.34)};border-radius:2rem;background:linear-gradient(180deg, ${toRgba(accent, 0.12)} 0%, rgba(8,8,8,0.98) 100%);box-shadow:0 28px 90px rgba(0,0,0,0.42);overflow:auto;opacity:0;transform:translateX(110%);transition:transform 280ms ease, opacity 220ms ease;z-index:70">
+      style="position:fixed;${panelLayout}border:1px solid ${toRgba(accent, 0.34)};background:linear-gradient(180deg, ${toRgba(accent, 0.12)} 0%, rgba(8,8,8,0.98) 100%);box-shadow:0 28px 90px rgba(0,0,0,0.42);overflow:auto;overscroll-behavior:contain;opacity:0;transform:${panelTransform};transition:transform 280ms ease, opacity 220ms ease;z-index:70">
       <div class="flex min-h-full flex-col p-6 sm:p-8">
-        <div class="flex items-start justify-between gap-4 border-b border-white/10 pb-5">
+        <div class="flex flex-col gap-4 border-b border-white/10 pb-5 sm:flex-row sm:items-start sm:justify-between">
           <button
             type="button"
             data-atlas-role="selection-close"
             aria-label="Close selected sport details"
-            class="rounded-full border border-white/12 px-3 py-2 text-[11px] uppercase tracking-[0.24em] text-white/72 transition-colors hover:border-white/28 hover:text-white"
+            class="self-start rounded-full border border-white/12 px-3 py-2 text-[11px] uppercase tracking-[0.24em] text-white/72 transition-colors hover:border-white/28 hover:text-white"
             style="font-family:var(--font-atlas-data)"
           >
             X Close
           </button>
-          <div class="min-w-0 text-right">
+          <div class="min-w-0 text-left sm:text-right">
             <p class="text-[11px] uppercase tracking-[0.28em]" style="font-family:var(--font-atlas-data);color:${accent}">Olympic comparison</p>
-            <p class="mt-3 text-[clamp(2.1rem,4vw,3.4rem)] uppercase leading-[0.92] text-white" style="font-family:var(--font-atlas-display)">${escapeHtml(profile.sport)}</p>
+            <p class="mt-3 text-[clamp(1.9rem,8vw,3.4rem)] uppercase leading-[0.92] text-white" style="font-family:var(--font-atlas-display)">${escapeHtml(profile.sport)}</p>
             <p class="mt-2 text-[11px] uppercase tracking-[0.22em] text-white/52" style="font-family:var(--font-atlas-data)">${escapeHtml(selectedViewLabel)} dataset · ${escapeHtml(selectedMetricLabel)} lens</p>
           </div>
         </div>
 
-        <p class="mt-5 text-lg italic leading-relaxed text-white/80 sm:text-xl" style="font-family:var(--font-atlas-body)">${escapeHtml(lead)}</p>
+        <p class="mt-5 text-base italic leading-relaxed text-white/80 sm:text-xl" style="font-family:var(--font-atlas-body)">${escapeHtml(lead)}</p>
 
         <div class="mt-6 space-y-4">
           ${getAtlasComparisonCardsMarkup(profile, controls)}
@@ -727,11 +770,34 @@ function updateBodyAtlasEditorialLayer(controls: BodyAtlasControls) {
   const closeButton = layerNode.querySelector<HTMLButtonElement>("[data-atlas-role='selection-close']");
 
   const handleClose = () => {
-    closeBodyAtlasEditorialLayer(controls.view);
+    closeBodyAtlasEditorialLayer(controls.view, { restoreFocus: true });
   };
+
+  const handleDocumentKeydown = (event: KeyboardEvent) => {
+    if (event.key !== "Escape") {
+      return;
+    }
+
+    event.preventDefault();
+    handleClose();
+  };
+
+  if (typeof document !== "undefined") {
+    selectionBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", handleDocumentKeydown);
+  }
 
   backdropNode?.addEventListener("click", handleClose);
   closeButton?.addEventListener("click", handleClose);
+  selectionLayerCleanup = () => {
+    backdropNode?.removeEventListener("click", handleClose);
+    closeButton?.removeEventListener("click", handleClose);
+
+    if (typeof document !== "undefined") {
+      document.removeEventListener("keydown", handleDocumentKeydown);
+    }
+  };
 
   requestAnimationFrame(() => {
     if (backdropNode) {
@@ -740,8 +806,10 @@ function updateBodyAtlasEditorialLayer(controls: BodyAtlasControls) {
 
     if (panelNode) {
       panelNode.style.opacity = "1";
-      panelNode.style.transform = "translateX(0)";
+      panelNode.style.transform = "translate3d(0, 0, 0)";
     }
+
+    closeButton?.focus();
   });
 }
 
@@ -873,7 +941,7 @@ function renderSilhouetteCard(
   const accent = getSportAccentColor(profile.accent);
   const card = container
     .append("article")
-    .attr("class", "flex h-full cursor-pointer flex-col rounded-[1.75rem] border p-6 text-left transition-[background,border-color,box-shadow,transform] duration-200 ease-out focus:outline-none")
+    .attr("class", "flex h-full cursor-pointer flex-col rounded-[1.5rem] border p-4 text-left transition-[background,border-color,box-shadow,transform] duration-200 ease-out focus:outline-none sm:rounded-[1.75rem] sm:p-6")
     .attr("data-atlas-card", "true")
     .attr("data-sport", profile.sport)
     .attr("data-accent", accent)
@@ -890,7 +958,7 @@ function renderSilhouetteCard(
 
   const cardHeader = card
     .append("div")
-    .attr("class", "grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4");
+    .attr("class", "grid grid-cols-1 items-start gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-4");
 
   const cardTitle = cardHeader.append("div").attr("class", "min-w-0 space-y-2");
   cardTitle
@@ -901,7 +969,7 @@ function renderSilhouetteCard(
     .style("color", "rgba(245,242,235,0.58)")
     .text(profile.sport);
 
-  const metricBlock = cardHeader.append("div").attr("class", "min-w-[7rem] text-right");
+  const metricBlock = cardHeader.append("div").attr("class", "min-w-0 text-left sm:min-w-[7rem] sm:text-right");
   metricBlock
     .append("p")
     .attr("class", "text-[10px] uppercase tracking-[0.24em] transition-colors duration-200")
@@ -912,7 +980,7 @@ function renderSilhouetteCard(
 
   metricBlock
     .append("p")
-    .attr("class", "mt-2 text-3xl uppercase leading-none transition-colors duration-200")
+    .attr("class", "mt-2 text-[clamp(2rem,6vw,3rem)] uppercase leading-none transition-colors duration-200")
     .attr("data-atlas-role", "metric-value")
     .style("font-family", "var(--font-atlas-display)")
     .style("color", "#f5f2eb")
@@ -920,7 +988,7 @@ function renderSilhouetteCard(
 
   const stage = card
     .append("div")
-    .attr("class", "mt-6 flex h-[18rem] items-end justify-center overflow-hidden rounded-[1.5rem] border border-dashed px-1 pb-1 pt-0 transition-[background,border-color] duration-200")
+    .attr("class", "mt-6 flex h-[13rem] items-end justify-center overflow-hidden rounded-[1.25rem] border border-dashed px-1 pb-1 pt-0 transition-[background,border-color] duration-200 sm:h-[18rem] sm:rounded-[1.5rem]")
     .attr("data-atlas-role", "stage")
     .style("border-color", "rgba(255,255,255,0.10)")
     .style("background", "linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.08))");
@@ -1118,11 +1186,11 @@ function renderBodyAtlasGrid() {
     .append("p")
     .attr("class", "text-[11px] uppercase tracking-[0.26em] text-white/48")
     .style("font-family", "var(--font-atlas-data)")
-    .text("Hover to preview sport metrics and color. Click or press Enter to lock an active card.");
+    .text("Hover or tap to preview and select a sport. Press Enter to lock an active card and Escape to close the panel.");
 
   const grid = shell
     .append("div")
-    .attr("class", "grid gap-4 md:grid-cols-2 xl:grid-cols-4")
+    .attr("class", "grid grid-cols-2 gap-4 xl:grid-cols-4")
     .attr("data-atlas-role", "grid");
 
   profiles.forEach((profile) => {
@@ -1175,8 +1243,10 @@ export function destroyBodyAtlas() {
   controlsChangeHandler = null;
   hoveredSport = null;
   focusedSport = null;
+  selectionReturnFocusNode = null;
   lastPublishedSignature = "";
   lastRenderedControls = null;
+  cleanupBodyAtlasSelectionLayer();
   destroyBodyAtlasTooltip();
   activeRoot.removeAttribute(READY_ATTRIBUTE);
   activeRoot.removeAttribute(VIEW_ATTRIBUTE);
