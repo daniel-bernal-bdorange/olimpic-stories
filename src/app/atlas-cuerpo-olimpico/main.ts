@@ -1,4 +1,4 @@
-import { create, type Selection } from "d3";
+import { create, easeCubicInOut, select, type Selection } from "d3";
 
 import {
   formatAtlasMetricValue,
@@ -26,6 +26,7 @@ let focusedSport: string | null = null;
 let activeTooltipNode: HTMLDivElement | null = null;
 let activeTooltipTarget: HTMLElement | null = null;
 let tooltipViewportHandler: (() => void) | null = null;
+let lastRenderedControls: BodyAtlasControls | null = null;
 
 const activeSportByView: Partial<Record<AtlasView, string>> = {};
 
@@ -47,6 +48,7 @@ const BODY_ATLAS_DEFAULT_BORDER = "rgba(255,255,255,0.10)";
 const BODY_ATLAS_DEFAULT_BG = "rgba(255,255,255,0.03)";
 const BODY_ATLAS_TOOLTIP_GAP = 14;
 const BODY_ATLAS_TOOLTIP_EDGE_OFFSET = 16;
+const BODY_ATLAS_SORT_TRANSITION_MS = 600;
 
 type CardVisualState = "default" | "hover" | "active";
 
@@ -523,6 +525,130 @@ function getSilhouetteMaskId(view: AtlasView, sport: string) {
   return `atlas-mask-${view}-${sport.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
 }
 
+function getAtlasSummaryText(controls: BodyAtlasControls, profileCount: number) {
+  const olympicAverage = getOlympicAverage(controls.view);
+  const selectedViewLabel = controls.view === "male" ? "Male" : "Female";
+
+  return {
+    hint: `${selectedViewLabel} athletes · sorted by ${getAtlasMetricLabel(controls.sort)}`,
+    note: `${profileCount} silhouettes share one baseline. ${formatAtlasMetricValue(controls.sort, olympicAverage[controls.sort])} is the Olympic average for this view, so each card can be read against the active lens at a glance.`,
+  };
+}
+
+function updateBodyAtlasSummary(controls: BodyAtlasControls, profileCount: number) {
+  if (!activeRoot) {
+    return;
+  }
+
+  const summaryText = getAtlasSummaryText(controls, profileCount);
+  const summaryHintNode = activeRoot.querySelector<HTMLElement>("[data-atlas-role='summary-hint']");
+  const summaryNoteNode = activeRoot.querySelector<HTMLElement>("[data-atlas-role='summary-note']");
+
+  if (summaryHintNode) {
+    summaryHintNode.textContent = summaryText.hint;
+  }
+
+  if (summaryNoteNode) {
+    summaryNoteNode.textContent = summaryText.note;
+  }
+}
+
+function updateBodyAtlasCardMetric(cardNode: HTMLElement, profile: AtlasProfile, sort: SortMetric) {
+  const metricLabelNode = cardNode.querySelector<HTMLElement>("[data-atlas-role='metric-label']");
+  const metricValueNode = cardNode.querySelector<HTMLElement>("[data-atlas-role='metric-value']");
+
+  if (metricLabelNode) {
+    metricLabelNode.textContent = getAtlasMetricLabel(sort);
+  }
+
+  if (metricValueNode) {
+    metricValueNode.textContent = formatAtlasMetricValue(sort, profile[sort]);
+  }
+
+  cardNode.setAttribute(
+    "aria-label",
+    `${profile.sport}. ${formatAtlasMetricValue(sort, profile[sort])}. Press Enter to lock this card.`,
+  );
+}
+
+function animateBodyAtlasSort(controls: BodyAtlasControls, profiles: AtlasProfile[]) {
+  if (!activeRoot) {
+    return false;
+  }
+
+  const gridNode = activeRoot.querySelector<HTMLElement>("[data-atlas-role='grid']");
+
+  if (!gridNode) {
+    return false;
+  }
+
+  const cardNodes = Array.from(gridNode.querySelectorAll<HTMLElement>("[data-atlas-card='true']"));
+
+  if (cardNodes.length !== profiles.length) {
+    return false;
+  }
+
+  const cardMap = new Map(cardNodes.map((cardNode) => [cardNode.dataset.sport ?? "", cardNode]));
+  const orderedNodes = profiles.map((profile) => cardMap.get(profile.sport) ?? null);
+
+  if (orderedNodes.some((cardNode) => cardNode === null)) {
+    return false;
+  }
+
+  hideBodyAtlasTooltip();
+  hoveredSport = null;
+  focusedSport = null;
+  updateBodyAtlasSummary(controls, profiles.length);
+
+  const firstRects = new Map<HTMLElement, DOMRect>();
+
+  cardNodes.forEach((cardNode) => {
+    firstRects.set(cardNode, cardNode.getBoundingClientRect());
+  });
+
+  profiles.forEach((profile) => {
+    const cardNode = cardMap.get(profile.sport);
+
+    if (!cardNode) {
+      return;
+    }
+
+    updateBodyAtlasCardMetric(cardNode, profile, controls.sort);
+    gridNode.appendChild(cardNode);
+  });
+
+  orderedNodes.forEach((cardNode) => {
+    if (!cardNode) {
+      return;
+    }
+
+    const firstRect = firstRects.get(cardNode);
+    const lastRect = cardNode.getBoundingClientRect();
+    const deltaX = firstRect ? firstRect.left - lastRect.left : 0;
+    const deltaY = firstRect ? firstRect.top - lastRect.top : 0;
+
+    select(cardNode).interrupt();
+    cardNode.style.setProperty("translate", `${deltaX}px ${deltaY}px`);
+  });
+
+  gridNode.getBoundingClientRect();
+
+  orderedNodes.forEach((cardNode) => {
+    if (!cardNode) {
+      return;
+    }
+
+    select(cardNode)
+      .transition()
+      .duration(BODY_ATLAS_SORT_TRANSITION_MS)
+      .ease(easeCubicInOut)
+      .style("translate", "0px 0px");
+  });
+
+  syncBodyAtlasCardStates(controls.view);
+  return true;
+}
+
 function renderSilhouetteCard(
   container: Selection<HTMLDivElement, undefined, null, undefined>,
   profile: AtlasProfile,
@@ -722,8 +848,6 @@ function renderBodyAtlasGrid() {
     return;
   }
 
-  hideBodyAtlasTooltip();
-
   const profiles = getSortedAtlasProfiles(controls.view, controls.sort);
   const olympicAverage = getOlympicAverage(controls.view);
   const minHeight = Math.min(...profiles.map((profile) => profile.height));
@@ -731,10 +855,21 @@ function renderBodyAtlasGrid() {
   const minWeight = Math.min(...profiles.map((profile) => profile.weight));
   const maxWeight = Math.max(...profiles.map((profile) => profile.weight));
   const selectedViewLabel = controls.view === "male" ? "Male" : "Female";
+  const shouldAnimateSort =
+    lastRenderedControls !== null &&
+    lastRenderedControls.view === controls.view &&
+    lastRenderedControls.sort !== controls.sort;
 
   if (activeSportByView[controls.view] && !profiles.some((profile) => profile.sport === activeSportByView[controls.view])) {
     delete activeSportByView[controls.view];
   }
+
+  if (shouldAnimateSort && animateBodyAtlasSort(controls, profiles)) {
+    lastRenderedControls = controls;
+    return;
+  }
+
+  hideBodyAtlasTooltip();
 
   hoveredSport = null;
   focusedSport = null;
@@ -755,12 +890,14 @@ function renderBodyAtlasGrid() {
   summaryLabel
     .append("p")
     .attr("class", "text-sm uppercase tracking-[0.24em] text-white/72")
+    .attr("data-atlas-role", "summary-hint")
     .style("font-family", "var(--font-atlas-data)")
     .text(`${selectedViewLabel} athletes · sorted by ${getAtlasMetricLabel(controls.sort)}`);
 
   summary
     .append("p")
     .attr("class", "max-w-4xl text-xl italic text-white/78 sm:text-2xl")
+    .attr("data-atlas-role", "summary-note")
     .style("font-family", "var(--font-atlas-body)")
     .text(
       `${profiles.length} silhouettes share one baseline. ${formatAtlasMetricValue(controls.sort, olympicAverage[controls.sort])} is the Olympic average for this view, so each card can be read against the active lens at a glance.`,
@@ -772,7 +909,10 @@ function renderBodyAtlasGrid() {
     .style("font-family", "var(--font-atlas-data)")
     .text("Hover to preview sport metrics and color. Click or press Enter to lock an active card.");
 
-  const grid = shell.append("div").attr("class", "grid gap-4 md:grid-cols-2 xl:grid-cols-4");
+  const grid = shell
+    .append("div")
+    .attr("class", "grid gap-4 md:grid-cols-2 xl:grid-cols-4")
+    .attr("data-atlas-role", "grid");
 
   profiles.forEach((profile) => {
     renderSilhouetteCard(grid, profile, controls.view, controls.sort, minHeight, maxHeight, minWeight, maxWeight);
@@ -781,6 +921,7 @@ function renderBodyAtlasGrid() {
   activeRoot.replaceChildren(shell.node() as Node);
   bindBodyAtlasCardInteractions(controls.view);
   syncBodyAtlasCardStates(controls.view);
+  lastRenderedControls = controls;
 }
 
 export function initBodyAtlas(root: HTMLElement | null, controls: BodyAtlasControls) {
@@ -790,6 +931,7 @@ export function initBodyAtlas(root: HTMLElement | null, controls: BodyAtlasContr
 
   activeRoot = root;
   lastPublishedSignature = "";
+  lastRenderedControls = null;
   controlsChangeHandler = () => {
     renderBodyAtlasGrid();
   };
@@ -820,6 +962,7 @@ export function destroyBodyAtlas() {
   hoveredSport = null;
   focusedSport = null;
   lastPublishedSignature = "";
+  lastRenderedControls = null;
   destroyBodyAtlasTooltip();
   activeRoot.removeAttribute(READY_ATTRIBUTE);
   activeRoot.removeAttribute(VIEW_ATTRIBUTE);
