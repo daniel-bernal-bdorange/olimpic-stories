@@ -6,12 +6,10 @@ import { TransitionLink, useRouteTransition } from "@/components/route-transitio
 import {
   atlasHeroImpact,
   atlasViews,
-  formatAtlasMetricValue,
   getAtlasContextCopy,
   getAtlasMetricLabel,
   getAtlasSportCount,
   getOlympicAverage,
-  getSortedAtlasProfiles,
   initialAtlasSort,
   initialAtlasView,
   sortOptions,
@@ -55,8 +53,6 @@ export default function AtlasCuerpoOlimpicoPage() {
   const selectedViewLabel = atlasViews.find(({ key }) => key === selectedView)?.label ?? "Male";
   const selectedSortLabel = getAtlasMetricLabel(selectedSort);
   const contextualCopy = getAtlasContextCopy(selectedView, selectedSort);
-  const sortedPreviewSports = getSortedAtlasProfiles(selectedView, selectedSort);
-  const maxMetricValue = sortedPreviewSports[0]?.[selectedSort] ?? 1;
 
   useEffect(() => {
     let cancelled = false;
@@ -402,60 +398,39 @@ export default function AtlasCuerpoOlimpicoPage() {
       </div>
 
       <section className="relative bg-[#050505]">
-        <div
-          ref={atlasRootRef}
-          id="body-atlas-root"
-          className="mx-auto flex w-full max-w-7xl flex-col gap-12 px-5 py-10 sm:px-8 lg:py-14"
-        >
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-12 px-5 py-10 sm:px-8 lg:py-14">
           <div className="max-w-3xl space-y-3">
             <p
               className="text-[11px] uppercase tracking-[0.28em] text-[#c9a84c]"
               style={{ fontFamily: "var(--font-atlas-data)" }}
             >
-              Preview slice
+              BA-05 slice
             </p>
             <p className="text-xl italic text-white/72 sm:text-2xl" style={{ fontFamily: "var(--font-atlas-body)" }}>
-              {selectedViewLabel} athletes ranked by {selectedSortLabel.toLowerCase()}. Olympic average: {formatAtlasMetricValue(selectedSort, selectedAverages[selectedSort])}.
+              {selectedViewLabel} athletes ranked by {selectedSortLabel.toLowerCase()}. Each card now previews its Olympic-ring color on hover and can be locked with click or keyboard focus.
             </p>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {sortedPreviewSports.map((item) => {
-              const metricValue = item[selectedSort];
-              const silhouetteHeight = `${Math.max(36, (metricValue / maxMetricValue) * 100)}%`;
-
-              return (
-                <article
-                  key={item.sport}
-                  className="rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-6 transition-colors hover:border-[#c9a84c]/40"
+          <div
+            ref={atlasRootRef}
+            id="body-atlas-root"
+            className="min-h-[72rem]"
+          >
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4" aria-hidden="true">
+              {Array.from({ length: initialAtlasSportCount }).map((_, index) => (
+                <div
+                  key={`atlas-grid-skeleton-${index}`}
+                  className="rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-6"
                 >
-                  <div className="flex min-h-56 items-end justify-between gap-6">
-                    <div className="flex-1">
-                      <div className="flex h-48 items-end justify-center rounded-[1.5rem] border border-dashed border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.08))] px-6 pb-5">
-                        <div className="w-14 rounded-t-full bg-[#c9a84c]/55 transition-[height] duration-500" style={{ height: silhouetteHeight }} />
-                      </div>
-                    </div>
-                    <div className="w-28 text-right">
-                      <p className="text-3xl uppercase text-white" style={{ fontFamily: "var(--font-atlas-display)" }}>
-                        {formatAtlasMetricValue(selectedSort, metricValue)}
-                      </p>
-                    </div>
+                  <div className="h-4 w-24 rounded-full bg-white/10" />
+                  <div className="mt-3 h-16 w-full rounded-[1.25rem] bg-white/[0.04]" />
+                  <div className="mt-6 flex h-[18rem] items-end justify-center rounded-[1.5rem] border border-dashed border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.08))] px-4 pb-4 pt-3">
+                    <div className="h-full w-full max-w-[9rem] rounded-[999px_999px_0_0] bg-[#c9a84c]/15" />
                   </div>
-
-                  <div className="mt-5 space-y-2">
-                    <p
-                      className="text-[11px] uppercase tracking-[0.28em] text-[#c9a84c]"
-                      style={{ fontFamily: "var(--font-atlas-data)" }}
-                    >
-                      {item.sport}
-                    </p>
-                    <p className="text-lg italic text-white/68" style={{ fontFamily: "var(--font-atlas-body)" }}>
-                      {item.detail}
-                    </p>
-                  </div>
-                </article>
-              );
-            })}
+                  <div className="mt-5 h-12 rounded-[1rem] bg-white/[0.04]" />
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="rounded-[2rem] border border-white/10 bg-[#0d0d0d] p-6 sm:p-8">
@@ -468,7 +443,7 @@ export default function AtlasCuerpoOlimpicoPage() {
                   Next slice
                 </p>
                 <p className="text-2xl text-white sm:text-3xl" style={{ fontFamily: "var(--font-atlas-display)" }}>
-                  Data model, metadata and analytical rules are ready. The D3 silhouette grid can mount into this shell next.
+                  Tooltip previews and the sliding detail panel can now build on top of the active card system without changing the grid foundation.
                 </p>
               </div>
 
