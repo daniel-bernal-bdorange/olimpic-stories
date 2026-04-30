@@ -404,10 +404,10 @@ export default function AtlasCuerpoOlimpicoPage() {
               className="text-[11px] uppercase tracking-[0.28em] text-[#c9a84c]"
               style={{ fontFamily: "var(--font-atlas-data)" }}
             >
-              BA-07 slice
+              BA-10 slice
             </p>
             <p className="text-xl italic text-white/72 sm:text-2xl" style={{ fontFamily: "var(--font-atlas-body)" }}>
-              {selectedViewLabel} athletes reorder live by {selectedSortLabel.toLowerCase()}. Each card keeps its active metric in sync while hover, focus and locked states preserve the exploratory flow.
+              Lock any {selectedViewLabel.toLowerCase()} sport to compare it against the Olympic average and reveal the editorial layer behind the active metric lens.
             </p>
           </div>
 

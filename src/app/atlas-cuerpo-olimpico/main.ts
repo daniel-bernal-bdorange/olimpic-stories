@@ -49,6 +49,7 @@ const BODY_ATLAS_DEFAULT_BG = "rgba(255,255,255,0.03)";
 const BODY_ATLAS_TOOLTIP_GAP = 14;
 const BODY_ATLAS_TOOLTIP_EDGE_OFFSET = 16;
 const BODY_ATLAS_SORT_TRANSITION_MS = 600;
+const BODY_ATLAS_METRICS: SortMetric[] = ["height", "weight", "bmi"];
 
 type CardVisualState = "default" | "hover" | "active";
 
@@ -414,6 +415,12 @@ function bindBodyAtlasCardInteractions(view: AtlasView) {
     cardNode.addEventListener("click", () => {
       activeSportByView[view] = activeSportByView[view] === sport ? "" : sport;
       syncBodyAtlasCardStates(view);
+
+      const controls = readBodyAtlasControls();
+
+      if (controls && controls.view === view) {
+        updateBodyAtlasEditorialLayer(controls);
+      }
     });
 
     cardNode.addEventListener("keydown", (event) => {
@@ -535,6 +542,209 @@ function getAtlasSummaryText(controls: BodyAtlasControls, profileCount: number) 
   };
 }
 
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function getAtlasMetricDeltaLabel(metric: SortMetric, delta: number) {
+  const absoluteDelta = Math.abs(delta).toFixed(1);
+
+  if (absoluteDelta === "0.0") {
+    return "On the Olympic average";
+  }
+
+  if (metric === "height") {
+    return `${absoluteDelta} cm ${delta > 0 ? "above" : "below"}`;
+  }
+
+  if (metric === "weight") {
+    return `${absoluteDelta} kg ${delta > 0 ? "above" : "below"}`;
+  }
+
+  return `${absoluteDelta} BMI points ${delta > 0 ? "above" : "below"}`;
+}
+
+function getAtlasEditorialLead(profile: AtlasProfile, controls: BodyAtlasControls) {
+  const olympicAverage = getOlympicAverage(controls.view);
+  const delta = profile[controls.sort] - olympicAverage[controls.sort];
+  const audience = controls.view === "male" ? "male" : "female";
+  const sortLabel = getAtlasMetricLabel(controls.sort).toLowerCase();
+
+  if (Math.abs(delta) < 0.05) {
+    return `${profile.sport} sits right on the ${audience} Olympic ${sortLabel} baseline, making the editorial story about how the sport distributes that average through shape and movement.`;
+  }
+
+  return `${profile.sport} lands ${getAtlasMetricDeltaLabel(controls.sort, delta).toLowerCase()} the ${audience} Olympic ${sortLabel} average, turning the selected silhouette into a readable outlier against the current field.`;
+}
+
+function getAtlasComparisonCardsMarkup(profile: AtlasProfile, controls: BodyAtlasControls) {
+  const olympicAverage = getOlympicAverage(controls.view);
+  const accent = getSportAccentColor(profile.accent);
+
+  return BODY_ATLAS_METRICS.map((metric) => {
+    const profileValue = profile[metric];
+    const averageValue = olympicAverage[metric];
+    const maxValue = Math.max(profileValue, averageValue, 1);
+    const profileWidth = Math.max((profileValue / maxValue) * 100, 6);
+    const averageWidth = Math.max((averageValue / maxValue) * 100, 6);
+    const isActiveMetric = metric === controls.sort;
+
+    return `
+      <article class="rounded-[1.5rem] border p-5" style="border-color:${isActiveMetric ? toRgba(accent, 0.38) : "rgba(255,255,255,0.10)"};background:${isActiveMetric ? toRgba(accent, 0.08) : "rgba(255,255,255,0.03)"}">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <p class="text-[11px] uppercase tracking-[0.28em] text-white/52" style="font-family:var(--font-atlas-data)">${escapeHtml(getAtlasMetricLabel(metric))}</p>
+            <p class="mt-3 text-3xl uppercase leading-none text-white" style="font-family:var(--font-atlas-display)">${escapeHtml(formatAtlasMetricValue(metric, profileValue))}</p>
+          </div>
+          <span class="rounded-full border px-3 py-1 text-[10px] uppercase tracking-[0.24em] text-white/72" style="border-color:${toRgba(accent, isActiveMetric ? 0.42 : 0.18)};font-family:var(--font-atlas-data)">${escapeHtml(getAtlasMetricDeltaLabel(metric, profileValue - averageValue))}</span>
+        </div>
+        <div class="mt-5 space-y-3">
+          <div class="space-y-2">
+            <div class="flex items-center justify-between gap-3 text-[11px] uppercase tracking-[0.22em] text-white/54" style="font-family:var(--font-atlas-data)">
+              <span>Sport</span>
+              <span>${escapeHtml(formatAtlasMetricValue(metric, profileValue))}</span>
+            </div>
+            <div class="h-2 overflow-hidden rounded-full bg-white/8">
+              <div class="h-full rounded-full" style="width:${profileWidth}%;background:${accent}"></div>
+            </div>
+          </div>
+          <div class="space-y-2">
+            <div class="flex items-center justify-between gap-3 text-[11px] uppercase tracking-[0.22em] text-white/44" style="font-family:var(--font-atlas-data)">
+              <span>Olympic avg</span>
+              <span>${escapeHtml(formatAtlasMetricValue(metric, averageValue))}</span>
+            </div>
+            <div class="h-2 overflow-hidden rounded-full bg-white/8">
+              <div class="h-full rounded-full bg-white/35" style="width:${averageWidth}%"></div>
+            </div>
+          </div>
+        </div>
+      </article>
+    `;
+  }).join("");
+}
+
+function closeBodyAtlasEditorialLayer(view: AtlasView) {
+  activeSportByView[view] = "";
+  syncBodyAtlasCardStates(view);
+
+  const controls = readBodyAtlasControls();
+
+  if (controls && controls.view === view) {
+    updateBodyAtlasEditorialLayer(controls);
+  }
+}
+
+function updateBodyAtlasEditorialLayer(controls: BodyAtlasControls) {
+  if (!activeRoot) {
+    return;
+  }
+
+  const layerNode = activeRoot.querySelector<HTMLElement>("[data-atlas-role='selection-layer']");
+
+  if (!layerNode) {
+    return;
+  }
+
+  const activeSport = activeSportByView[controls.view] ?? "";
+
+  if (!activeSport) {
+    layerNode.innerHTML = "";
+    return;
+  }
+
+  const profiles = getSortedAtlasProfiles(controls.view, controls.sort);
+  const profile = profiles.find((candidate) => candidate.sport === activeSport);
+
+  if (!profile) {
+    layerNode.innerHTML = "";
+    return;
+  }
+
+  const accent = getSportAccentColor(profile.accent);
+  const selectedViewLabel = controls.view === "male" ? "Male" : "Female";
+  const selectedMetricLabel = getAtlasMetricLabel(controls.sort);
+  const lead = getAtlasEditorialLead(profile, controls);
+  const drawerTop = "9.75rem";
+
+  layerNode.innerHTML = `
+    <div data-atlas-role="selection-backdrop" style="position:fixed;left:0;right:0;top:${drawerTop};bottom:0;background:rgba(5,5,5,0.4);backdrop-filter:blur(3px);opacity:0;transition:opacity 220ms ease;z-index:60"></div>
+    <aside
+      data-atlas-role="selection-panel"
+      aria-label="Selected sport details"
+      aria-live="polite"
+      role="dialog"
+      style="position:fixed;top:${drawerTop};right:1rem;bottom:1rem;width:min(30vw, 28rem);max-width:calc(100vw - 2rem);border:1px solid ${toRgba(accent, 0.34)};border-radius:2rem;background:linear-gradient(180deg, ${toRgba(accent, 0.12)} 0%, rgba(8,8,8,0.98) 100%);box-shadow:0 28px 90px rgba(0,0,0,0.42);overflow:auto;opacity:0;transform:translateX(110%);transition:transform 280ms ease, opacity 220ms ease;z-index:70">
+      <div class="flex min-h-full flex-col p-6 sm:p-8">
+        <div class="flex items-start justify-between gap-4 border-b border-white/10 pb-5">
+          <button
+            type="button"
+            data-atlas-role="selection-close"
+            aria-label="Close selected sport details"
+            class="rounded-full border border-white/12 px-3 py-2 text-[11px] uppercase tracking-[0.24em] text-white/72 transition-colors hover:border-white/28 hover:text-white"
+            style="font-family:var(--font-atlas-data)"
+          >
+            X Close
+          </button>
+          <div class="min-w-0 text-right">
+            <p class="text-[11px] uppercase tracking-[0.28em]" style="font-family:var(--font-atlas-data);color:${accent}">Olympic comparison</p>
+            <p class="mt-3 text-[clamp(2.1rem,4vw,3.4rem)] uppercase leading-[0.92] text-white" style="font-family:var(--font-atlas-display)">${escapeHtml(profile.sport)}</p>
+            <p class="mt-2 text-[11px] uppercase tracking-[0.22em] text-white/52" style="font-family:var(--font-atlas-data)">${escapeHtml(selectedViewLabel)} dataset · ${escapeHtml(selectedMetricLabel)} lens</p>
+          </div>
+        </div>
+
+        <p class="mt-5 text-lg italic leading-relaxed text-white/80 sm:text-xl" style="font-family:var(--font-atlas-body)">${escapeHtml(lead)}</p>
+
+        <div class="mt-6 space-y-4">
+          ${getAtlasComparisonCardsMarkup(profile, controls)}
+        </div>
+
+        <div class="mt-6 rounded-[1.5rem] border border-white/10 bg-black/24 p-5">
+          <p class="text-[11px] uppercase tracking-[0.28em]" style="font-family:var(--font-atlas-data);color:${accent}">Editorial layer</p>
+          <p class="mt-4 text-3xl uppercase leading-[0.95] text-white" style="font-family:var(--font-atlas-display)">${escapeHtml(profile.cluster)} body logic</p>
+          <p class="mt-4 text-xl italic leading-relaxed text-white/82" style="font-family:var(--font-atlas-body)">${escapeHtml(profile.detail)}</p>
+        </div>
+
+        <div class="mt-5 border-t border-white/10 pt-5">
+          <p class="text-[11px] uppercase tracking-[0.28em] text-white/48" style="font-family:var(--font-atlas-data)">Why it matters</p>
+          <p class="mt-3 text-base leading-relaxed text-white/78" style="font-family:var(--font-atlas-body)">${escapeHtml(profile.fact)}</p>
+        </div>
+
+        <div class="mt-5 rounded-[1.5rem] border border-white/10 bg-black/24 p-4">
+          <p class="text-[11px] uppercase tracking-[0.24em] text-white/48" style="font-family:var(--font-atlas-data)">Reading note</p>
+          <p class="mt-2 text-sm leading-relaxed text-white/72" style="font-family:var(--font-atlas-body)">The bars compare the selected sport against the ${escapeHtml(selectedViewLabel.toLowerCase())} Olympic average, so the same silhouette can be read as a size story, a mass story or a density story depending on the active sort.</p>
+        </div>
+      </div>
+    </aside>
+  `;
+
+  const backdropNode = layerNode.querySelector<HTMLElement>("[data-atlas-role='selection-backdrop']");
+  const panelNode = layerNode.querySelector<HTMLElement>("[data-atlas-role='selection-panel']");
+  const closeButton = layerNode.querySelector<HTMLButtonElement>("[data-atlas-role='selection-close']");
+
+  const handleClose = () => {
+    closeBodyAtlasEditorialLayer(controls.view);
+  };
+
+  backdropNode?.addEventListener("click", handleClose);
+  closeButton?.addEventListener("click", handleClose);
+
+  requestAnimationFrame(() => {
+    if (backdropNode) {
+      backdropNode.style.opacity = "1";
+    }
+
+    if (panelNode) {
+      panelNode.style.opacity = "1";
+      panelNode.style.transform = "translateX(0)";
+    }
+  });
+}
+
 function updateBodyAtlasSummary(controls: BodyAtlasControls, profileCount: number) {
   if (!activeRoot) {
     return;
@@ -599,6 +809,7 @@ function animateBodyAtlasSort(controls: BodyAtlasControls, profiles: AtlasProfil
   hoveredSport = null;
   focusedSport = null;
   updateBodyAtlasSummary(controls, profiles.length);
+  updateBodyAtlasEditorialLayer(controls);
 
   const firstRects = new Map<HTMLElement, DOMRect>();
 
@@ -918,9 +1129,12 @@ function renderBodyAtlasGrid() {
     renderSilhouetteCard(grid, profile, controls.view, controls.sort, minHeight, maxHeight, minWeight, maxWeight);
   });
 
+  shell.append("section").attr("data-atlas-role", "selection-layer");
+
   activeRoot.replaceChildren(shell.node() as Node);
   bindBodyAtlasCardInteractions(controls.view);
   syncBodyAtlasCardStates(controls.view);
+  updateBodyAtlasEditorialLayer(controls);
   lastRenderedControls = controls;
 }
 
