@@ -3,7 +3,7 @@
 import { useEffect, useRef, type CSSProperties } from "react";
 import { Bebas_Neue, Cormorant_Garamond, DM_Mono } from "next/font/google";
 import { TransitionLink, useRouteTransition } from "@/components/route-transition";
-import { lostSportsHero, lostSportsIntro } from "./data";
+import { lostSportsEras, lostSportsHero, lostSportsIntro, lostSportsStoryMeta, lostSportsSummary } from "./data";
 
 const lostSportsDisplayFont = Bebas_Neue({
   weight: "400",
@@ -94,10 +94,10 @@ export default function CementerioOlimpicoPage() {
                 className="text-[11px] uppercase tracking-[0.32em] text-[var(--ls-gold)]"
                 style={{ fontFamily: "var(--font-ls-data)" }}
               >
-                LS-01 / Archivo editorial
+                {lostSportsStoryMeta.currentSliceId} / {lostSportsStoryMeta.currentSliceTitle}
               </p>
               <p className="text-xs uppercase tracking-[0.22em] text-white/50">
-                Shell cliente y dato de impacto
+                {lostSportsStoryMeta.currentSliceDescription}
               </p>
             </div>
           </div>
@@ -210,11 +210,38 @@ export default function CementerioOlimpicoPage() {
 
             <div className="mx-auto h-px w-24 bg-[var(--ls-line)]" />
 
+            <div className="mx-auto w-full max-w-4xl rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-5 text-left shadow-[0_18px_60px_rgba(0,0,0,0.16)] sm:p-6">
+              <p
+                className="text-[11px] uppercase tracking-[0.3em] text-[var(--ls-gold)]"
+                style={{ fontFamily: "var(--font-ls-data)" }}
+              >
+                Dataset ledger
+              </p>
+
+              <p className="mt-4 text-base italic leading-relaxed text-[var(--ls-muted)] sm:text-[1.06rem]" style={{ fontFamily: "var(--font-ls-body)" }}>
+                {lostSportsSummary.featuredSportCount} narrative sports are now defined in one typed module, spanning {lostSportsSummary.firstFeaturedYear} to {lostSportsSummary.lastFeaturedYear}. The same source also carries the {lostSportsSummary.editorialEraCount} editorial eras and the {lostSportsSummary.totalRemovedSports} full-archive removals needed by the upcoming filter bar.
+              </p>
+
+              <div className="mt-5 flex flex-wrap gap-2">
+                {lostSportsEras
+                  .filter((era) => era.key !== "all")
+                  .map((era) => (
+                    <span
+                      key={era.key}
+                      className="rounded-full border border-white/10 bg-black/35 px-3 py-2 text-[11px] uppercase tracking-[0.2em] text-white/72"
+                      style={{ fontFamily: "var(--font-ls-data)" }}
+                    >
+                      {era.label} · {era.totalCount}
+                    </span>
+                  ))}
+              </div>
+            </div>
+
             <p
               className="mx-auto max-w-xl text-[11px] uppercase tracking-[0.28em] text-white/38"
               style={{ fontFamily: "var(--font-ls-data)" }}
             >
-              The timeline and obituary cards will build on this archival frame in the next slices.
+              The timeline, cards, and filters will now read from the same shared historical dataset instead of duplicating values in the route.
             </p>
           </div>
         </section>
