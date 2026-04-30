@@ -330,9 +330,9 @@ export const lostSportsSummary = {
 } as const;
 
 export const lostSportsStoryMeta = {
-  currentSliceId: "LS-04",
-  currentSliceTitle: "Vertical timeline",
-  currentSliceDescription: "Timeline D3 con draw-in y marcadores de ano",
+  currentSliceId: "LS-05",
+  currentSliceTitle: "Collapsed zigzag cards",
+  currentSliceDescription: "Tarjetas editoriales alternadas con entrada ScrollTrigger",
 } as const;
 
 export const lostSportsHero = {

@@ -10,7 +10,6 @@ import {
   lostSportsIntro,
   lostSportsStoryMeta,
   lostSportsSummary,
-  type LostSport,
   type LostSportEraKey,
 } from "./data";
 
@@ -46,29 +45,12 @@ const lostSportsTheme = {
   "--ls-fog": "rgba(233, 225, 208, 0.18)",
 } as CSSProperties;
 
-const lostSportsTimelineStart = lostSportsSummary.firstFeaturedYear;
-const lostSportsTimelineEnd = lostSportsSummary.lastFeaturedYear;
-const lostSportsTimelineSpan = Math.max(lostSportsTimelineEnd - lostSportsTimelineStart, 1);
-
 function getVisibleSports(activeEra: LostSportEraKey) {
   if (activeEra === "all") {
     return lostSports;
   }
 
   return lostSports.filter((sport) => sport.era === activeEra);
-}
-
-function getLifetimeStyle(sport: LostSport): CSSProperties {
-  const offset = ((sport.first - lostSportsTimelineStart) / lostSportsTimelineSpan) * 100;
-  const width =
-    sport.first === sport.last
-      ? 8
-      : Math.max(((sport.last - sport.first) / lostSportsTimelineSpan) * 100, 10);
-
-  return {
-    left: `${Math.min(offset, 92)}%`,
-    width: `${Math.min(width, 100 - offset)}%`,
-  };
 }
 
 export default function CementerioOlimpicoPage() {
@@ -481,20 +463,6 @@ export default function CementerioOlimpicoPage() {
                     </p>
                   </div>
                 </div>
-
-                <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-5 shadow-[0_18px_50px_rgba(0,0,0,0.16)] sm:p-6">
-                  <p
-                    className="text-[11px] uppercase tracking-[0.3em] text-[var(--ls-gold)]"
-                    style={{ fontFamily: "var(--font-ls-data)" }}
-                  >
-                    Dataset ledger
-                  </p>
-
-                  <p className="mt-4 text-base italic leading-relaxed text-[var(--ls-muted)] sm:text-[1.06rem]" style={{ fontFamily: "var(--font-ls-body)" }}>
-                    {lostSportsSummary.featuredSportCount} narrative sports are now defined in one typed module, spanning {lostSportsSummary.firstFeaturedYear} to {lostSportsSummary.lastFeaturedYear}. The filter bar stays sticky while each pill keeps the full archive count requested by the brief, even when this editorial route only surfaces a curated subset.
-                  </p>
-                </div>
-
                 {visibleSports.map((sport, index) => {
                   const isShiftedRight = index % 2 === 1;
 
@@ -502,84 +470,77 @@ export default function CementerioOlimpicoPage() {
                     <article
                       key={sport.id}
                       data-ls-timeline-card
+                      data-ls-card-reveal
+                      data-ls-card-side={isShiftedRight ? "right" : "left"}
                       data-ls-year={sport.last}
-                      className={`w-full rounded-[1.9rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] p-6 shadow-[0_24px_70px_rgba(0,0,0,0.24)] transition-colors duration-300 hover:border-[rgba(201,168,76,0.42)] hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.03))] sm:p-7 lg:max-w-[85%] ${isShiftedRight ? "lg:ml-auto" : "lg:mr-auto"}`}
+                      className={`group relative w-full overflow-hidden rounded-[1.9rem] border border-white/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.045),rgba(255,255,255,0.018))] p-6 shadow-[0_24px_70px_rgba(0,0,0,0.24)] transition-colors duration-300 hover:border-[rgba(201,168,76,0.42)] hover:bg-[linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.025))] sm:p-7 lg:max-w-[84%] ${isShiftedRight ? "lg:ml-auto" : "lg:mr-auto"}`}
                     >
-                      <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="space-y-3">
-                          <p className="text-[11px] uppercase tracking-[0.28em] text-white/44" style={{ fontFamily: "var(--font-ls-data)" }}>
-                            Last seen · {sport.last}
+                      <div className="absolute inset-y-0 left-0 w-px bg-[linear-gradient(180deg,transparent,rgba(201,168,76,0.5),transparent)] opacity-70 transition-opacity duration-300 group-hover:opacity-100" />
+
+                      <div className="grid gap-5 lg:grid-cols-[minmax(0,136px)_minmax(0,1fr)_minmax(0,220px)] lg:items-center lg:gap-7">
+                        <div className="rounded-[1.35rem] border border-white/8 bg-black/24 px-4 py-4 lg:px-5 lg:py-5">
+                          <p className="text-[10px] uppercase tracking-[0.24em] text-white/42" style={{ fontFamily: "var(--font-ls-data)" }}>
+                            Last seen
                           </p>
-                          <h3 className="text-[clamp(2.8rem,8vw,4.4rem)] uppercase leading-[0.9] text-[var(--ls-paper-strong)]" style={{ fontFamily: "var(--font-ls-display)" }}>
-                            {sport.sport}
-                          </h3>
-                          <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--ls-gold)]" style={{ fontFamily: "var(--font-ls-data)" }}>
-                            {sport.years} · {sport.editions} Olympic editions
+                          <p className="mt-3 text-[clamp(3.25rem,8vw,4.9rem)] uppercase leading-none text-[var(--ls-paper-strong)]" style={{ fontFamily: "var(--font-ls-display)" }}>
+                            {sport.last}
+                          </p>
+                          <div className="mt-4 h-px w-14 bg-[var(--ls-line)]" />
+                          <p className="mt-4 text-[10px] uppercase tracking-[0.22em] text-[var(--ls-gold)]" style={{ fontFamily: "var(--font-ls-data)" }}>
+                            {sport.years}
                           </p>
                         </div>
 
-                        <div className="rounded-[1.25rem] border border-white/8 bg-black/20 px-4 py-3 text-left sm:min-w-[12rem] sm:text-right">
-                          <p className="text-[10px] uppercase tracking-[0.22em] text-white/42" style={{ fontFamily: "var(--font-ls-data)" }}>
-                            Dominant nation
-                          </p>
-                          <p className="mt-2 text-2xl uppercase leading-none text-[var(--ls-paper)]" style={{ fontFamily: "var(--font-ls-display)" }}>
-                            {sport.dominant}
-                          </p>
-                          <p className="mt-2 text-[11px] uppercase tracking-[0.2em] text-[var(--ls-gold)]" style={{ fontFamily: "var(--font-ls-data)" }}>
-                            {sport.dominance}% medal share
-                          </p>
-                        </div>
-                      </div>
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <p className="text-[10px] uppercase tracking-[0.28em] text-white/40" style={{ fontFamily: "var(--font-ls-data)" }}>
+                              Olympic obituary
+                            </p>
+                            <h3
+                              className="text-[clamp(2.8rem,8vw,4.8rem)] uppercase leading-[0.9] text-[var(--ls-paper-strong)]"
+                              style={{
+                                fontFamily: "var(--font-ls-display)",
+                                color: "var(--ls-paper-strong)",
+                              }}
+                            >
+                              {sport.sport}
+                            </h3>
+                          </div>
 
-                      <div className="mt-6 rounded-[1.35rem] border border-white/8 bg-black/20 p-4">
-                        <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.22em] text-white/38" style={{ fontFamily: "var(--font-ls-data)" }}>
-                          <span>{lostSportsTimelineStart}</span>
-                          <span>{lostSportsTimelineEnd}</span>
-                        </div>
+                          <p className="max-w-2xl text-[1.04rem] italic leading-relaxed text-[var(--ls-muted)] sm:text-[1.12rem]" style={{ fontFamily: "var(--font-ls-body)" }}>
+                            Archived after {sport.editions} Olympic editions. {sport.disappeared}
+                          </p>
 
-                        <div className="relative mt-4 h-3 rounded-full bg-white/8">
-                          <div className="absolute inset-y-0 rounded-full bg-[linear-gradient(90deg,rgba(201,168,76,0.88),rgba(255,209,90,0.72))]" style={getLifetimeStyle(sport)} />
-                        </div>
-                      </div>
-
-                      <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-                        <div className="space-y-4 rounded-[1.35rem] border border-white/8 bg-white/[0.03] p-5">
-                          <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--ls-gold)]" style={{ fontFamily: "var(--font-ls-data)" }}>
-                            Why it disappeared
-                          </p>
-                          <p className="text-[1.02rem] italic leading-relaxed text-[var(--ls-muted)] sm:text-[1.08rem]" style={{ fontFamily: "var(--font-ls-body)" }}>
-                            {sport.disappeared}
-                          </p>
-                          <p className="text-sm italic text-[var(--ls-subtle)]" style={{ fontFamily: "var(--font-ls-body)" }}>
-                            {sport.fact}
-                          </p>
+                          <div className="flex flex-wrap gap-2.5">
+                            <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-2 text-[10px] uppercase tracking-[0.22em] text-white/62" style={{ fontFamily: "var(--font-ls-data)" }}>
+                              Range · {sport.years}
+                            </span>
+                            <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-2 text-[10px] uppercase tracking-[0.22em] text-white/62" style={{ fontFamily: "var(--font-ls-data)" }}>
+                              Editions · {sport.editions}
+                            </span>
+                          </div>
                         </div>
 
-                        <div className="rounded-[1.35rem] border border-white/8 bg-black/25 p-5">
-                          <p className="text-[10px] uppercase tracking-[0.24em] text-[var(--ls-gold)]" style={{ fontFamily: "var(--font-ls-data)" }}>
-                            Medal table snapshot
-                          </p>
-                          <div className="mt-4 space-y-3">
-                            {sport.medals.map((entry, medalIndex) => (
-                              <div key={`${sport.id}-${entry.country}`} className="space-y-2">
-                                <div className="flex items-center justify-between gap-3 text-[11px] uppercase tracking-[0.2em]" style={{ fontFamily: "var(--font-ls-data)" }}>
-                                  <span className="text-white/72">{entry.country}</span>
-                                  <span className="text-white/48">{entry.pct}%</span>
-                                </div>
-                                <div className="h-2.5 rounded-full bg-white/8">
-                                  <div
-                                    className="h-full rounded-full"
-                                    style={{
-                                      width: `${entry.pct}%`,
-                                      background:
-                                        medalIndex === 0
-                                          ? "linear-gradient(90deg, rgba(201,168,76,0.95), rgba(255,209,90,0.78))"
-                                          : "rgba(245,242,235,0.36)",
-                                    }}
-                                  />
-                                </div>
-                              </div>
-                            ))}
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                          <div className="rounded-[1.2rem] border border-white/8 bg-white/[0.03] px-4 py-4">
+                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/40" style={{ fontFamily: "var(--font-ls-data)" }}>
+                              Dominant nation
+                            </p>
+                            <p className="mt-2 text-3xl uppercase leading-none text-[var(--ls-paper)]" style={{ fontFamily: "var(--font-ls-display)" }}>
+                              {sport.dominant}
+                            </p>
+                            <p className="mt-2 text-[10px] uppercase tracking-[0.2em] text-[var(--ls-gold)]" style={{ fontFamily: "var(--font-ls-data)" }}>
+                              {sport.dominance}% medal share
+                            </p>
+                          </div>
+
+                          <div className="rounded-[1.2rem] border border-white/8 bg-black/24 px-4 py-4">
+                            <p className="text-[10px] uppercase tracking-[0.22em] text-white/40" style={{ fontFamily: "var(--font-ls-data)" }}>
+                              Archive note
+                            </p>
+                            <p className="mt-3 text-sm italic leading-relaxed text-[var(--ls-subtle)]" style={{ fontFamily: "var(--font-ls-body)" }}>
+                              {sport.fact}
+                            </p>
                           </div>
                         </div>
                       </div>

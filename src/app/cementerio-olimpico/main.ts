@@ -1,9 +1,13 @@
 import * as d3 from "d3";
 import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+gsap.registerPlugin(ScrollTrigger);
 
 const TIMELINE_CONTENT_SELECTOR = "[data-ls-timeline-content]";
 const TIMELINE_STAGE_SELECTOR = "[data-ls-timeline-stage]";
 const TIMELINE_CARD_SELECTOR = "[data-ls-timeline-card]";
+const REVEAL_CARD_SELECTOR = "[data-ls-card-reveal]";
 const TIMELINE_YEAR_ATTRIBUTE = "data-ls-year";
 const TIMELINE_EDGE_PADDING = 26;
 const TIMELINE_MARKER_X = 46;
@@ -17,6 +21,9 @@ const TIMELINE_BASE_HALO = 9;
 const TIMELINE_ACTIVE_HALO = 12.5;
 const TIMELINE_MIN_MARKER_GAP = 28;
 const TIMELINE_ENTRY_DURATION = 1.35;
+const CARD_REVEAL_DISTANCE = 72;
+
+type CardSide = "left" | "right";
 
 type TimelineMarkerNode = {
   year: number;
@@ -38,6 +45,54 @@ let timelineMarkers: TimelineMarkerNode[] = [];
 let activeTimelineYear: number | null = null;
 let activeTimelineStage: HTMLElement | null = null;
 let activeTimelineLine: SVGPathElement | null = null;
+let cardRevealTriggers: ScrollTrigger[] = [];
+
+function getRevealCards(root: HTMLElement): HTMLElement[] {
+  return Array.from(root.querySelectorAll<HTMLElement>(REVEAL_CARD_SELECTOR)).filter((card) => card.isConnected);
+}
+
+function getCardSide(card: HTMLElement): CardSide {
+  return card.dataset.lsCardSide === "right" ? "right" : "left";
+}
+
+function cleanupCardReveals() {
+  cardRevealTriggers.forEach((trigger) => trigger.kill());
+  cardRevealTriggers = [];
+}
+
+function setupCardReveals(root: HTMLElement) {
+  cleanupCardReveals();
+
+  const cards = getRevealCards(root);
+
+  for (const card of cards) {
+    const side = getCardSide(card);
+
+    gsap.set(card, {
+      autoAlpha: 0,
+      x: side === "right" ? CARD_REVEAL_DISTANCE : -CARD_REVEAL_DISTANCE,
+    });
+
+    const tween = gsap.to(card, {
+      autoAlpha: 1,
+      x: 0,
+      duration: 0.82,
+      ease: "power3.out",
+      overwrite: true,
+      scrollTrigger: {
+        trigger: card,
+        start: "top 82%",
+        once: true,
+      },
+    });
+
+    if (tween.scrollTrigger) {
+      cardRevealTriggers.push(tween.scrollTrigger);
+    }
+  }
+
+  ScrollTrigger.refresh();
+}
 
 function resetLineDraw(path: SVGPathElement | null): SVGPathElement | null {
   if (!path) {
@@ -373,6 +428,10 @@ function setupLostSportsTimeline(root: HTMLElement) {
 
   timelineMutationObserver = new MutationObserver(() => {
     requestTimelineRender(false);
+
+    if (activeRoot) {
+      setupCardReveals(activeRoot);
+    }
   });
   timelineMutationObserver.observe(content, {
     childList: true,
@@ -391,6 +450,7 @@ function teardownTimeline() {
   window.removeEventListener("resize", requestTimelineRenderBound);
   window.removeEventListener("scroll", requestTimelineMarkerUpdate);
   disconnectTimelineObservers();
+  cleanupCardReveals();
 
   if (activeTimelineLine) {
     resetLineDraw(activeTimelineLine);
@@ -431,6 +491,7 @@ export function initLostSports(root: HTMLElement | null) {
   };
 
   setupLostSportsTimeline(root);
+  setupCardReveals(root);
   root.dataset.lostSportsReady = "true";
   scrollButton?.addEventListener("click", handleScrollClick);
 
