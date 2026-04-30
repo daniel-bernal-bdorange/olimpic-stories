@@ -58,10 +58,6 @@ function getVisibleSports(activeEra: LostSportEraKey) {
   return lostSports.filter((sport) => sport.era === activeEra);
 }
 
-function getTimelineYears(sports: readonly LostSport[]) {
-  return [...new Set(sports.map((sport) => sport.last))].sort((left, right) => left - right);
-}
-
 function getLifetimeStyle(sport: LostSport): CSSProperties {
   const offset = ((sport.first - lostSportsTimelineStart) / lostSportsTimelineSpan) * 100;
   const width =
@@ -89,8 +85,6 @@ export default function CementerioOlimpicoPage() {
 
   const visibleSports = getVisibleSports(activeEra);
   const activeEraMeta = lostSportsEras.find((era) => era.key === activeEra) ?? lostSportsEras[0];
-  const visibleTimelineYears = getTimelineYears(visibleSports);
-  const archivePanelTop = headerHeight + filtersBarHeight + 16;
 
   useEffect(() => {
     let cancelled = false;
@@ -412,9 +406,14 @@ export default function CementerioOlimpicoPage() {
             aria-labelledby={`lost-sports-tab-${activeEra}`}
             className="mx-auto max-w-7xl px-5 py-12 sm:px-8 sm:py-16"
           >
-            <div className="grid gap-10 lg:grid-cols-[minmax(0,18rem)_minmax(0,1fr)] xl:gap-14">
-              <aside className="space-y-6 lg:sticky lg:h-fit" style={{ top: archivePanelTop }}>
-                <div className="rounded-[1.75rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] p-6 shadow-[0_24px_60px_rgba(0,0,0,0.24)]">
+            <div className="grid gap-8 lg:grid-cols-[80px_minmax(0,1fr)] lg:items-start xl:gap-12">
+              <div className="relative hidden lg:block" aria-hidden="true">
+                <div data-ls-timeline-stage className="relative min-h-full w-full" />
+              </div>
+
+              <div data-ls-timeline-content className="space-y-6">
+                <div className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)_minmax(0,0.9fr)] xl:items-start">
+                  <div className="rounded-[1.75rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] p-6 shadow-[0_24px_60px_rgba(0,0,0,0.24)]">
                   <p
                     className="text-[11px] uppercase tracking-[0.34em] text-[var(--ls-gold)]"
                     style={{ fontFamily: "var(--font-ls-data)" }}
@@ -442,38 +441,47 @@ export default function CementerioOlimpicoPage() {
                       Cards currently available in this editorial slice from {activeEraMeta.years}.
                     </p>
                   </div>
-                </div>
+                  </div>
 
-                <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-6">
-                  <p
-                    className="text-[11px] uppercase tracking-[0.32em] text-[var(--ls-gold)]"
-                    style={{ fontFamily: "var(--font-ls-data)" }}
-                  >
-                    Archive note
-                  </p>
+                  <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-6">
+                    <p
+                      className="text-[11px] uppercase tracking-[0.32em] text-[var(--ls-gold)]"
+                      style={{ fontFamily: "var(--font-ls-data)" }}
+                    >
+                      Archive note
+                    </p>
 
-                  <div className="mt-5 space-y-4 text-[1rem] italic leading-relaxed text-[var(--ls-muted)] sm:text-[1.08rem]">
-                    {lostSportsIntro.map((paragraph) => (
-                      <p key={paragraph} style={{ fontFamily: "var(--font-ls-body)" }}>
-                        {paragraph}
+                    <div className="mt-5 space-y-4 text-[1rem] italic leading-relaxed text-[var(--ls-muted)] sm:text-[1.08rem]">
+                      {lostSportsIntro.map((paragraph) => (
+                        <p key={paragraph} style={{ fontFamily: "var(--font-ls-body)" }}>
+                          {paragraph}
+                        </p>
+                      ))}
+                    </div>
+
+                    <div className="mt-6 rounded-[1.35rem] border border-white/8 bg-black/20 p-4">
+                      <p className="text-[10px] uppercase tracking-[0.24em] text-white/44" style={{ fontFamily: "var(--font-ls-data)" }}>
+                        Timeline brief
                       </p>
-                    ))}
+                      <p className="mt-3 text-sm italic leading-relaxed text-[var(--ls-subtle)]" style={{ fontFamily: "var(--font-ls-body)" }}>
+                        The left rail now tracks the visible disappearance years as a D3 timeline, with muted DM Mono labels and a gold active marker tied to the card closest to the viewport centre.
+                      </p>
+                    </div>
                   </div>
+                  <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-5 shadow-[0_18px_50px_rgba(0,0,0,0.16)] sm:p-6">
+                    <p
+                      className="text-[11px] uppercase tracking-[0.3em] text-[var(--ls-gold)]"
+                      style={{ fontFamily: "var(--font-ls-data)" }}
+                    >
+                      Dataset ledger
+                    </p>
 
-                  <div className="mt-6 space-y-3 border-l border-white/10 pl-4">
-                    {visibleTimelineYears.map((year) => (
-                      <div key={year} className="flex items-center gap-3">
-                        <span className="h-2.5 w-2.5 rounded-full bg-[var(--ls-gold)] shadow-[0_0_0_5px_rgba(201,168,76,0.12)]" />
-                        <span className="text-[11px] uppercase tracking-[0.24em] text-white/58" style={{ fontFamily: "var(--font-ls-data)" }}>
-                          {year}
-                        </span>
-                      </div>
-                    ))}
+                    <p className="mt-4 text-base italic leading-relaxed text-[var(--ls-muted)] sm:text-[1.06rem]" style={{ fontFamily: "var(--font-ls-body)" }}>
+                      {lostSportsSummary.featuredSportCount} narrative sports are now defined in one typed module, spanning {lostSportsSummary.firstFeaturedYear} to {lostSportsSummary.lastFeaturedYear}. The filter bar stays sticky while each pill keeps the full archive count requested by the brief, even when this editorial route only surfaces a curated subset.
+                    </p>
                   </div>
                 </div>
-              </aside>
 
-              <div className="space-y-6">
                 <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-5 shadow-[0_18px_50px_rgba(0,0,0,0.16)] sm:p-6">
                   <p
                     className="text-[11px] uppercase tracking-[0.3em] text-[var(--ls-gold)]"
@@ -493,6 +501,8 @@ export default function CementerioOlimpicoPage() {
                   return (
                     <article
                       key={sport.id}
+                      data-ls-timeline-card
+                      data-ls-year={sport.last}
                       className={`w-full rounded-[1.9rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] p-6 shadow-[0_24px_70px_rgba(0,0,0,0.24)] transition-colors duration-300 hover:border-[rgba(201,168,76,0.42)] hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.03))] sm:p-7 lg:max-w-[85%] ${isShiftedRight ? "lg:ml-auto" : "lg:mr-auto"}`}
                     >
                       <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
