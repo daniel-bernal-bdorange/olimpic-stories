@@ -330,9 +330,9 @@ export const lostSportsSummary = {
 } as const;
 
 export const lostSportsStoryMeta = {
-  currentSliceId: "LS-02",
-  currentSliceTitle: "Dataset editorial",
-  currentSliceDescription: "Metadatos tipados y eras compartidas",
+  currentSliceId: "LS-03",
+  currentSliceTitle: "Sticky era filters",
+  currentSliceDescription: "Barra accesible con conteos por periodo",
 } as const;
 
 export const lostSportsHero = {
