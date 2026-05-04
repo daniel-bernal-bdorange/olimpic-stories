@@ -4,6 +4,24 @@ export type AthleteCategory = "equestrian" | "sailing" | "shooting" | "other";
 
 export type OlympicSeason = "summer" | "winter";
 
+export type AthleteMedal = {
+  year: number;
+  type: MedalType;
+  event: string;
+};
+
+export type OlympicHost = {
+  year: number;
+  season: OlympicSeason;
+  city: string;
+};
+
+export type HistoricalEvent = {
+  year: number;
+  label: string;
+  noGame?: boolean;
+};
+
 export type Athlete = {
   id: string;
   name: string;
@@ -14,11 +32,7 @@ export type Athlete = {
   editions: number;
   span: number;
   years: number[];
-  medals: Array<{
-    year: number;
-    type: MedalType;
-    event: string;
-  }>;
+  medals: AthleteMedal[];
   bio: string;
   note: string;
   photo: string;
@@ -32,40 +46,56 @@ export const olympicYears = [
 
 export const winterOlympicYears = new Set([1994, 1998, 2002, 2006, 2010, 2014, 2018, 2022]);
 
-const olympicHostsBySeason: Record<OlympicSeason, Record<number, string>> = {
-  summer: {
-    1948: "London",
-    1952: "Helsinki",
-    1956: "Melbourne",
-    1960: "Rome",
-    1964: "Tokyo",
-    1968: "Mexico City",
-    1972: "Munich",
-    1976: "Montreal",
-    1980: "Moscow",
-    1984: "Los Angeles",
-    1988: "Seoul",
-    1992: "Barcelona",
-    1996: "Atlanta",
-    2000: "Sydney",
-    2004: "Athens",
-    2008: "Beijing",
-    2012: "London",
-    2016: "Rio de Janeiro",
-    2020: "Tokyo",
+export const olympicHosts = [
+  { year: 1948, season: "summer", city: "London" },
+  { year: 1952, season: "summer", city: "Helsinki" },
+  { year: 1956, season: "summer", city: "Melbourne" },
+  { year: 1960, season: "summer", city: "Rome" },
+  { year: 1964, season: "summer", city: "Tokyo" },
+  { year: 1968, season: "summer", city: "Mexico City" },
+  { year: 1972, season: "summer", city: "Munich" },
+  { year: 1976, season: "summer", city: "Montreal" },
+  { year: 1980, season: "summer", city: "Moscow" },
+  { year: 1984, season: "summer", city: "Los Angeles" },
+  { year: 1988, season: "summer", city: "Seoul" },
+  { year: 1992, season: "summer", city: "Barcelona" },
+  { year: 1992, season: "winter", city: "Albertville" },
+  { year: 1994, season: "winter", city: "Lillehammer" },
+  { year: 1996, season: "summer", city: "Atlanta" },
+  { year: 1998, season: "winter", city: "Nagano" },
+  { year: 2000, season: "summer", city: "Sydney" },
+  { year: 2002, season: "winter", city: "Salt Lake City" },
+  { year: 2004, season: "summer", city: "Athens" },
+  { year: 2006, season: "winter", city: "Turin" },
+  { year: 2008, season: "summer", city: "Beijing" },
+  { year: 2010, season: "winter", city: "Vancouver" },
+  { year: 2012, season: "summer", city: "London" },
+  { year: 2014, season: "winter", city: "Sochi" },
+  { year: 2016, season: "summer", city: "Rio de Janeiro" },
+  { year: 2018, season: "winter", city: "PyeongChang" },
+  { year: 2020, season: "summer", city: "Tokyo" },
+  { year: 2022, season: "winter", city: "Beijing" },
+] as const satisfies readonly OlympicHost[];
+
+export const historicalEvents = [
+  { year: 1948, label: "Post-WWII Games" },
+  { year: 1968, label: "Mexico protests" },
+  { year: 1972, label: "Munich massacre" },
+  { year: 1980, label: "USA boycott" },
+  { year: 1984, label: "USSR boycott" },
+  { year: 1988, label: "Last Cold War Games" },
+  { year: 1992, label: "USSR dissolved" },
+  { year: 2001, label: "9/11", noGame: true },
+  { year: 2020, label: "Covid Games" },
+] as const satisfies readonly HistoricalEvent[];
+
+const olympicHostsBySeason = olympicHosts.reduce<Record<OlympicSeason, Record<number, string>>>(
+  (hosts, host) => {
+    hosts[host.season][host.year] = host.city;
+    return hosts;
   },
-  winter: {
-    1992: "Albertville",
-    1994: "Lillehammer",
-    1998: "Nagano",
-    2002: "Salt Lake City",
-    2006: "Turin",
-    2010: "Vancouver",
-    2014: "Sochi",
-    2018: "PyeongChang",
-    2022: "Beijing",
-  },
-};
+  { summer: {}, winter: {} },
+);
 
 export function getOlympicHostCity(year: number, season: OlympicSeason): string {
   return olympicHostsBySeason[season][year] ?? "Host city";

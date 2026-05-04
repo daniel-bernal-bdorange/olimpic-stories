@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { scalePoint } from "d3";
 import { Bebas_Neue, Cormorant_Garamond, DM_Mono } from "next/font/google";
 import { RouteTransitionReady, TransitionLink } from "@/components/route-transition";
-import { athletes, categoryLabels, categoryPills, getOlympicHostCity, introCopy, olympicYears, type Athlete, type MedalType, winterOlympicYears } from "./data";
+import { athletes, categoryLabels, categoryPills, getOlympicHostCity, historicalEvents, introCopy, olympicYears, type Athlete, type MedalType, winterOlympicYears } from "./data";
 
 const oneLifeDisplayFont = Bebas_Neue({
   weight: "400",
@@ -28,7 +28,8 @@ const oneLifeDataFont = DM_Mono({
 
 const labelColumnWidth = 220;
 const chartWidth = 1320;
-const axisHeight = 54;
+const axisHeight = 92;
+const eventBandHeight = 76;
 const rowHeight = 68;
 
 const medalWeight: Record<MedalType, number> = {
@@ -70,6 +71,41 @@ function getLinePosition(year: number) {
   return xScale(year) ?? 0;
 }
 
+function getTimelinePosition(year: number) {
+  const exactPosition = xScale(year);
+
+  if (exactPosition !== undefined) {
+    return exactPosition;
+  }
+
+  const olympicYearList = [...olympicYears];
+  const firstYear = olympicYearList[0];
+  const lastYear = olympicYearList[olympicYearList.length - 1];
+
+  if (year <= firstYear) {
+    return getLinePosition(firstYear);
+  }
+
+  if (year >= lastYear) {
+    return getLinePosition(lastYear);
+  }
+
+  for (let index = 0; index < olympicYearList.length - 1; index += 1) {
+    const currentYear = olympicYearList[index];
+    const nextYear = olympicYearList[index + 1];
+
+    if (year > currentYear && year < nextYear) {
+      const startX = getLinePosition(currentYear);
+      const endX = getLinePosition(nextYear);
+      const progress = (year - currentYear) / (nextYear - currentYear);
+
+      return startX + (endX - startX) * progress;
+    }
+  }
+
+  return 0;
+}
+
 function getDominantMedal(medals: Athlete["medals"]): MedalType | null {
   if (medals.length === 0) {
     return null;
@@ -108,6 +144,20 @@ function getTooltipPositionClasses(alignment: TooltipAlignment): string {
   }
 
   return "left-1/2 -translate-x-1/2 translate-y-2";
+}
+
+function getHistoricalEventTone(noGame?: boolean) {
+  if (noGame) {
+    return {
+      stroke: "rgba(164, 75, 75, 0.5)",
+      label: "rgba(214, 150, 150, 0.78)",
+    };
+  }
+
+  return {
+    stroke: "rgba(255,255,255,0.18)",
+    label: "rgba(245,242,235,0.38)",
+  };
 }
 
 function getPointToneClasses(medal: MedalType | null): { outer: string; inner: string; copy: string } {
@@ -375,7 +425,7 @@ export default function TenOlympicsOneLifePage() {
                   className="text-[11px] uppercase tracking-[0.32em] text-[#c9a84c]"
                   style={{ fontFamily: "var(--font-onelife-data)" }}
                 >
-                  Timeline shell
+                  Horizontal timeline
                 </p>
                 <h2
                   className="mt-2 text-4xl uppercase tracking-[0.04em] text-white sm:text-5xl"
@@ -389,7 +439,7 @@ export default function TenOlympicsOneLifePage() {
                 className="max-w-md text-sm italic leading-relaxed text-white/74"
                 style={{ fontFamily: "var(--font-onelife-body)" }}
               >
-                The span stays visible, but each point now reveals the city, the athlete, and whether that return ended in a medal or just another appearance.
+                Rows, thumbnails, Olympic editions, and world events now share the same horizontal field so each career reads as a life stretched against history.
               </p>
             </div>
           </div>
@@ -397,28 +447,73 @@ export default function TenOlympicsOneLifePage() {
           <div className="overflow-x-auto px-4 py-6 sm:px-6 lg:px-8">
             <div style={{ minWidth: labelColumnWidth + chartWidth + 24 }}>
               <div
-                className="mb-3 grid items-end gap-4"
+                className="mb-4 grid items-end gap-4"
                 style={{ gridTemplateColumns: `${labelColumnWidth}px ${chartWidth}px` }}
               >
-                <div className="px-4">
+                <div className="flex h-full flex-col justify-end px-4 pb-3">
                   <p
                     className="text-[11px] uppercase tracking-[0.28em] text-white/72"
                     style={{ fontFamily: "var(--font-onelife-data)" }}
                   >
-                    Athlete
+                    Athlete rows
+                  </p>
+                  <p
+                    className="mt-2 max-w-[15ch] text-xs italic leading-relaxed text-white/56"
+                    style={{ fontFamily: "var(--font-onelife-body)" }}
+                  >
+                    Portrait, discipline, span, and an Olympic rhythm shared by all lives below.
                   </p>
                 </div>
-                <svg width={chartWidth} height={axisHeight} className="overflow-visible">
+                <svg width={chartWidth} height={eventBandHeight + axisHeight} className="overflow-visible">
+                  <rect x={0} y={0} width={chartWidth} height={eventBandHeight + axisHeight} fill="rgba(255,255,255,0.02)" rx={24} />
+
+                  {historicalEvents.map((event, index) => {
+                    const x = getTimelinePosition(event.year);
+                    const isNoGameEvent = "noGame" in event && event.noGame;
+                    const tone = getHistoricalEventTone(isNoGameEvent);
+                    const labelX = x + (index % 2 === 0 ? -6 : 8);
+
+                    return (
+                      <g key={`${event.year}-${event.label}`} transform={`translate(${x}, 0)`}>
+                        <line
+                          x1={0}
+                          x2={0}
+                          y1={eventBandHeight - 12}
+                          y2={eventBandHeight + axisHeight}
+                          stroke={tone.stroke}
+                          strokeWidth={1}
+                          strokeDasharray="4 5"
+                        />
+                        <text
+                          x={labelX - x}
+                          y={eventBandHeight - 18}
+                          fill={tone.label}
+                          fontSize={9}
+                          letterSpacing="0.18em"
+                          textAnchor="end"
+                          transform={`rotate(-90 ${labelX - x} ${eventBandHeight - 18})`}
+                          style={{ fontFamily: "var(--font-onelife-data)", textTransform: "uppercase" }}
+                        >
+                          {event.label}
+                        </text>
+                      </g>
+                    );
+                  })}
+
+                  <line x1={0} x2={chartWidth} y1={eventBandHeight + axisHeight - 20} y2={eventBandHeight + axisHeight - 20} stroke="rgba(255,255,255,0.12)" strokeWidth={1} />
+
                   {olympicYears.map((year) => {
                     const x = getLinePosition(year);
                     const isWinterYear = winterOlympicYears.has(year);
+                    const hostCity = getOlympicHostCity(year, isWinterYear ? "winter" : "summer");
 
                     return (
                       <g key={year} transform={`translate(${x}, 0)`}>
-                        <line x1={0} x2={0} y1={28} y2={axisHeight} stroke="rgba(255,255,255,0.12)" strokeWidth={1} />
+                        <line x1={0} x2={0} y1={eventBandHeight + 18} y2={eventBandHeight + axisHeight} stroke="rgba(255,255,255,0.12)" strokeWidth={1} />
+                        <circle cx={0} cy={eventBandHeight + axisHeight - 20} r={isWinterYear ? 3 : 4} fill={isWinterYear ? "rgba(201,168,76,0.55)" : "rgba(245,242,235,0.82)"} />
                         <text
                           x={0}
-                          y={16}
+                          y={eventBandHeight + 18}
                           textAnchor="middle"
                           fill={isWinterYear ? "rgba(245,242,235,0.44)" : "rgba(245,242,235,0.7)"}
                           fontSize={10}
@@ -426,6 +521,28 @@ export default function TenOlympicsOneLifePage() {
                           style={{ fontFamily: "var(--font-onelife-data)", textTransform: "uppercase" }}
                         >
                           {year}
+                        </text>
+                        <text
+                          x={0}
+                          y={eventBandHeight + 40}
+                          textAnchor="middle"
+                          fill={isWinterYear ? "rgba(201,168,76,0.9)" : "rgba(245,242,235,0.62)"}
+                          fontSize={9}
+                          letterSpacing="0.12em"
+                          style={{ fontFamily: "var(--font-onelife-data)", textTransform: "uppercase" }}
+                        >
+                          {hostCity}
+                        </text>
+                        <text
+                          x={0}
+                          y={eventBandHeight + 58}
+                          textAnchor="middle"
+                          fill={isWinterYear ? "rgba(201,168,76,0.6)" : "rgba(245,242,235,0.34)"}
+                          fontSize={8}
+                          letterSpacing="0.24em"
+                          style={{ fontFamily: "var(--font-onelife-data)", textTransform: "uppercase" }}
+                        >
+                          {isWinterYear ? "Winter" : "Summer"}
                         </text>
                       </g>
                     );
@@ -443,36 +560,65 @@ export default function TenOlympicsOneLifePage() {
                   return (
                     <div
                       key={athlete.id}
-                      className={`grid items-center gap-4 rounded-[22px] border border-white/6 bg-white/[0.02] px-3 py-2 transition-[opacity,border-color,background-color] duration-300 hover:border-[#c9a84c]/40 hover:bg-white/[0.04] ${
-                        isRowActive ? "opacity-100" : "pointer-events-none opacity-10"
+                      className={`group/row grid items-center gap-4 rounded-[22px] border px-3 py-2 transition-[opacity,border-color,background-color,transform] duration-300 hover:-translate-y-[1px] hover:bg-white/[0.04] ${
+                        isRowActive
+                          ? "border-white/8 bg-white/[0.03] opacity-100 hover:border-[#c9a84c]/40"
+                          : "border-white/5 bg-white/[0.015] opacity-20 hover:border-white/15"
                       }`}
                       style={{ gridTemplateColumns: `${labelColumnWidth}px ${chartWidth}px` }}
                     >
                       <div className="flex items-center gap-4 px-2">
-                        <div className="relative h-11 w-11 overflow-hidden rounded-full border border-white/15">
+                        <div className={`relative h-11 w-11 overflow-hidden rounded-full border transition-colors duration-300 ${
+                          isRowActive ? "border-white/18 group-hover/row:border-[#c9a84c]/70" : "border-white/10 group-hover/row:border-white/28"
+                        }`}>
                           <Image
                             src={athlete.photo}
                             alt={athlete.name}
                             fill
                             sizes="44px"
-                            className="object-cover object-top grayscale transition duration-300 group-hover:grayscale-0"
+                            className={`object-cover object-top transition duration-300 ${
+                              isRowActive ? "grayscale group-hover/row:grayscale-0" : "grayscale-[100%] group-hover/row:grayscale-[35%]"
+                            }`}
                           />
                         </div>
                         <div className="min-w-0">
                           <p
-                            className="truncate text-[13px] uppercase tracking-[0.18em] text-white/78"
+                            className={`truncate text-[13px] uppercase tracking-[0.18em] ${isRowActive ? "text-white/82" : "text-white/62"}`}
                             style={{ fontFamily: "var(--font-onelife-data)" }}
                           >
                             {athlete.name}
                           </p>
-                          <p className="truncate text-sm italic text-white/72" style={{ fontFamily: "var(--font-onelife-body)" }}>
+                          <p className={`truncate text-sm italic ${isRowActive ? "text-white/72" : "text-white/52"}`} style={{ fontFamily: "var(--font-onelife-body)" }}>
                             {athlete.sport} · {athlete.country}
+                          </p>
+                          <p
+                            className={`mt-1 text-[10px] uppercase tracking-[0.24em] ${isRowActive ? "text-[#c9a84c]/88" : "text-white/34"}`}
+                            style={{ fontFamily: "var(--font-onelife-data)" }}
+                          >
+                            {athlete.editions} editions · {athlete.span} years
                           </p>
                         </div>
                       </div>
 
                       <div className="relative overflow-visible" style={{ width: chartWidth, height: rowHeight }}>
                         <svg width={chartWidth} height={rowHeight} className="pointer-events-none absolute inset-0 overflow-visible">
+                          {historicalEvents.map((event) => {
+                            const isNoGameEvent = "noGame" in event && event.noGame;
+                            const tone = getHistoricalEventTone(isNoGameEvent);
+
+                            return (
+                              <line
+                                key={`${athlete.id}-${event.year}-${event.label}`}
+                                x1={getTimelinePosition(event.year)}
+                                x2={getTimelinePosition(event.year)}
+                                y1={0}
+                                y2={rowHeight}
+                                stroke={tone.stroke}
+                                strokeWidth={1}
+                                strokeDasharray="4 5"
+                              />
+                            );
+                          })}
                           {olympicYears.map((year) => {
                             const x = getLinePosition(year);
 
@@ -493,7 +639,7 @@ export default function TenOlympicsOneLifePage() {
                             x2={getLinePosition(lastYear)}
                             y1={rowHeight / 2}
                             y2={rowHeight / 2}
-                            stroke="rgba(255,255,255,0.22)"
+                            stroke={isRowActive ? "rgba(201,168,76,0.42)" : "rgba(255,255,255,0.14)"}
                             strokeWidth={1.5}
                           />
                           <text
