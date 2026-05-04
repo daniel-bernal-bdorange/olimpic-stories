@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
 import { Bebas_Neue, Cormorant_Garamond, DM_Mono } from "next/font/google";
 import { TransitionLink, useRouteTransition } from "@/components/route-transition";
+import { lostSportsIconPaths } from "./lost-sports-icon-paths";
 import {
   lostSports,
   lostSportsEras,
@@ -10,6 +11,7 @@ import {
   lostSportsIntro,
   lostSportsStoryMeta,
   lostSportsSummary,
+  type LostSport,
   type LostSportEraKey,
 } from "./data";
 
@@ -44,6 +46,88 @@ const lostSportsTheme = {
   "--ls-overlay": "rgba(5, 5, 5, 0.74)",
   "--ls-fog": "rgba(233, 225, 208, 0.18)",
 } as CSSProperties;
+
+const LIFE_BAR_START_YEAR = 1896;
+const LIFE_BAR_END_YEAR = 2024;
+const LIFE_BAR_VIEWBOX_WIDTH = 100;
+const LIFE_BAR_VIEWBOX_HEIGHT = 8;
+const LIFE_BAR_MIN_WIDTH = 1.6;
+
+function getLifeBarMetrics(first: number, last: number) {
+  const totalSpan = LIFE_BAR_END_YEAR - LIFE_BAR_START_YEAR;
+  const clampedFirst = Math.min(Math.max(first, LIFE_BAR_START_YEAR), LIFE_BAR_END_YEAR);
+  const clampedLast = Math.min(Math.max(last, LIFE_BAR_START_YEAR), LIFE_BAR_END_YEAR);
+  const start = ((clampedFirst - LIFE_BAR_START_YEAR) / totalSpan) * LIFE_BAR_VIEWBOX_WIDTH;
+  const end = ((clampedLast - LIFE_BAR_START_YEAR) / totalSpan) * LIFE_BAR_VIEWBOX_WIDTH;
+  const width = Math.max(end - start, LIFE_BAR_MIN_WIDTH);
+
+  return {
+    start,
+    width: Math.min(width, LIFE_BAR_VIEWBOX_WIDTH - start),
+  };
+}
+
+function LostSportLifecycleBar({ sport }: { sport: Pick<LostSport, "sport" | "first" | "last"> }) {
+  const { start, width } = getLifeBarMetrics(sport.first, sport.last);
+
+  return (
+    <div className="space-y-2">
+      <div className="overflow-hidden rounded-full border border-white/8 bg-black/18 px-3 py-2.5">
+        <svg
+          viewBox={`0 0 ${LIFE_BAR_VIEWBOX_WIDTH} ${LIFE_BAR_VIEWBOX_HEIGHT}`}
+          className="block h-2 w-full"
+          role="img"
+          aria-label={`${sport.sport} Olympic lifecycle from ${sport.first} to ${sport.last}`}
+          preserveAspectRatio="none"
+        >
+          <rect
+            x="0"
+            y="2.5"
+            width={LIFE_BAR_VIEWBOX_WIDTH}
+            height="3"
+            rx="1.5"
+            fill="rgba(245, 242, 235, 0.16)"
+          />
+          <rect x={start} y="1.75" width={width} height="4.5" rx="2.25" fill="var(--ls-gold)" />
+        </svg>
+      </div>
+
+      <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.22em] text-white/42" style={{ fontFamily: "var(--font-ls-data)" }}>
+        <span>{LIFE_BAR_START_YEAR}</span>
+        <span className="text-[var(--ls-gold)]">
+          {sport.first} - {sport.last}
+        </span>
+        <span>{LIFE_BAR_END_YEAR}</span>
+      </div>
+    </div>
+  );
+}
+
+function LostSportIcon({ iconKey, title }: { iconKey: string; title: string }) {
+  const tracedPaths = lostSportsIconPaths[iconKey as keyof typeof lostSportsIconPaths];
+  const sharedProps = {
+    viewBox: "0 0 96 96",
+    className: "h-12 w-12 sm:h-14 sm:w-14",
+    role: "img",
+    "aria-label": `${title} icon`,
+  };
+
+  if (!tracedPaths) {
+    return (
+      <svg {...sharedProps}>
+        <circle cx="48" cy="48" r="26" fill="none" stroke="currentColor" strokeWidth="6" />
+        <rect x="45" y="28" width="6" height="24" rx="3" fill="currentColor" />
+        <circle cx="48" cy="64" r="4" fill="currentColor" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg {...sharedProps}>
+      <path d={tracedPaths.join(" ")} fill="currentColor" fillRule="evenodd" clipRule="evenodd" />
+    </svg>
+  );
+}
 
 function getVisibleSports(activeEra: LostSportEraKey) {
   if (activeEra === "all") {
@@ -491,7 +575,7 @@ export default function CementerioOlimpicoPage() {
                           </p>
                         </div>
 
-                        <div className="space-y-4">
+                        <div className="space-y-5">
                           <div className="space-y-2">
                             <p className="text-[10px] uppercase tracking-[0.28em] text-white/40" style={{ fontFamily: "var(--font-ls-data)" }}>
                               Olympic obituary
@@ -518,10 +602,40 @@ export default function CementerioOlimpicoPage() {
                             <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-2 text-[10px] uppercase tracking-[0.22em] text-white/62" style={{ fontFamily: "var(--font-ls-data)" }}>
                               Editions · {sport.editions}
                             </span>
+                            <span
+                              className="rounded-full border px-3 py-2 text-[10px] uppercase tracking-[0.22em]"
+                              style={{
+                                fontFamily: "var(--font-ls-data)",
+                                borderColor: `color-mix(in srgb, var(${sport.color}) 45%, rgba(255,255,255,0.1))`,
+                                color: `var(${sport.color})`,
+                                backgroundColor: `color-mix(in srgb, var(${sport.color}) 12%, rgba(255,255,255,0.02))`,
+                              }}
+                            >
+                              Icon key · {sport.iconKey}
+                            </span>
                           </div>
+
+                          <LostSportLifecycleBar sport={sport} />
                         </div>
 
                         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                          <div
+                            className="flex items-center gap-4 rounded-[1.2rem] border border-white/8 bg-black/24 px-4 py-4 transition-transform duration-300 group-hover:scale-[1.02]"
+                            style={{ color: `var(${sport.color})` }}
+                          >
+                            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.1rem] border border-current/20 bg-current/8">
+                              <LostSportIcon iconKey={sport.iconKey} title={sport.sport} />
+                            </div>
+                            <div>
+                              <p className="text-[10px] uppercase tracking-[0.22em] text-white/40" style={{ fontFamily: "var(--font-ls-data)" }}>
+                                Sport glyph
+                              </p>
+                              <p className="mt-2 text-sm italic leading-relaxed text-[var(--ls-subtle)]" style={{ fontFamily: "var(--font-ls-body)" }}>
+                                Inline SVG driven by the shared dataset and tinted with the sport accent via currentColor.
+                              </p>
+                            </div>
+                          </div>
+
                           <div className="rounded-[1.2rem] border border-white/8 bg-white/[0.03] px-4 py-4">
                             <p className="text-[10px] uppercase tracking-[0.22em] text-white/40" style={{ fontFamily: "var(--font-ls-data)" }}>
                               Dominant nation
