@@ -1,4 +1,7 @@
+"use client";
+
 import Image from "next/image";
+import { useEffect, useRef, useState } from "react";
 import { scalePoint } from "d3";
 import { Bebas_Neue, Cormorant_Garamond, DM_Mono } from "next/font/google";
 import { RouteTransitionReady, TransitionLink } from "@/components/route-transition";
@@ -48,6 +51,14 @@ type AthleteEditionPoint = {
   medals: Athlete["medals"];
   dominantMedal: MedalType | null;
   alignment: TooltipAlignment;
+};
+
+type CategoryFilter = (typeof categoryPills)[number];
+
+type CategoryFilterBarProps = {
+  activeCategory: CategoryFilter;
+  onSelectCategory: (category: CategoryFilter) => void;
+  className?: string;
 };
 
 const xScale = scalePoint<number>()
@@ -157,21 +168,83 @@ function getPointAriaLabel(athlete: Athlete, point: AthleteEditionPoint): string
   return `${point.city} ${point.year}. ${athlete.name}, ${athlete.sport}. ${summary}.`;
 }
 
+function CategoryFilterBar({ activeCategory, onSelectCategory, className = "" }: CategoryFilterBarProps) {
+  return (
+    <section className={className}>
+      <div className="mx-auto flex max-w-7xl flex-wrap gap-3 px-5 py-3 sm:px-8 lg:px-12">
+        {categoryPills.map((category) => {
+          const isActive = activeCategory === category;
+          const count = category === "all"
+            ? athletes.length
+            : athletes.filter((athlete) => athlete.category === category).length;
+
+          return (
+            <button
+              key={category}
+              type="button"
+              aria-pressed={isActive}
+              onClick={() => onSelectCategory(category)}
+              className={`rounded-full border px-4 py-2 text-[11px] uppercase tracking-[0.26em] transition-colors ${
+                isActive
+                  ? "border-[#c9a84c] bg-[#c9a84c] text-black"
+                  : "border-white/15 text-white/60 hover:border-white/30 hover:text-white"
+              }`}
+              style={{ fontFamily: "var(--font-onelife-data)" }}
+            >
+              {categoryLabels[category]} · {count}
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 export default function TenOlympicsOneLifePage() {
+  const [activeCategory, setActiveCategory] = useState<CategoryFilter>("all");
+  const heroRef = useRef<HTMLElement | null>(null);
+  const [showPinnedFilterBar, setShowPinnedFilterBar] = useState(false);
+
+  useEffect(() => {
+    const updatePinnedFilterBar = () => {
+      const hero = heroRef.current;
+
+      if (!hero) {
+        return;
+      }
+
+      const headerOffset = window.innerWidth >= 640 ? 73 : 92;
+      const heroBottom = hero.getBoundingClientRect().bottom;
+
+      setShowPinnedFilterBar(heroBottom <= headerOffset);
+    };
+
+    updatePinnedFilterBar();
+    window.addEventListener("scroll", updatePinnedFilterBar, { passive: true });
+    window.addEventListener("resize", updatePinnedFilterBar);
+
+    return () => {
+      window.removeEventListener("scroll", updatePinnedFilterBar);
+      window.removeEventListener("resize", updatePinnedFilterBar);
+    };
+  }, []);
+
   return (
     <main
-      className={`${oneLifeDisplayFont.variable} ${oneLifeBodyFont.variable} ${oneLifeDataFont.variable} min-h-screen bg-[#070707] text-[#f5f2eb]`}
-      style={{
-        backgroundImage:
-          "linear-gradient(180deg, rgba(7,7,7,0.82) 0%, rgba(7,7,7,0.96) 14%, rgba(7,7,7,0.98) 100%), url('/images/one-life/one-life-bg.webp')",
-        backgroundAttachment: "fixed",
-        backgroundPosition: "center top",
-        backgroundSize: "cover",
-      }}
+      className={`${oneLifeDisplayFont.variable} ${oneLifeBodyFont.variable} ${oneLifeDataFont.variable} relative min-h-screen overflow-x-clip bg-[#070707] text-[#f5f2eb]`}
+      style={{ backgroundColor: "#070707" }}
     >
       <RouteTransitionReady />
 
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-black/65 backdrop-blur-xl">
+      {showPinnedFilterBar ? (
+        <CategoryFilterBar
+          activeCategory={activeCategory}
+          onSelectCategory={setActiveCategory}
+          className="fixed inset-x-0 top-[92px] z-40 border-y border-white/10 bg-black/66 shadow-[0_14px_36px_rgba(0,0,0,0.22)] backdrop-blur-xl sm:top-[73px]"
+        />
+      ) : null}
+
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-black/44 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl flex-col items-start gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8">
           <TransitionLink
             href="/?menu=1"
@@ -192,129 +265,109 @@ export default function TenOlympicsOneLifePage() {
             >
               04 / One Life, Ten Games
             </p>
-            <p className="text-xs uppercase tracking-[0.22em] text-white/50">
+            <p className="text-xs uppercase tracking-[0.22em] text-white/78">
               Longevidad competitiva y tiempo olimpico
             </p>
           </div>
         </div>
       </header>
 
-      <section className="relative isolate overflow-hidden px-5 pb-16 pt-28 sm:px-8 lg:min-h-screen lg:px-12 lg:pb-24 lg:pt-36">
-        <div className="absolute inset-0">
-          <Image
-            src="/images/one-life/one-life-cover.webp"
-            alt="Olympic podium still life"
-            fill
-            priority
-            className="object-cover object-left opacity-18"
-            style={{
-              maskImage: "linear-gradient(to right, black 0%, black 54%, transparent 100%)",
-              WebkitMaskImage: "linear-gradient(to right, black 0%, black 54%, transparent 100%)",
-            }}
-          />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_28%,rgba(201,168,76,0.16),transparent_36%),linear-gradient(90deg,rgba(7,7,7,0.94)_0%,rgba(7,7,7,0.78)_44%,rgba(7,7,7,0.9)_74%,rgba(7,7,7,0.96)_100%)]" />
-        </div>
-
-        <div className="absolute inset-y-0 right-0 hidden w-[45vw] lg:block">
-          <Image
-            src="/images/one-life/athletes/ian-millar.webp"
-            alt="Ian Millar portrait"
-            fill
-            priority
-            sizes="45vw"
-            className="object-cover object-top opacity-34 grayscale"
-            style={{
-              maskImage: "linear-gradient(to right, transparent 0%, black 42%)",
-              WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 42%)",
-            }}
-          />
-        </div>
-
-        <div className="relative mx-auto max-w-7xl">
-          <div className="max-w-2xl">
-            <p
-              className="mb-6 text-[11px] uppercase tracking-[0.34em] text-[#c9a84c]"
-              style={{ fontFamily: "var(--font-onelife-data)" }}
-            >
-              04 / ONE LIFE, TEN GAMES
-            </p>
-            <h1
-              className="max-w-[10ch] text-[clamp(5rem,16vw,11rem)] uppercase leading-[0.84] tracking-[0.03em] text-[#f5f2eb]"
-              style={{ fontFamily: "var(--font-onelife-display)" }}
-            >
-              One Life
-              <span className="block text-[#c9a84c]">Ten Games</span>
-            </h1>
-            <div className="my-8 h-px w-40 bg-white/18" />
-
-            <div className="space-y-4">
-              <p
-                className="text-[clamp(4rem,8vw,6.25rem)] uppercase leading-none text-white"
-                style={{ fontFamily: "var(--font-onelife-display)" }}
-              >
-                40
-              </p>
-              <p
-                className="max-w-md text-xl italic leading-relaxed text-white/64 sm:text-2xl"
-                style={{ fontFamily: "var(--font-onelife-body)" }}
-              >
-                years between first and last Olympic Games.
-              </p>
-            </div>
-
-            <p
-              className="mt-8 max-w-md text-lg italic leading-relaxed text-white/58 sm:text-[1.15rem]"
-              style={{ fontFamily: "var(--font-onelife-body)" }}
-            >
-              One Canadian equestrian. Ten Olympic Games. One silver medal.
-            </p>
-
-            <p
-              className="mt-10 text-[11px] uppercase tracking-[0.3em] text-white/45"
-              style={{ fontFamily: "var(--font-onelife-data)" }}
-            >
-              Explore the lives below
-            </p>
+      <section ref={heroRef} className="relative isolate mt-[92px] flex h-[calc(100svh-92px)] items-end overflow-hidden px-5 pb-6 pt-8 sm:mt-[73px] sm:h-[calc(100svh-73px)] sm:px-8 sm:pb-8 sm:pt-10 lg:px-12 lg:pb-10 lg:pt-14">
+          <div className="absolute inset-0">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_28%,rgba(201,168,76,0.14),transparent_36%),linear-gradient(90deg,rgba(7,7,7,0.72)_0%,rgba(7,7,7,0.46)_42%,rgba(7,7,7,0.58)_72%,rgba(7,7,7,0.8)_100%)]" />
           </div>
-        </div>
-      </section>
 
-      <section className="sticky top-[73px] z-40 border-y border-white/10 bg-black/78 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl flex-wrap gap-3 px-5 py-3 sm:px-8 lg:px-12">
-          {categoryPills.map((category) => {
-            const count = category === "all"
-              ? athletes.length
-              : athletes.filter((athlete) => athlete.category === category).length;
+          <div className="absolute inset-y-0 right-0 hidden w-[45vw] lg:block">
+            <Image
+              src="/images/one-life/athletes/ian-millar.webp"
+              alt="Ian Millar portrait"
+              fill
+              priority
+              sizes="45vw"
+              className="object-cover object-top opacity-34 grayscale"
+              style={{
+                maskImage: "linear-gradient(to right, transparent 0%, black 42%)",
+                WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 42%)",
+              }}
+            />
+          </div>
 
-            return (
-              <button
-                key={category}
-                type="button"
-                className={`rounded-full border px-4 py-2 text-[11px] uppercase tracking-[0.26em] transition-colors ${
-                  category === "all"
-                    ? "border-[#c9a84c] bg-[#c9a84c] text-black"
-                    : "border-white/15 text-white/60 hover:border-white/30 hover:text-white"
-                }`}
+          <div className="relative mx-auto flex w-full max-w-7xl items-end">
+            <div className="max-w-2xl pt-6 sm:pt-8 lg:pt-10">
+              <p
+                className="mb-4 text-[11px] uppercase tracking-[0.34em] text-[#c9a84c] sm:mb-6"
                 style={{ fontFamily: "var(--font-onelife-data)" }}
               >
-                {categoryLabels[category]} · {count}
-              </button>
-            );
-          })}
-        </div>
+                04 / ONE LIFE, TEN GAMES
+              </p>
+              <h1
+                className="max-w-[10ch] text-[clamp(4.35rem,15vw,11rem)] uppercase leading-[0.84] tracking-[0.03em] text-[#f5f2eb]"
+                style={{ fontFamily: "var(--font-onelife-display)", color: "#f5f2eb" }}
+              >
+                One Life
+                <span className="block text-[#c9a84c]">Ten Games</span>
+              </h1>
+              <div className="my-6 h-px w-40 bg-white/18 sm:my-8" />
+
+              <div className="space-y-3 sm:space-y-4">
+                <p
+                  className="text-[clamp(3.4rem,8vw,6.25rem)] uppercase leading-none text-white"
+                  style={{ fontFamily: "var(--font-onelife-display)" }}
+                >
+                  40
+                </p>
+                <p
+                  className="max-w-md text-xl italic leading-relaxed text-white/82 sm:text-2xl"
+                  style={{ fontFamily: "var(--font-onelife-body)" }}
+                >
+                  years between first and last Olympic Games.
+                </p>
+              </div>
+
+              <p
+                className="mt-6 max-w-md text-lg italic leading-relaxed text-white/78 sm:mt-8 sm:text-[1.15rem]"
+                style={{ fontFamily: "var(--font-onelife-body)" }}
+              >
+                One Canadian equestrian. Ten Olympic Games. One silver medal.
+              </p>
+
+              <p
+                className="mt-6 text-[11px] uppercase tracking-[0.3em] text-white/74 sm:mt-10"
+                style={{ fontFamily: "var(--font-onelife-data)" }}
+              >
+                Explore the lives below
+              </p>
+            </div>
+          </div>
       </section>
 
-      <section className="px-5 py-14 sm:px-8 lg:px-12 lg:py-20">
+      <CategoryFilterBar
+        activeCategory={activeCategory}
+        onSelectCategory={setActiveCategory}
+        className="relative z-10 border-y border-white/10 bg-black/64 shadow-[0_14px_36px_rgba(0,0,0,0.16)]"
+      />
+
+      <section
+        className="px-5 py-14 sm:px-8 lg:px-12 lg:py-20"
+        style={{
+          backgroundImage:
+            "linear-gradient(180deg, rgba(7,7,7,0.16) 0%, rgba(7,7,7,0.28) 12%, rgba(7,7,7,0.46) 100%), url('/images/one-life/one-life-bg.webp')",
+          backgroundAttachment: "fixed, fixed",
+          backgroundPosition: "center top, left top",
+          backgroundRepeat: "no-repeat, repeat",
+          backgroundSize: "100% 100%, 320px auto",
+        }}
+      >
         <div className="mx-auto max-w-3xl text-center">
           <p
-            className="text-[1.15rem] italic leading-relaxed text-white/54 sm:text-[1.3rem]"
+            className="text-[1.15rem] italic leading-relaxed text-white/78 sm:text-[1.3rem]"
             style={{ fontFamily: "var(--font-onelife-body)" }}
           >
             {introCopy.join(" ")}
           </p>
         </div>
 
-        <div className="mx-auto mt-12 max-w-7xl overflow-hidden rounded-[28px] border border-white/10 bg-[rgba(12,12,12,0.82)] shadow-[0_24px_120px_rgba(0,0,0,0.45)]">
+        <div className="mx-auto mt-12 max-w-7xl overflow-hidden rounded-[28px] border border-white/10 bg-[rgba(12,12,12,0.46)] shadow-[0_24px_120px_rgba(0,0,0,0.28)] backdrop-blur-[4px]">
           <div className="border-b border-white/10 px-5 py-5 sm:px-8">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
@@ -326,14 +379,14 @@ export default function TenOlympicsOneLifePage() {
                 </p>
                 <h2
                   className="mt-2 text-4xl uppercase tracking-[0.04em] text-white sm:text-5xl"
-                  style={{ fontFamily: "var(--font-onelife-display)" }}
+                  style={{ fontFamily: "var(--font-onelife-display)", color: "#ffffff" }}
                 >
                   Lives Stretched Across Editions
                 </h2>
               </div>
 
               <p
-                className="max-w-md text-sm italic leading-relaxed text-white/50"
+                className="max-w-md text-sm italic leading-relaxed text-white/74"
                 style={{ fontFamily: "var(--font-onelife-body)" }}
               >
                 The span stays visible, but each point now reveals the city, the athlete, and whether that return ended in a medal or just another appearance.
@@ -349,7 +402,7 @@ export default function TenOlympicsOneLifePage() {
               >
                 <div className="px-4">
                   <p
-                    className="text-[11px] uppercase tracking-[0.28em] text-white/35"
+                    className="text-[11px] uppercase tracking-[0.28em] text-white/72"
                     style={{ fontFamily: "var(--font-onelife-data)" }}
                   >
                     Athlete
@@ -382,6 +435,7 @@ export default function TenOlympicsOneLifePage() {
 
               <div className="space-y-3">
                 {athletes.map((athlete) => {
+                  const isRowActive = activeCategory === "all" || athlete.category === activeCategory;
                   const firstYear = athlete.years[0];
                   const lastYear = athlete.years[athlete.years.length - 1];
                   const editionPoints = getAthleteEditionPoints(athlete);
@@ -389,7 +443,9 @@ export default function TenOlympicsOneLifePage() {
                   return (
                     <div
                       key={athlete.id}
-                      className="grid items-center gap-4 rounded-[22px] border border-white/6 bg-white/[0.02] px-3 py-2 transition-colors hover:border-[#c9a84c]/40 hover:bg-white/[0.04]"
+                      className={`grid items-center gap-4 rounded-[22px] border border-white/6 bg-white/[0.02] px-3 py-2 transition-[opacity,border-color,background-color] duration-300 hover:border-[#c9a84c]/40 hover:bg-white/[0.04] ${
+                        isRowActive ? "opacity-100" : "pointer-events-none opacity-10"
+                      }`}
                       style={{ gridTemplateColumns: `${labelColumnWidth}px ${chartWidth}px` }}
                     >
                       <div className="flex items-center gap-4 px-2">
@@ -409,7 +465,7 @@ export default function TenOlympicsOneLifePage() {
                           >
                             {athlete.name}
                           </p>
-                          <p className="truncate text-sm italic text-white/42" style={{ fontFamily: "var(--font-onelife-body)" }}>
+                          <p className="truncate text-sm italic text-white/72" style={{ fontFamily: "var(--font-onelife-body)" }}>
                             {athlete.sport} · {athlete.country}
                           </p>
                         </div>
@@ -497,7 +553,7 @@ export default function TenOlympicsOneLifePage() {
                                   {athlete.name}
                                 </p>
                                 <p
-                                  className="mt-1 text-sm italic leading-relaxed text-white/56"
+                                  className="mt-1 text-sm italic leading-relaxed text-white/78"
                                   style={{ fontFamily: "var(--font-onelife-body)" }}
                                 >
                                   {athlete.sport} · {athlete.country}
@@ -507,13 +563,13 @@ export default function TenOlympicsOneLifePage() {
                                   {point.medals.length === 0 ? (
                                     <div className="rounded-2xl border border-white/8 bg-white/[0.03] px-3 py-2">
                                       <p
-                                        className="text-[11px] uppercase tracking-[0.22em] text-white/58"
+                                        className="text-[11px] uppercase tracking-[0.22em] text-white/78"
                                         style={{ fontFamily: "var(--font-onelife-data)" }}
                                       >
                                         Participation only
                                       </p>
                                       <p
-                                        className="mt-1 text-xs italic leading-relaxed text-white/52"
+                                        className="mt-1 text-xs italic leading-relaxed text-white/72"
                                         style={{ fontFamily: "var(--font-onelife-body)" }}
                                       >
                                         No medal this edition.
@@ -532,7 +588,7 @@ export default function TenOlympicsOneLifePage() {
                                             {medalLabel[medal.type]} medal
                                           </p>
                                           <p
-                                            className="mt-1 text-xs italic leading-relaxed text-white/58"
+                                            className="mt-1 text-xs italic leading-relaxed text-white/78"
                                             style={{ fontFamily: "var(--font-onelife-body)" }}
                                           >
                                             {medal.event}
@@ -557,7 +613,7 @@ export default function TenOlympicsOneLifePage() {
 
         <div className="mx-auto mt-16 max-w-2xl text-center">
           <p
-            className="text-[1.3rem] italic leading-relaxed text-white/52 sm:text-[1.5rem]"
+            className="text-[1.3rem] italic leading-relaxed text-white/76 sm:text-[1.5rem]"
             style={{ fontFamily: "var(--font-onelife-body)" }}
           >
             Forty years is not a career. It is a life measured in four-year intervals, in the rhythm of cities and flags that sometimes change between editions.
