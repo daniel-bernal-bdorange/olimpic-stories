@@ -58,6 +58,7 @@ const DOMINANCE_CHART_BAR_START = 56;
 const DOMINANCE_CHART_BAR_END = 252;
 const DOMINANCE_CHART_WIDTH = 300;
 const DOMINANCE_CHART_ROW_HEIGHT = 28;
+const DOMINANCE_CHART_MIN_HEIGHT = 120;
 
 function getLifeBarMetrics(first: number, last: number) {
   const totalSpan = LIFE_BAR_END_YEAR - LIFE_BAR_START_YEAR;
@@ -73,29 +74,43 @@ function getLifeBarMetrics(first: number, last: number) {
   };
 }
 
-function LostSportLifecycleBar({ sport }: { sport: Pick<LostSport, "sport" | "first" | "last"> }) {
+function LostSportLifecycleBar({ sport }: { sport: Pick<LostSport, "sport" | "first" | "last" | "iconKey" | "color"> }) {
   const { start, width } = getLifeBarMetrics(sport.first, sport.last);
+  const center = start + width / 2;
 
   return (
     <div className="space-y-2">
-      <div className="overflow-hidden rounded-full border border-white/8 bg-black/18 px-3 py-2.5">
-        <svg
-          viewBox={`0 0 ${LIFE_BAR_VIEWBOX_WIDTH} ${LIFE_BAR_VIEWBOX_HEIGHT}`}
-          className="block h-2 w-full"
-          role="img"
-          aria-label={`${sport.sport} Olympic lifecycle from ${sport.first} to ${sport.last}`}
-          preserveAspectRatio="none"
-        >
-          <rect
-            x="0"
-            y="2.5"
-            width={LIFE_BAR_VIEWBOX_WIDTH}
-            height="3"
-            rx="1.5"
-            fill="rgba(245, 242, 235, 0.16)"
-          />
-          <rect x={start} y="1.75" width={width} height="4.5" rx="2.25" fill="var(--ls-gold)" />
-        </svg>
+      <div className="overflow-hidden rounded-[1.2rem] border border-white/8 bg-black/18 px-3 py-3 sm:px-4">
+        <div className="relative pt-9 sm:pt-10">
+          <div
+            className="absolute top-0 flex h-11 w-11 items-center justify-center rounded-[0.95rem] border border-white/10 bg-[color-mix(in_srgb,var(--ls-bg)_78%,white_6%)] shadow-[0_10px_24px_rgba(0,0,0,0.28)] transition-transform duration-300 group-hover:scale-[1.05] sm:h-12 sm:w-12"
+            style={{
+              color: `var(${sport.color})`,
+              left: `clamp(1.375rem, ${center}%, calc(100% - 1.375rem))`,
+              transform: "translateX(-50%)",
+            }}
+          >
+            <LostSportIcon iconKey={sport.iconKey} title={sport.sport} className="h-7 w-7 sm:h-8 sm:w-8" />
+          </div>
+
+          <svg
+            viewBox={`0 0 ${LIFE_BAR_VIEWBOX_WIDTH} ${LIFE_BAR_VIEWBOX_HEIGHT}`}
+            className="block h-3 w-full"
+            role="img"
+            aria-label={`${sport.sport} Olympic lifecycle from ${sport.first} to ${sport.last}`}
+            preserveAspectRatio="none"
+          >
+            <rect
+              x="0"
+              y="2.5"
+              width={LIFE_BAR_VIEWBOX_WIDTH}
+              height="3"
+              rx="1.5"
+              fill="rgba(245, 242, 235, 0.16)"
+            />
+            <rect x={start} y="1.75" width={width} height="4.5" rx="2.25" fill="var(--ls-gold)" />
+          </svg>
+        </div>
       </div>
 
       <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.22em] text-white/42" style={{ fontFamily: "var(--font-ls-data)" }}>
@@ -109,11 +124,11 @@ function LostSportLifecycleBar({ sport }: { sport: Pick<LostSport, "sport" | "fi
   );
 }
 
-function LostSportIcon({ iconKey, title }: { iconKey: string; title: string }) {
+function LostSportIcon({ iconKey, title, className = "h-12 w-12 sm:h-14 sm:w-14" }: { iconKey: string; title: string; className?: string }) {
   const tracedPaths = lostSportsIconPaths[iconKey as keyof typeof lostSportsIconPaths];
   const sharedProps = {
     viewBox: "0 0 96 96",
-    className: "h-12 w-12 sm:h-14 sm:w-14",
+    className,
     role: "img",
     "aria-label": `${title} icon`,
   };
@@ -136,7 +151,9 @@ function LostSportIcon({ iconKey, title }: { iconKey: string; title: string }) {
 }
 
 function LostSportDominanceChart({ sport }: { sport: Pick<LostSport, "sport" | "medals"> }) {
-  const chartHeight = Math.max(sport.medals.length * DOMINANCE_CHART_ROW_HEIGHT, DOMINANCE_CHART_ROW_HEIGHT);
+  const contentHeight = Math.max(sport.medals.length * DOMINANCE_CHART_ROW_HEIGHT, DOMINANCE_CHART_ROW_HEIGHT);
+  const chartHeight = Math.max(contentHeight, DOMINANCE_CHART_MIN_HEIGHT);
+  const contentOffsetY = (chartHeight - contentHeight) / 2;
   const scale = scaleLinear().domain([0, 100]).range([0, DOMINANCE_CHART_BAR_END - DOMINANCE_CHART_BAR_START]);
 
   return (
@@ -149,7 +166,7 @@ function LostSportDominanceChart({ sport }: { sport: Pick<LostSport, "sport" | "
         preserveAspectRatio="none"
       >
         {sport.medals.map((entry, index) => {
-          const rowY = index * DOMINANCE_CHART_ROW_HEIGHT + 4;
+          const rowY = contentOffsetY + index * DOMINANCE_CHART_ROW_HEIGHT + 4;
           const barWidth = Math.max(scale(entry.pct), 10);
           const isLead = index === 0;
 
@@ -296,12 +313,12 @@ function LostSportCard({ sport, index, expanded, isEraActive, onToggle }: LostSp
         aria-controls={detailsId}
         className="relative z-10 block w-full text-left outline-none"
       >
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,136px)_minmax(0,1fr)_minmax(0,220px)] lg:items-center lg:gap-7">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,152px)_minmax(0,1fr)_minmax(0,220px)] lg:items-center lg:gap-7">
           <div className="rounded-[1.35rem] border border-white/8 bg-black/24 px-4 py-4 transition-colors duration-300 group-hover:bg-black/30 lg:px-5 lg:py-5">
             <p className="text-[10px] uppercase tracking-[0.24em] text-white/42" style={{ fontFamily: "var(--font-ls-data)" }}>
               Last seen
             </p>
-            <p className="mt-3 text-[clamp(3.25rem,8vw,4.9rem)] uppercase leading-none text-[var(--ls-paper-strong)]" style={{ fontFamily: "var(--font-ls-display)" }}>
+            <p className="mt-3 text-[clamp(3rem,7vw,4.3rem)] uppercase leading-none text-[var(--ls-paper-strong)]" style={{ fontFamily: "var(--font-ls-display)" }}>
               {sport.last}
             </p>
             <div className="mt-4 h-px w-14 bg-[var(--ls-line)]" />
@@ -359,23 +376,6 @@ function LostSportCard({ sport, index, expanded, isEraActive, onToggle }: LostSp
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-            <div
-              className="flex items-center gap-4 rounded-[1.2rem] border border-white/8 bg-black/24 px-4 py-4 transition-[background-color,border-color,transform] duration-300 group-hover:border-[rgba(201,168,76,0.22)] group-hover:bg-black/30"
-              style={{ color: `var(${sport.color})` }}
-            >
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.1rem] border border-current/20 bg-current/8 transition-transform duration-300 group-hover:scale-[1.18]">
-                <LostSportIcon iconKey={sport.iconKey} title={sport.sport} />
-              </div>
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.22em] text-white/40" style={{ fontFamily: "var(--font-ls-data)" }}>
-                  Sport glyph
-                </p>
-                <p className="mt-2 text-sm italic leading-relaxed text-[var(--ls-subtle)]" style={{ fontFamily: "var(--font-ls-body)" }}>
-                  Inline SVG drawn from the obituary dataset and tinted with the archive accent.
-                </p>
-              </div>
-            </div>
-
             <div className="rounded-[1.2rem] border border-white/8 bg-white/[0.03] px-4 py-4 transition-colors duration-300 group-hover:bg-white/[0.05]">
               <p className="text-[10px] uppercase tracking-[0.22em] text-white/40" style={{ fontFamily: "var(--font-ls-data)" }}>
                 Dominant nation
