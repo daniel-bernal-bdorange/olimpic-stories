@@ -557,12 +557,15 @@ export default function CementerioOlimpicoPage() {
                       data-ls-card-reveal
                       data-ls-card-side={isShiftedRight ? "right" : "left"}
                       data-ls-year={sport.last}
-                      className={`group relative w-full overflow-hidden rounded-[1.9rem] border border-white/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.045),rgba(255,255,255,0.018))] p-6 shadow-[0_24px_70px_rgba(0,0,0,0.24)] transition-colors duration-300 hover:border-[rgba(201,168,76,0.42)] hover:bg-[linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.025))] sm:p-7 lg:max-w-[84%] ${isShiftedRight ? "lg:ml-auto" : "lg:mr-auto"}`}
+                        tabIndex={0}
+                          className={`group relative w-full overflow-hidden rounded-[1.9rem] border border-white/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.045),rgba(255,255,255,0.018))] p-6 shadow-[0_24px_70px_rgba(0,0,0,0.24)] outline-none transition-[border-color,background-color,box-shadow] duration-300 hover:border-[rgba(201,168,76,0.42)] hover:bg-[linear-gradient(135deg,rgba(255,255,255,0.068),rgba(255,255,255,0.03))] hover:shadow-[0_30px_90px_rgba(0,0,0,0.34)] focus-visible:border-[rgba(201,168,76,0.48)] focus-visible:bg-[linear-gradient(135deg,rgba(255,255,255,0.072),rgba(255,255,255,0.032))] focus-visible:shadow-[0_0_0_1px_rgba(201,168,76,0.22),0_30px_90px_rgba(0,0,0,0.34)] sm:p-7 lg:max-w-[84%] ${isShiftedRight ? "lg:ml-auto" : "lg:mr-auto"}`}
                     >
-                      <div className="absolute inset-y-0 left-0 w-px bg-[linear-gradient(180deg,transparent,rgba(201,168,76,0.5),transparent)] opacity-70 transition-opacity duration-300 group-hover:opacity-100" />
+                        <div className="absolute inset-x-0 top-0 h-[2px] origin-left scale-x-0 bg-[var(--ls-gold)] transition-transform duration-300 group-hover:scale-x-100 group-focus-visible:scale-x-100" />
+                        <div className="absolute inset-y-0 left-0 w-px bg-[linear-gradient(180deg,transparent,rgba(201,168,76,0.5),transparent)] opacity-70 transition-opacity duration-300 group-hover:opacity-100 group-focus-visible:opacity-100" />
+                        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(201,168,76,0.14),transparent_34%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-focus-visible:opacity-100" />
 
                       <div className="grid gap-5 lg:grid-cols-[minmax(0,136px)_minmax(0,1fr)_minmax(0,220px)] lg:items-center lg:gap-7">
-                        <div className="rounded-[1.35rem] border border-white/8 bg-black/24 px-4 py-4 lg:px-5 lg:py-5">
+                          <div className="rounded-[1.35rem] border border-white/8 bg-black/24 px-4 py-4 transition-colors duration-300 group-hover:bg-black/30 group-focus-visible:bg-black/30 lg:px-5 lg:py-5">
                           <p className="text-[10px] uppercase tracking-[0.24em] text-white/42" style={{ fontFamily: "var(--font-ls-data)" }}>
                             Last seen
                           </p>
@@ -596,14 +599,14 @@ export default function CementerioOlimpicoPage() {
                           </p>
 
                           <div className="flex flex-wrap gap-2.5">
-                            <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-2 text-[10px] uppercase tracking-[0.22em] text-white/62" style={{ fontFamily: "var(--font-ls-data)" }}>
+                            <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-2 text-[10px] uppercase tracking-[0.22em] text-white/62 transition-colors duration-300 group-hover:bg-white/[0.05] group-focus-visible:bg-white/[0.05]" style={{ fontFamily: "var(--font-ls-data)" }}>
                               Range · {sport.years}
                             </span>
-                            <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-2 text-[10px] uppercase tracking-[0.22em] text-white/62" style={{ fontFamily: "var(--font-ls-data)" }}>
+                            <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-2 text-[10px] uppercase tracking-[0.22em] text-white/62 transition-colors duration-300 group-hover:bg-white/[0.05] group-focus-visible:bg-white/[0.05]" style={{ fontFamily: "var(--font-ls-data)" }}>
                               Editions · {sport.editions}
                             </span>
                             <span
-                              className="rounded-full border px-3 py-2 text-[10px] uppercase tracking-[0.22em]"
+                              className="rounded-full border px-3 py-2 text-[10px] uppercase tracking-[0.22em] transition-[background-color,border-color,transform] duration-300 group-hover:-translate-y-0.5 group-focus-visible:-translate-y-0.5"
                               style={{
                                 fontFamily: "var(--font-ls-data)",
                                 borderColor: `color-mix(in srgb, var(${sport.color}) 45%, rgba(255,255,255,0.1))`,
@@ -620,10 +623,10 @@ export default function CementerioOlimpicoPage() {
 
                         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
                           <div
-                            className="flex items-center gap-4 rounded-[1.2rem] border border-white/8 bg-black/24 px-4 py-4 transition-transform duration-300 group-hover:scale-[1.02]"
+                            className="flex items-center gap-4 rounded-[1.2rem] border border-white/8 bg-black/24 px-4 py-4 transition-[background-color,border-color,transform] duration-300 group-hover:border-[rgba(201,168,76,0.22)] group-hover:bg-black/30 group-focus-visible:border-[rgba(201,168,76,0.22)] group-focus-visible:bg-black/30"
                             style={{ color: `var(${sport.color})` }}
                           >
-                            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.1rem] border border-current/20 bg-current/8">
+                            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.1rem] border border-current/20 bg-current/8 transition-transform duration-300 group-hover:scale-[1.18] group-focus-visible:scale-[1.18]">
                               <LostSportIcon iconKey={sport.iconKey} title={sport.sport} />
                             </div>
                             <div>
@@ -636,7 +639,7 @@ export default function CementerioOlimpicoPage() {
                             </div>
                           </div>
 
-                          <div className="rounded-[1.2rem] border border-white/8 bg-white/[0.03] px-4 py-4">
+                          <div className="rounded-[1.2rem] border border-white/8 bg-white/[0.03] px-4 py-4 transition-colors duration-300 group-hover:bg-white/[0.05] group-focus-visible:bg-white/[0.05]">
                             <p className="text-[10px] uppercase tracking-[0.22em] text-white/40" style={{ fontFamily: "var(--font-ls-data)" }}>
                               Dominant nation
                             </p>
@@ -648,7 +651,7 @@ export default function CementerioOlimpicoPage() {
                             </p>
                           </div>
 
-                          <div className="rounded-[1.2rem] border border-white/8 bg-black/24 px-4 py-4">
+                          <div className="rounded-[1.2rem] border border-white/8 bg-black/24 px-4 py-4 transition-colors duration-300 group-hover:bg-black/30 group-focus-visible:bg-black/30">
                             <p className="text-[10px] uppercase tracking-[0.22em] text-white/40" style={{ fontFamily: "var(--font-ls-data)" }}>
                               Archive note
                             </p>

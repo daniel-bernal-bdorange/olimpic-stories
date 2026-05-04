@@ -330,9 +330,9 @@ export const lostSportsSummary = {
 } as const;
 
 export const lostSportsStoryMeta = {
-  currentSliceId: "LS-06",
-  currentSliceTitle: "Lifecycle bars and inline icons",
-  currentSliceDescription: "Barras de vida SVG e iconos inline por deporte",
+  currentSliceId: "LS-07",
+  currentSliceTitle: "Hover and focus affordance",
+  currentSliceDescription: "Estados hover y focus con affordance editorial",
 } as const;
 
 export const lostSportsHero = {
