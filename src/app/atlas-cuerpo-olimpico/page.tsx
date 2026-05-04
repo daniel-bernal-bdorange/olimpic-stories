@@ -429,7 +429,16 @@ export default function AtlasCuerpoOlimpicoPage() {
       </div>
       </div>
 
-      <section className="relative bg-[#050505]">
+      <section
+        className="relative bg-[#050505]"
+        style={{
+          backgroundImage:
+            "linear-gradient(180deg, rgba(5,5,5,0.76) 0%, rgba(5,5,5,0.56) 24%, rgba(5,5,5,0.72) 100%), url('/images/body-atlas-bg.png')",
+          backgroundPosition: "center, center top",
+          backgroundRepeat: "no-repeat, repeat",
+          backgroundSize: "cover, 480px auto",
+        }}
+      >
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-12 px-5 py-10 sm:px-8 lg:py-14">
           <div className="max-w-3xl space-y-3">
             <p

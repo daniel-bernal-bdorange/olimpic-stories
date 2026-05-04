@@ -732,7 +732,18 @@ export default function CementerioOlimpicoPage() {
           </div>
         </section>
 
-        <section data-ls-intro id="lost-sports-intro" className="relative border-t border-[var(--ls-line)] bg-[var(--ls-bg)]">
+        <section
+          data-ls-intro
+          id="lost-sports-intro"
+          className="relative border-t border-[var(--ls-line)] bg-[var(--ls-bg)]"
+          style={{
+            backgroundImage:
+              "linear-gradient(180deg, rgba(5,5,5,0.76) 0%, rgba(5,5,5,0.56) 24%, rgba(5,5,5,0.72) 100%), url('/images/lost-sports-bg.png')",
+            backgroundPosition: "center, center top",
+            backgroundRepeat: "no-repeat, repeat",
+            backgroundSize: "cover, 480px auto",
+          }}
+        >
           <div
             ref={filtersShellRef}
             className="relative z-40"
