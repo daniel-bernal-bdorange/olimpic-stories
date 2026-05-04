@@ -7,10 +7,13 @@ import { Bebas_Neue, Cormorant_Garamond, DM_Mono } from "next/font/google";
 import { TransitionLink, useRouteTransition } from "@/components/route-transition";
 import { lostSportsIconPaths } from "./lost-sports-icon-paths";
 import {
+  lostSportsClosing,
+  lostSportsEditorialPanels,
   lostSports,
   lostSportsEras,
   lostSportsHero,
   lostSportsIntro,
+  lostSportsNextStory,
   lostSportsStoryMeta,
   lostSportsSummary,
   lostSportsTimelineEntries,
@@ -764,7 +767,7 @@ export default function CementerioOlimpicoPage() {
                     Era filters
                   </p>
                   <p className="max-w-2xl text-sm italic text-[var(--ls-muted)] sm:text-base" style={{ fontFamily: "var(--font-ls-body)" }}>
-                    Filter the graveyard by editorial era without losing the full archive counts defined in the brief.
+                    {lostSportsEditorialPanels.filtersDescription}
                   </p>
                 </div>
 
@@ -772,7 +775,7 @@ export default function CementerioOlimpicoPage() {
                   className="text-[11px] uppercase tracking-[0.26em] text-white/42"
                   style={{ fontFamily: "var(--font-ls-data)" }}
                 >
-                  {focusedSports.length} cards in era focus · {activeEraMeta.totalCount} removed sports in archive
+                  {focusedSports.length} {lostSportsEditorialPanels.focusSummaryLabel} · {activeEraMeta.totalCount} {lostSportsEditorialPanels.archiveSummaryLabel}
                 </p>
               </div>
 
@@ -871,7 +874,7 @@ export default function CementerioOlimpicoPage() {
                       className="text-[11px] uppercase tracking-[0.32em] text-[var(--ls-gold)]"
                       style={{ fontFamily: "var(--font-ls-data)" }}
                     >
-                      Archive note
+                      {lostSportsEditorialPanels.timelineTitle}
                     </p>
 
                     <div className="mt-5 space-y-4 text-[1rem] italic leading-relaxed text-[var(--ls-muted)] sm:text-[1.08rem]">
@@ -887,7 +890,7 @@ export default function CementerioOlimpicoPage() {
                         Timeline brief
                       </p>
                       <p className="mt-3 text-sm italic leading-relaxed text-[var(--ls-subtle)]" style={{ fontFamily: "var(--font-ls-body)" }}>
-                        The left rail now acts as the archive ledger: full timeline entries on the left, editorial obituary cards on the right, and a gold active marker tied to the nearest featured card in view.
+                        {lostSportsEditorialPanels.timelineSummary}
                       </p>
                     </div>
                   </div>
@@ -896,11 +899,11 @@ export default function CementerioOlimpicoPage() {
                       className="text-[11px] uppercase tracking-[0.3em] text-[var(--ls-gold)]"
                       style={{ fontFamily: "var(--font-ls-data)" }}
                     >
-                      Dataset ledger
+                      {lostSportsEditorialPanels.ledgerTitle}
                     </p>
 
                     <p className="mt-4 text-base italic leading-relaxed text-[var(--ls-muted)] sm:text-[1.06rem]" style={{ fontFamily: "var(--font-ls-body)" }}>
-                      {lostSportsSummary.featuredSportCount} narrative sports are now defined in one typed module, spanning {lostSportsSummary.firstFeaturedYear} to {lostSportsSummary.lastFeaturedYear}. The filter bar stays sticky while each pill keeps the full archive count requested by the brief, even when this editorial route only surfaces a curated subset.
+                      {lostSportsEditorialPanels.ledgerSummary} {lostSportsSummary.featuredSportCount} featured obituaries span from {lostSportsSummary.firstFeaturedYear} to {lostSportsSummary.lastFeaturedYear}.
                     </p>
                   </div>
                 </div>
@@ -918,6 +921,55 @@ export default function CementerioOlimpicoPage() {
                     />
                   );
                 })}
+
+                <div className="pt-4 sm:pt-8">
+                  <div className="rounded-[2.2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] px-6 py-8 shadow-[0_28px_80px_rgba(0,0,0,0.28)] sm:px-8 sm:py-10">
+                    <div className="mx-auto max-w-2xl space-y-3 text-center text-[1.04rem] italic leading-relaxed text-[var(--ls-subtle)] sm:text-[1.12rem]">
+                      {lostSportsClosing.map((line) => (
+                        <p key={line} style={{ fontFamily: "var(--font-ls-body)" }}>
+                          {line}
+                        </p>
+                      ))}
+                    </div>
+
+                    <div className="mx-auto mt-10 max-w-3xl rounded-[1.9rem] border border-[rgba(201,168,76,0.22)] bg-[radial-gradient(circle_at_top,rgba(201,168,76,0.16),rgba(255,255,255,0.02)_38%,rgba(255,255,255,0.04)_100%)] px-6 py-7 shadow-[0_24px_70px_rgba(0,0,0,0.32)] sm:px-8 sm:py-8">
+                      <p
+                        className="text-[11px] uppercase tracking-[0.34em] text-[var(--ls-gold)]"
+                        style={{ fontFamily: "var(--font-ls-data)" }}
+                      >
+                        {lostSportsNextStory.number}
+                      </p>
+
+                      <h2
+                        className="mt-4 text-[clamp(2.8rem,8vw,5.2rem)] uppercase leading-[0.9] text-[var(--ls-paper-strong)]"
+                        style={{
+                          fontFamily: "var(--font-ls-display)",
+                          color: "var(--ls-paper-strong)",
+                        }}
+                      >
+                        {lostSportsNextStory.title}
+                      </h2>
+
+                      <p className="mt-4 max-w-2xl text-[1.04rem] italic leading-relaxed text-[var(--ls-muted)] sm:text-[1.12rem]" style={{ fontFamily: "var(--font-ls-body)" }}>
+                        {lostSportsNextStory.description}
+                      </p>
+
+                      <TransitionLink
+                        href={lostSportsNextStory.href}
+                        transition={{
+                          sourceLabel: "HEAT 03",
+                          destinationLabel: "HEAT 04",
+                          title: "10 Olympic Games, One Life",
+                        }}
+                        className="mt-7 inline-flex items-center gap-3 rounded-full border border-[rgba(201,168,76,0.36)] bg-[rgba(201,168,76,0.12)] px-5 py-3 text-[11px] uppercase tracking-[0.28em] text-[var(--ls-paper-strong)] transition-[border-color,background-color,transform] duration-300 hover:-translate-y-0.5 hover:border-[rgba(201,168,76,0.62)] hover:bg-[rgba(201,168,76,0.2)]"
+                        style={{ fontFamily: "var(--font-ls-data)" }}
+                      >
+                        <span>{lostSportsNextStory.ctaLabel}</span>
+                        <span className="text-[var(--ls-gold)]">→</span>
+                      </TransitionLink>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

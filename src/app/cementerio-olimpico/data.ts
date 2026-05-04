@@ -468,9 +468,9 @@ export const lostSportsSummary = {
 } as const;
 
 export const lostSportsStoryMeta = {
-  currentSliceId: "LS-10",
-  currentSliceTitle: "Archive timeline synchronization",
-  currentSliceDescription: "Timeline archivistico completo con sincronizacion y tooltips",
+  currentSliceId: "LS-11",
+  currentSliceTitle: "Editorial close and next story CTA",
+  currentSliceDescription: "Closing note and hand-off to the next story",
 } as const;
 
 export const lostSportsHero = {
@@ -495,3 +495,31 @@ export const lostSportsIntro = [
   "Since the first modern Games in Athens 1896, 32 sports have been added - and quietly removed.",
   "Some lasted a single afternoon. Some lasted decades. All of them were, briefly, Olympic.",
 ] as const;
+
+export const lostSportsEditorialPanels = {
+  filtersDescription: "Move through the cemetery by era and watch how whole clusters of sports disappear from the programme.",
+  focusSummaryLabel: "obituary cards in focus",
+  archiveSummaryLabel: "sports in the full archive",
+  timelineTitle: "Archive note",
+  timelineSummary:
+    "The left rail now behaves like an obituary ledger: every vanished sport remains in the archive, while the gold marker tracks the featured story closest to you.",
+  ledgerTitle: "Editorial ledger",
+  ledgerSummary:
+    "Twelve obituary cards carry the narrative, but the cemetery is larger: a full archive of 32 removed sports stretching from 1900 to 2012.",
+} as const;
+
+export const lostSportsClosing = [
+  "The IOC votes on the programme every four years.",
+  "The criteria: universality, youth appeal, TV audience.",
+  "What it leaves out: history, culture, and the sports",
+  "that didn't have a lobby powerful enough to survive.",
+] as const;
+
+export const lostSportsNextStory = {
+  number: "04 / ONE LIFE, TEN GAMES",
+  title: "10 OLYMPIC GAMES, ONE LIFE",
+  description:
+    "From sports that vanished to athletes who refused to leave: the next story follows Olympic careers stretched across decades.",
+  href: "/10-olimpiadas-una-vida",
+  ctaLabel: "ENTER THE NEXT STORY",
+} as const;
