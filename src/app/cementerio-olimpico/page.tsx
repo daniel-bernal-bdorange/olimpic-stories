@@ -339,7 +339,7 @@ function LostSportCard({ sport, index, expanded, isEraActive, onToggle }: LostSp
                   Olympic obituary
                 </p>
                 <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-2 text-[10px] uppercase tracking-[0.22em] text-white/58" style={{ fontFamily: "var(--font-ls-data)" }}>
-                  {expanded ? "Expanded file" : "Click to expand"}
+                  {expanded ? "Obituary open" : "Open obituary"}
                 </span>
               </div>
               <h3
@@ -442,7 +442,7 @@ function LostSportCard({ sport, index, expanded, isEraActive, onToggle }: LostSp
               className="rounded-full border border-white/12 bg-white/[0.03] px-4 py-2 text-[10px] uppercase tracking-[0.24em] text-white/70 transition-colors duration-300 hover:border-[rgba(201,168,76,0.38)] hover:text-white"
               style={{ fontFamily: "var(--font-ls-data)" }}
             >
-              Collapse ↑
+              Close obituary ↑
             </button>
           </div>
         </div>
@@ -464,15 +464,11 @@ export default function CementerioOlimpicoPage() {
   const lostSportsMainRef = useRef<null | typeof import("./main")>(null);
   const activeEraRef = useRef<LostSportEraKey>("all");
   const headerRef = useRef<HTMLElement | null>(null);
-  const filtersBarRef = useRef<HTMLDivElement | null>(null);
-  const filtersShellRef = useRef<HTMLDivElement | null>(null);
   const archivePanelId = useId();
   const { markPageReady } = useRouteTransition();
   const [activeEra, setActiveEra] = useState<LostSportEraKey>("all");
   const [expandedSportId, setExpandedSportId] = useState<LostSport["id"] | null>(lostSports[0]?.id ?? null);
   const [headerHeight, setHeaderHeight] = useState(73);
-  const [filtersBarHeight, setFiltersBarHeight] = useState(0);
-  const [isFiltersBarPinned, setIsFiltersBarPinned] = useState(false);
 
   const focusedSports = getVisibleSports(activeEra);
   const orderedLostSports = lostSportsTimelineEntries.reduce<LostSport[]>((sports, entry) => {
@@ -552,74 +548,14 @@ export default function CementerioOlimpicoPage() {
     };
   }, []);
 
-  useEffect(() => {
-    const filtersNode = filtersBarRef.current;
-
-    if (!filtersNode) {
-      return;
-    }
-
-    const syncHeight = () => {
-      setFiltersBarHeight(filtersNode.getBoundingClientRect().height);
-    };
-
-    syncHeight();
-
-    const observer = new ResizeObserver(() => {
-      syncHeight();
-    });
-
-    observer.observe(filtersNode);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, []);
-
-  useEffect(() => {
-    const filtersShellNode = filtersShellRef.current;
-
-    if (!filtersShellNode) {
-      return;
-    }
-
-    let frameId = 0;
-
-    const syncPinnedState = () => {
-      frameId = 0;
-      setIsFiltersBarPinned(filtersShellNode.getBoundingClientRect().top <= headerHeight);
-    };
-
-    const requestSync = () => {
-      if (frameId !== 0) {
-        return;
-      }
-
-      frameId = window.requestAnimationFrame(syncPinnedState);
-    };
-
-    requestSync();
-    window.addEventListener("scroll", requestSync, { passive: true });
-    window.addEventListener("resize", requestSync);
-
-    return () => {
-      if (frameId !== 0) {
-        window.cancelAnimationFrame(frameId);
-      }
-
-      window.removeEventListener("scroll", requestSync);
-      window.removeEventListener("resize", requestSync);
-    };
-  }, [headerHeight]);
-
   return (
     <main
       className={`${lostSportsDisplayFont.variable} ${lostSportsBodyFont.variable} ${lostSportsDataFont.variable} bg-[var(--ls-bg)] text-[var(--ls-paper)]`}
       style={lostSportsTheme}
     >
-      <div ref={lostSportsRootRef} className="relative isolate min-h-screen overflow-x-hidden">
+      <div ref={lostSportsRootRef} className="relative isolate min-h-screen">
         <header ref={headerRef} className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-black/70 backdrop-blur-xl">
-          <div className="mx-auto flex max-w-7xl flex-col items-start gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8">
+          <div className="mx-auto flex max-w-7xl items-start justify-between gap-3 px-5 py-3 sm:items-center sm:px-8 sm:py-4">
             <TransitionLink
               href="/?menu=1"
               transition={{
@@ -627,20 +563,20 @@ export default function CementerioOlimpicoPage() {
                 destinationLabel: "HOME ARENA",
                 title: "Olympic Data Stories",
               }}
-              className="rounded-full border border-white/15 px-4 py-2 text-[11px] uppercase tracking-[0.24em] text-white/72 transition-colors hover:border-[#c9a84c] hover:text-white"
+              className="shrink-0 rounded-full border border-white/15 px-4 py-2 text-[11px] uppercase tracking-[0.24em] text-white/72 transition-colors hover:border-[#c9a84c] hover:text-white"
               
             >
-              Volver a home
+              Back home
             </TransitionLink>
 
-            <div className="text-left sm:text-right">
+            <div className="ml-auto max-w-[13rem] text-right sm:max-w-none">
               <p
                 className="text-[11px] uppercase tracking-[0.32em] text-[var(--ls-gold)]"
                 style={{ fontFamily: "var(--font-ls-data)" }}
               >
                 {lostSportsStoryMeta.currentSliceId} / {lostSportsStoryMeta.currentSliceTitle}
               </p>
-              <p className="text-xs uppercase tracking-[0.22em] text-white/50">
+              <p className="text-[11px] uppercase leading-relaxed tracking-[0.22em] text-white/50 sm:text-xs">
                 {lostSportsStoryMeta.currentSliceDescription}
               </p>
             </div>
@@ -747,32 +683,26 @@ export default function CementerioOlimpicoPage() {
             backgroundSize: "cover, 480px auto",
           }}
         >
-          <div
-            ref={filtersShellRef}
-            className="relative z-40"
-            style={isFiltersBarPinned && filtersBarHeight > 0 ? { height: filtersBarHeight } : undefined}
-          >
+          <div className="sticky z-40" style={{ top: headerHeight }}>
             <div
-              ref={filtersBarRef}
-              className={`${isFiltersBarPinned ? "fixed inset-x-0 border-b border-white/10 bg-[linear-gradient(180deg,rgba(5,5,5,0.96),rgba(5,5,5,0.82))] shadow-[0_18px_44px_rgba(0,0,0,0.28)] backdrop-blur-xl" : "border-b border-white/10 bg-[linear-gradient(180deg,rgba(5,5,5,0.96),rgba(5,5,5,0.82))] shadow-[0_18px_44px_rgba(0,0,0,0.28)] backdrop-blur-xl"}`}
-              style={isFiltersBarPinned ? { top: headerHeight } : undefined}
+              className="border-b border-white/10 bg-[linear-gradient(180deg,rgba(5,5,5,0.96),rgba(5,5,5,0.82))] shadow-[0_18px_44px_rgba(0,0,0,0.28)] backdrop-blur-xl"
             >
-              <div className="mx-auto max-w-7xl px-5 py-4 sm:px-8">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+              <div className="mx-auto max-w-7xl px-5 py-3 sm:px-8 sm:py-4">
+              <div className="flex flex-col gap-2.5 lg:flex-row lg:items-end lg:justify-between">
                 <div className="space-y-1">
                   <p
                     className="text-[11px] uppercase tracking-[0.34em] text-[var(--ls-gold)]"
                     style={{ fontFamily: "var(--font-ls-data)" }}
                   >
-                    Era filters
+                    Browse by era
                   </p>
-                  <p className="max-w-2xl text-sm italic text-[var(--ls-muted)] sm:text-base" style={{ fontFamily: "var(--font-ls-body)" }}>
+                  <p className="hidden max-w-2xl text-sm italic text-[var(--ls-muted)] sm:block sm:text-base" style={{ fontFamily: "var(--font-ls-body)" }}>
                     {lostSportsEditorialPanels.filtersDescription}
                   </p>
                 </div>
 
                 <p
-                  className="text-[11px] uppercase tracking-[0.26em] text-white/42"
+                  className="text-[10px] uppercase tracking-[0.26em] text-white/42 sm:text-[11px]"
                   style={{ fontFamily: "var(--font-ls-data)" }}
                 >
                   {focusedSports.length} {lostSportsEditorialPanels.focusSummaryLabel} · {activeEraMeta.totalCount} {lostSportsEditorialPanels.archiveSummaryLabel}
@@ -780,7 +710,7 @@ export default function CementerioOlimpicoPage() {
               </div>
 
               <div
-                className="mt-4 flex gap-3 overflow-x-auto pb-1"
+                className="-mx-1 mt-3 flex gap-3 overflow-x-auto px-1 pb-1 snap-x snap-mandatory sm:mt-4"
                 role="tablist"
                 aria-label="Filtrar deportes desaparecidos por era"
               >
@@ -797,7 +727,7 @@ export default function CementerioOlimpicoPage() {
                       aria-controls={archivePanelId}
                       tabIndex={isActive ? 0 : -1}
                       onClick={() => setActiveEra(era.key)}
-                      className="group flex min-w-fit items-center gap-3 rounded-full border px-4 py-2.5 text-left transition-all duration-300"
+                      className="group flex min-w-fit shrink-0 snap-start items-center gap-3 rounded-full border px-3.5 py-2 text-left transition-all duration-300 sm:px-4 sm:py-2.5"
                       style={{
                         fontFamily: "var(--font-ls-data)",
                         borderColor: isActive ? "rgba(201,168,76,0.72)" : "rgba(255,255,255,0.12)",
@@ -850,7 +780,7 @@ export default function CementerioOlimpicoPage() {
                     {activeEraMeta.totalCount}
                   </p>
                   <p className="mt-2 text-[11px] uppercase tracking-[0.24em] text-white/46" style={{ fontFamily: "var(--font-ls-data)" }}>
-                    Removed sports in archive
+                    Sports in the archive
                   </p>
                   <p className="mt-5 text-base italic leading-relaxed text-[var(--ls-muted)] sm:text-[1.05rem]" style={{ fontFamily: "var(--font-ls-body)" }}>
                     {activeEraMeta.description}
@@ -858,13 +788,13 @@ export default function CementerioOlimpicoPage() {
 
                   <div className="mt-6 rounded-[1.35rem] border border-white/8 bg-black/25 p-4">
                     <p className="text-[10px] uppercase tracking-[0.24em] text-white/44" style={{ fontFamily: "var(--font-ls-data)" }}>
-                      Narrative coverage
+                      Obituaries in focus
                     </p>
                     <p className="mt-3 text-3xl uppercase leading-none text-[var(--ls-paper)]" style={{ fontFamily: "var(--font-ls-display)" }}>
                       {focusedSports.length}
                     </p>
                     <p className="mt-2 text-sm italic text-[var(--ls-subtle)]" style={{ fontFamily: "var(--font-ls-body)" }}>
-                      Sports matching the current era focus inside the full cemetery from {activeEraMeta.years}.
+                      Cards from {activeEraMeta.years} currently highlighted in this walk through the cemetery.
                     </p>
                   </div>
                   </div>
@@ -887,7 +817,7 @@ export default function CementerioOlimpicoPage() {
 
                     <div className="mt-6 rounded-[1.35rem] border border-white/8 bg-black/20 p-4">
                       <p className="text-[10px] uppercase tracking-[0.24em] text-white/44" style={{ fontFamily: "var(--font-ls-data)" }}>
-                        Timeline brief
+                        Timeline guide
                       </p>
                       <p className="mt-3 text-sm italic leading-relaxed text-[var(--ls-subtle)]" style={{ fontFamily: "var(--font-ls-body)" }}>
                         {lostSportsEditorialPanels.timelineSummary}
@@ -962,10 +892,11 @@ export default function CementerioOlimpicoPage() {
                           title: "10 Olympic Games, One Life",
                         }}
                         className="mt-7 inline-flex items-center gap-3 rounded-full border border-[rgba(201,168,76,0.36)] bg-[rgba(201,168,76,0.12)] px-5 py-3 text-[11px] uppercase tracking-[0.28em] text-[var(--ls-paper-strong)] transition-[border-color,background-color,transform] duration-300 hover:-translate-y-0.5 hover:border-[rgba(201,168,76,0.62)] hover:bg-[rgba(201,168,76,0.2)]"
-                        style={{ fontFamily: "var(--font-ls-data)" }}
                       >
-                        <span>{lostSportsNextStory.ctaLabel}</span>
-                        <span className="text-[var(--ls-gold)]">→</span>
+                        <span className="inline-flex items-center gap-3" style={{ fontFamily: "var(--font-ls-data)" }}>
+                          <span>{lostSportsNextStory.ctaLabel}</span>
+                          <span className="text-[var(--ls-gold)]">→</span>
+                        </span>
                       </TransitionLink>
                     </div>
                   </div>

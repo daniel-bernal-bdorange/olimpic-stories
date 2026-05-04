@@ -299,7 +299,7 @@ function showTimelineTooltip(entry: LostSportTimelineEntry, clientX: number, cli
   timelineTooltip.innerHTML = `
     <div style="font-family: var(--font-ls-data); font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; color: ${TIMELINE_GOLD_COLOR}; white-space: nowrap;">${entry.sport}</div>
     <div style="margin-top: 0.28rem; font-family: var(--font-ls-data); font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: ${TIMELINE_MUTED_COLOR}; white-space: nowrap;">${entry.years} · ${editionLabel}</div>
-    <div style="margin-top: 0.3rem; font-family: var(--font-ls-data); font-size: 0.64rem; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(245,242,235,0.56); white-space: nowrap;">Timeline archive only</div>
+    <div style="margin-top: 0.3rem; font-family: var(--font-ls-data); font-size: 0.64rem; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(245,242,235,0.56); white-space: nowrap;">Archive marker</div>
   `;
 
   positionTimelineTooltip(clientX, clientY);

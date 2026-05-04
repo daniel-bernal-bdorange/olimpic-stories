@@ -468,9 +468,9 @@ export const lostSportsSummary = {
 } as const;
 
 export const lostSportsStoryMeta = {
-  currentSliceId: "LS-11",
-  currentSliceTitle: "Editorial close and next story CTA",
-  currentSliceDescription: "Closing note and hand-off to the next story",
+  currentSliceId: "HEAT 03",
+  currentSliceTitle: "Lost Sports",
+  currentSliceDescription: "Forgotten events removed from the Olympic programme",
 } as const;
 
 export const lostSportsHero = {
@@ -498,14 +498,14 @@ export const lostSportsIntro = [
 
 export const lostSportsEditorialPanels = {
   filtersDescription: "Move through the cemetery by era and watch how whole clusters of sports disappear from the programme.",
-  focusSummaryLabel: "obituary cards in focus",
-  archiveSummaryLabel: "sports in the full archive",
-  timelineTitle: "Archive note",
+  focusSummaryLabel: "featured obituaries",
+  archiveSummaryLabel: "sports in the archive",
+  timelineTitle: "How to read the cemetery",
   timelineSummary:
     "The left rail now behaves like an obituary ledger: every vanished sport remains in the archive, while the gold marker tracks the featured story closest to you.",
-  ledgerTitle: "Editorial ledger",
+  ledgerTitle: "At a glance",
   ledgerSummary:
-    "Twelve obituary cards carry the narrative, but the cemetery is larger: a full archive of 32 removed sports stretching from 1900 to 2012.",
+    "Twelve obituary cards guide this walk, but the cemetery is larger: a full archive of 32 removed sports stretching from 1900 to 2012.",
 } as const;
 
 export const lostSportsClosing = [
