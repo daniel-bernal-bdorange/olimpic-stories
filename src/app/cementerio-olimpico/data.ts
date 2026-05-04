@@ -330,9 +330,9 @@ export const lostSportsSummary = {
 } as const;
 
 export const lostSportsStoryMeta = {
-  currentSliceId: "LS-07",
-  currentSliceTitle: "Hover and focus affordance",
-  currentSliceDescription: "Estados hover y focus con affordance editorial",
+  currentSliceId: "LS-09",
+  currentSliceTitle: "Era filter GSAP transition",
+  currentSliceDescription: "Filtros de era con transicion GSAP sobre tarjetas",
 } as const;
 
 export const lostSportsHero = {

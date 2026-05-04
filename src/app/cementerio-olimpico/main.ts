@@ -1,6 +1,7 @@
 import * as d3 from "d3";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import type { LostSportEraKey } from "./data";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -8,7 +9,10 @@ const TIMELINE_CONTENT_SELECTOR = "[data-ls-timeline-content]";
 const TIMELINE_STAGE_SELECTOR = "[data-ls-timeline-stage]";
 const TIMELINE_CARD_SELECTOR = "[data-ls-timeline-card]";
 const REVEAL_CARD_SELECTOR = "[data-ls-card-reveal]";
+const ERA_CARD_SELECTOR = "[data-ls-era-card]";
 const TIMELINE_YEAR_ATTRIBUTE = "data-ls-year";
+const ERA_ATTRIBUTE = "data-ls-era";
+const CARD_REVEALED_ATTRIBUTE = "data-ls-revealed";
 const TIMELINE_EDGE_PADDING = 26;
 const TIMELINE_MARKER_X = 46;
 const TIMELINE_LABEL_X = 2;
@@ -22,6 +26,7 @@ const TIMELINE_ACTIVE_HALO = 12.5;
 const TIMELINE_MIN_MARKER_GAP = 28;
 const TIMELINE_ENTRY_DURATION = 1.35;
 const CARD_REVEAL_DISTANCE = 72;
+const ERA_DIMMED_AUTO_ALPHA = 0.15;
 
 type CardSide = "left" | "right";
 
@@ -46,9 +51,65 @@ let activeTimelineYear: number | null = null;
 let activeTimelineStage: HTMLElement | null = null;
 let activeTimelineLine: SVGPathElement | null = null;
 let cardRevealTriggers: ScrollTrigger[] = [];
+let activeEraFilter: LostSportEraKey = "all";
+
+type SetupCardRevealsOptions = {
+  preserveRevealed?: boolean;
+};
 
 function getRevealCards(root: HTMLElement): HTMLElement[] {
   return Array.from(root.querySelectorAll<HTMLElement>(REVEAL_CARD_SELECTOR)).filter((card) => card.isConnected);
+}
+
+function getEraCards(root: HTMLElement): HTMLElement[] {
+  return Array.from(root.querySelectorAll<HTMLElement>(ERA_CARD_SELECTOR)).filter((card) => card.isConnected);
+}
+
+function isEraCardActive(card: HTMLElement) {
+  return activeEraFilter === "all" || card.getAttribute(ERA_ATTRIBUTE) === activeEraFilter;
+}
+
+function getEraCardAutoAlpha(card: HTMLElement) {
+  return isEraCardActive(card) ? 1 : ERA_DIMMED_AUTO_ALPHA;
+}
+
+function syncEraCardInteractivity(card: HTMLElement, isActive: boolean) {
+  if (!isActive) {
+    const focusedElement = document.activeElement;
+
+    if (focusedElement instanceof HTMLElement && card.contains(focusedElement)) {
+      focusedElement.blur();
+    }
+  }
+
+  card.style.pointerEvents = isActive ? "" : "none";
+}
+
+function applyEraFilter(root: HTMLElement, animate: boolean) {
+  const cards = getEraCards(root);
+
+  for (const card of cards) {
+    const isActive = isEraCardActive(card);
+    syncEraCardInteractivity(card, isActive);
+
+    if (card.dataset.lsRevealed !== "true") {
+      continue;
+    }
+
+    gsap.killTweensOf(card);
+
+    if (animate) {
+      gsap.to(card, {
+        autoAlpha: getEraCardAutoAlpha(card),
+        duration: 0.42,
+        ease: "power2.out",
+        overwrite: true,
+      });
+      continue;
+    }
+
+    gsap.set(card, { autoAlpha: getEraCardAutoAlpha(card) });
+  }
 }
 
 function getCardSide(card: HTMLElement): CardSide {
@@ -60,13 +121,22 @@ function cleanupCardReveals() {
   cardRevealTriggers = [];
 }
 
-function setupCardReveals(root: HTMLElement) {
+function setupCardReveals(root: HTMLElement, options: SetupCardRevealsOptions = {}) {
   cleanupCardReveals();
 
   const cards = getRevealCards(root);
+  const preserveRevealed = options.preserveRevealed ?? false;
 
   for (const card of cards) {
     const side = getCardSide(card);
+    const hasRevealed = card.getAttribute(CARD_REVEALED_ATTRIBUTE) === "true";
+    syncEraCardInteractivity(card, isEraCardActive(card));
+
+    if (preserveRevealed && hasRevealed) {
+      continue;
+    }
+
+    card.setAttribute(CARD_REVEALED_ATTRIBUTE, "false");
 
     gsap.set(card, {
       autoAlpha: 0,
@@ -74,11 +144,18 @@ function setupCardReveals(root: HTMLElement) {
     });
 
     const tween = gsap.to(card, {
-      autoAlpha: 1,
+      autoAlpha: () => getEraCardAutoAlpha(card),
       x: 0,
       duration: 0.82,
       ease: "power3.out",
       overwrite: true,
+      onStart: () => {
+        card.setAttribute(CARD_REVEALED_ATTRIBUTE, "true");
+        syncEraCardInteractivity(card, isEraCardActive(card));
+      },
+      onComplete: () => {
+        syncEraCardInteractivity(card, isEraCardActive(card));
+      },
       scrollTrigger: {
         trigger: card,
         start: "top 82%",
@@ -492,6 +569,7 @@ export function initLostSports(root: HTMLElement | null) {
 
   setupLostSportsTimeline(root);
   setupCardReveals(root);
+  applyEraFilter(root, false);
   root.dataset.lostSportsReady = "true";
   scrollButton?.addEventListener("click", handleScrollClick);
 
@@ -506,4 +584,16 @@ export function initLostSports(root: HTMLElement | null) {
 export function destroyLostSports() {
   teardownLostSports?.();
   teardownLostSports = null;
+  activeEraFilter = "all";
+}
+
+export function setLostSportsEra(root: HTMLElement | null, activeEra: LostSportEraKey) {
+  activeEraFilter = activeEra;
+
+  if (!root) {
+    return;
+  }
+
+  applyEraFilter(root, true);
+  setupCardReveals(root, { preserveRevealed: true });
 }

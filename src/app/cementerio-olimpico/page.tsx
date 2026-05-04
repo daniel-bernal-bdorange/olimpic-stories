@@ -203,10 +203,11 @@ type LostSportCardProps = {
   sport: LostSport;
   index: number;
   expanded: boolean;
+  isEraActive: boolean;
   onToggle: (id: LostSport["id"]) => void;
 };
 
-function LostSportCard({ sport, index, expanded, onToggle }: LostSportCardProps) {
+function LostSportCard({ sport, index, expanded, isEraActive, onToggle }: LostSportCardProps) {
   const detailsId = useId();
   const detailsRef = useRef<HTMLDivElement | null>(null);
   const isShiftedRight = index % 2 === 1;
@@ -277,6 +278,8 @@ function LostSportCard({ sport, index, expanded, onToggle }: LostSportCardProps)
     <article
       data-ls-timeline-card
       data-ls-card-reveal
+      data-ls-era-card
+      data-ls-era={sport.era}
       data-ls-card-side={isShiftedRight ? "right" : "left"}
       data-ls-year={sport.last}
       className={`group relative w-full overflow-hidden rounded-[1.9rem] border bg-[linear-gradient(135deg,rgba(255,255,255,0.045),rgba(255,255,255,0.018))] p-6 shadow-[0_24px_70px_rgba(0,0,0,0.24)] transition-[border-color,background-color,box-shadow] duration-300 hover:border-[rgba(201,168,76,0.42)] hover:bg-[linear-gradient(135deg,rgba(255,255,255,0.068),rgba(255,255,255,0.03))] hover:shadow-[0_30px_90px_rgba(0,0,0,0.34)] sm:p-7 lg:max-w-[84%] ${expanded ? "border-[rgba(201,168,76,0.48)] bg-[linear-gradient(135deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))] shadow-[0_36px_110px_rgba(0,0,0,0.34)]" : "border-white/10"} ${isShiftedRight ? "lg:ml-auto" : "lg:mr-auto"}`}
@@ -287,6 +290,7 @@ function LostSportCard({ sport, index, expanded, onToggle }: LostSportCardProps)
 
       <button
         type="button"
+        disabled={!isEraActive}
         onClick={() => onToggle(sport.id)}
         aria-expanded={expanded}
         aria-controls={detailsId}
@@ -452,6 +456,8 @@ function getVisibleSports(activeEra: LostSportEraKey) {
 
 export default function CementerioOlimpicoPage() {
   const lostSportsRootRef = useRef<HTMLDivElement | null>(null);
+  const lostSportsMainRef = useRef<null | typeof import("./main")>(null);
+  const activeEraRef = useRef<LostSportEraKey>("all");
   const headerRef = useRef<HTMLElement | null>(null);
   const filtersBarRef = useRef<HTMLDivElement | null>(null);
   const filtersShellRef = useRef<HTMLDivElement | null>(null);
@@ -463,28 +469,29 @@ export default function CementerioOlimpicoPage() {
   const [filtersBarHeight, setFiltersBarHeight] = useState(0);
   const [isFiltersBarPinned, setIsFiltersBarPinned] = useState(false);
 
-  const visibleSports = getVisibleSports(activeEra);
+  const focusedSports = getVisibleSports(activeEra);
   const activeEraMeta = lostSportsEras.find((era) => era.key === activeEra) ?? lostSportsEras[0];
 
   useEffect(() => {
-    if (expandedSportId && !visibleSports.some((sport) => sport.id === expandedSportId)) {
-      setExpandedSportId(visibleSports[0]?.id ?? null);
-    }
-  }, [expandedSportId, visibleSports]);
+    activeEraRef.current = activeEra;
+  }, [activeEra]);
 
   useEffect(() => {
     let cancelled = false;
     let dispose = () => {};
 
     void import("./main")
-      .then(({ destroyLostSports, initLostSports }) => {
+      .then((module) => {
         if (cancelled) {
           return;
         }
 
-        initLostSports(lostSportsRootRef.current);
+        lostSportsMainRef.current = module;
+        module.initLostSports(lostSportsRootRef.current);
+        module.setLostSportsEra(lostSportsRootRef.current, activeEraRef.current);
         dispose = () => {
-          destroyLostSports();
+          lostSportsMainRef.current = null;
+          module.destroyLostSports();
         };
         markPageReady();
       })
@@ -498,6 +505,10 @@ export default function CementerioOlimpicoPage() {
       dispose();
     };
   }, [markPageReady]);
+
+  useEffect(() => {
+    lostSportsMainRef.current?.setLostSportsEra(lostSportsRootRef.current, activeEra);
+  }, [activeEra]);
 
   useEffect(() => {
     const headerNode = headerRef.current;
@@ -735,7 +746,7 @@ export default function CementerioOlimpicoPage() {
                   className="text-[11px] uppercase tracking-[0.26em] text-white/42"
                   style={{ fontFamily: "var(--font-ls-data)" }}
                 >
-                  {visibleSports.length} narrative cards visible · {activeEraMeta.totalCount} removed sports in archive
+                  {focusedSports.length} cards in era focus · {activeEraMeta.totalCount} removed sports in archive
                 </p>
               </div>
 
@@ -821,10 +832,10 @@ export default function CementerioOlimpicoPage() {
                       Narrative coverage
                     </p>
                     <p className="mt-3 text-3xl uppercase leading-none text-[var(--ls-paper)]" style={{ fontFamily: "var(--font-ls-display)" }}>
-                      {visibleSports.length}
+                      {focusedSports.length}
                     </p>
                     <p className="mt-2 text-sm italic text-[var(--ls-subtle)]" style={{ fontFamily: "var(--font-ls-body)" }}>
-                      Cards currently available in this editorial slice from {activeEraMeta.years}.
+                      Sports matching the current era focus inside the full cemetery from {activeEraMeta.years}.
                     </p>
                   </div>
                   </div>
@@ -867,15 +878,20 @@ export default function CementerioOlimpicoPage() {
                     </p>
                   </div>
                 </div>
-                {visibleSports.map((sport, index) => (
-                  <LostSportCard
-                    key={sport.id}
-                    sport={sport}
-                    index={index}
-                    expanded={expandedSportId === sport.id}
-                    onToggle={(id) => setExpandedSportId((current) => (current === id ? null : id))}
-                  />
-                ))}
+                {lostSports.map((sport, index) => {
+                  const isEraActive = activeEra === "all" || sport.era === activeEra;
+
+                  return (
+                    <LostSportCard
+                      key={sport.id}
+                      sport={sport}
+                      index={index}
+                      expanded={expandedSportId === sport.id}
+                      isEraActive={isEraActive}
+                      onToggle={(id) => setExpandedSportId((current) => (current === id ? null : id))}
+                    />
+                  );
+                })}
               </div>
             </div>
           </div>
