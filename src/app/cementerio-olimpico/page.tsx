@@ -13,6 +13,7 @@ import {
   lostSportsIntro,
   lostSportsStoryMeta,
   lostSportsSummary,
+  lostSportsTimelineEntries,
   type LostSport,
   type LostSportEraKey,
 } from "./data";
@@ -294,6 +295,7 @@ function LostSportCard({ sport, index, expanded, isEraActive, onToggle }: LostSp
   return (
     <article
       data-ls-timeline-card
+      data-ls-timeline-id={sport.id}
       data-ls-card-reveal
       data-ls-era-card
       data-ls-era={sport.era}
@@ -470,6 +472,19 @@ export default function CementerioOlimpicoPage() {
   const [isFiltersBarPinned, setIsFiltersBarPinned] = useState(false);
 
   const focusedSports = getVisibleSports(activeEra);
+  const orderedLostSports = lostSportsTimelineEntries.reduce<LostSport[]>((sports, entry) => {
+    if (!entry.hasCard || entry.cardId === null) {
+      return sports;
+    }
+
+    const sport = lostSports.find((candidate) => candidate.id === entry.cardId);
+
+    if (sport) {
+      sports.push(sport);
+    }
+
+    return sports;
+  }, []);
   const activeEraMeta = lostSportsEras.find((era) => era.key === activeEra) ?? lostSportsEras[0];
 
   useEffect(() => {
@@ -803,8 +818,8 @@ export default function CementerioOlimpicoPage() {
             aria-labelledby={`lost-sports-tab-${activeEra}`}
             className="mx-auto max-w-7xl px-5 py-12 sm:px-8 sm:py-16"
           >
-            <div className="grid gap-8 lg:grid-cols-[80px_minmax(0,1fr)] lg:items-start xl:gap-12">
-              <div className="relative hidden lg:block" aria-hidden="true">
+            <div className="grid gap-8 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start xl:grid-cols-[240px_minmax(0,1fr)] xl:gap-12">
+              <div className="relative hidden lg:block">
                 <div data-ls-timeline-stage className="relative min-h-full w-full" />
               </div>
 
@@ -861,7 +876,7 @@ export default function CementerioOlimpicoPage() {
                         Timeline brief
                       </p>
                       <p className="mt-3 text-sm italic leading-relaxed text-[var(--ls-subtle)]" style={{ fontFamily: "var(--font-ls-body)" }}>
-                        The left rail now tracks the visible disappearance years as a D3 timeline, with muted DM Mono labels and a gold active marker tied to the card closest to the viewport centre.
+                        The left rail now acts as the archive ledger: full timeline entries on the left, editorial obituary cards on the right, and a gold active marker tied to the nearest featured card in view.
                       </p>
                     </div>
                   </div>
@@ -878,7 +893,7 @@ export default function CementerioOlimpicoPage() {
                     </p>
                   </div>
                 </div>
-                {lostSports.map((sport, index) => {
+                {orderedLostSports.map((sport, index) => {
                   const isEraActive = activeEra === "all" || sport.era === activeEra;
 
                   return (
