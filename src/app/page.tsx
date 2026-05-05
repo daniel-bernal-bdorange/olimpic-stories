@@ -124,6 +124,30 @@ const centerPanelStyle = {
     'radial-gradient(circle at top left, rgba(201, 168, 76, 0.16), transparent 30%), radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.12), transparent 28%), linear-gradient(180deg, rgba(8, 8, 10, 0.98) 0%, rgba(15, 15, 17, 0.96) 100%)',
 } as const;
 
+type DevelopmentStats = {
+  totalCommits: number;
+  activeDays: number;
+  calendarDays: number;
+  storyCount: number;
+  firstCommitDate: string;
+  lastCommitDate: string;
+  latestCommitSubject: string;
+  source: 'git' | 'fallback';
+};
+
+const defaultDevelopmentStats: DevelopmentStats = {
+  totalCommits: 61,
+  activeDays: 8,
+  calendarDays: 15,
+  storyCount: 4,
+  firstCommitDate: '2026-04-21',
+  lastCommitDate: '2026-05-05',
+  latestCommitSubject: 'feat: polish home and story editorial presentation',
+  source: 'fallback',
+};
+
+const devNumberFormatter = new Intl.NumberFormat('en-US');
+
 const Header = ({ isVisible }: { isVisible: boolean }) => (
   <header
     className="absolute inset-x-0 top-0 z-20 transition-opacity duration-500"
@@ -363,12 +387,153 @@ const Footer = () => (
   </footer>
 );
 
+const DevStatCard = ({ value, label }: { value: string; label: string }) => (
+  <div className="rounded-xl border border-white/8 bg-white/4 px-2.5 py-2.5">
+    <div className="font-bebas text-[1.65rem] leading-none tracking-[0.08em] text-zinc-50">
+      {value}
+    </div>
+    <div className="mt-1.5 font-dm-mono text-[9px] uppercase tracking-[0.22em] text-zinc-400">
+      {label}
+    </div>
+  </div>
+);
+
+const DevelopmentEasterEgg = () => {
+  const [stats, setStats] = useState(defaultDevelopmentStats);
+  const [isPinned, setIsPinned] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isOpen = isPinned || isHovered;
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadStats() {
+      try {
+        const response = await fetch('/api/dev-stats', {
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const nextStats = (await response.json()) as Partial<DevelopmentStats>;
+        setStats((currentStats) => ({
+          ...currentStats,
+          ...nextStats,
+        }));
+      } catch {
+        // Keep the latest snapshot if Git data is unavailable at runtime.
+      }
+    }
+
+    loadStats();
+
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    if (!isPinned) {
+      return;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!(event.target instanceof Node)) {
+        return;
+      }
+
+      if (!containerRef.current?.contains(event.target)) {
+        setIsPinned(false);
+      }
+    };
+
+    window.addEventListener('pointerdown', handlePointerDown);
+
+    return () => window.removeEventListener('pointerdown', handlePointerDown);
+  }, [isPinned]);
+
+  return (
+    <div className="pointer-events-none fixed bottom-3 right-3 z-40 sm:bottom-4 sm:right-4 lg:bottom-5 lg:right-5">
+      <div
+        ref={containerRef}
+        className="pointer-events-auto relative"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <button
+          type="button"
+          aria-expanded={isOpen}
+          aria-controls="dev-log-tooltip"
+          onClick={() => setIsPinned((currentValue) => !currentValue)}
+          className="group inline-flex items-center gap-2 rounded-full border border-amber-200/18 bg-black/55 px-3 py-1.5 text-left backdrop-blur-xl transition-colors duration-300 hover:border-amber-200/40 focus-visible:border-amber-200/60 focus-visible:outline-none"
+          style={{ boxShadow: '0 14px 30px rgba(0, 0, 0, 0.24)' }}
+        >
+          <span className="font-dm-mono text-[8px] uppercase tracking-[0.22em] text-amber-100/85 sm:text-[9px]">
+            Dev Statistics
+          </span>
+          <span className="h-3.5 w-px bg-amber-200/25" />
+          <span className="font-bebas text-lg leading-none tracking-[0.08em] text-zinc-50 sm:text-xl">
+            {devNumberFormatter.format(stats.totalCommits)}
+          </span>
+        </button>
+
+        <div
+          id="dev-log-tooltip"
+          className={`absolute bottom-full right-0 mb-2.5 w-[min(18rem,calc(100vw-1.5rem))] rounded-[1.2rem] border border-amber-200/18 bg-[linear-gradient(180deg,rgba(8,8,10,0.96)_0%,rgba(15,15,17,0.94)_100%)] p-3.5 text-zinc-100 shadow-[0_24px_60px_rgba(0,0,0,0.38)] backdrop-blur-xl transition-all duration-250 sm:p-4 ${
+            isOpen ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-2 opacity-0'
+          }`}
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="font-dm-mono text-[9px] uppercase tracking-[0.2em] text-amber-200/80 sm:text-[10px]">
+                Dev Statistics
+              </p>
+              <p className="mt-1.5 font-bebas text-[1.45rem] leading-none tracking-[0.08em] text-zinc-50">
+                PIT WALL
+              </p>
+            </div>
+            <span className="rounded-full border border-white/10 px-1.5 py-1 font-dm-mono text-[9px] uppercase tracking-[0.18em] text-zinc-400">
+              {stats.source === 'git' ? 'LIVE GIT' : 'SNAPSHOT'}
+            </span>
+          </div>
+
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <DevStatCard value={devNumberFormatter.format(stats.totalCommits)} label="Commits" />
+            <DevStatCard value={devNumberFormatter.format(stats.activeDays)} label="Active Days" />
+            <DevStatCard value={devNumberFormatter.format(stats.calendarDays)} label="Calendar Days" />
+            <DevStatCard value={devNumberFormatter.format(stats.storyCount)} label="Stories Live" />
+          </div>
+
+          <div className="mt-3 rounded-xl border border-white/8 bg-black/20 px-2.5 py-2.5">
+            <p className="font-dm-mono text-[9px] uppercase tracking-[0.22em] text-zinc-400">
+              Build Window
+            </p>
+            <p className="mt-1.5 font-dm-mono text-[11px] tracking-[0.14em] text-zinc-200 sm:text-xs">
+              {stats.firstCommitDate} → {stats.lastCommitDate}
+            </p>
+          </div>
+
+          <div className="mt-2.5 rounded-xl border border-white/8 bg-black/20 px-2.5 py-2.5">
+            <p className="font-dm-mono text-[9px] uppercase tracking-[0.22em] text-zinc-400">
+              Latest Commit
+            </p>
+            <p className="mt-1.5 text-xs leading-relaxed text-zinc-200">
+              {stats.latestCommitSubject}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function Home() {
   const router = useRouter();
   const { startTransition: beginRouteTransition } = useRouteTransition();
   const [activeStoryIndex, setActiveStoryIndex] = useState(0);
   const [showHeader, setShowHeader] = useState(false);
-  const [isViewReady, setIsViewReady] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const startTransition = useCallback(
@@ -408,9 +573,6 @@ export default function Home() {
       window.scrollTo({ top: 0, behavior: 'instant' });
     }
 
-    setShowHeader(shouldOpenMenu);
-    setIsViewReady(true);
-
     return () => {
       if ('scrollRestoration' in window.history) {
         window.history.scrollRestoration = 'auto';
@@ -432,7 +594,7 @@ export default function Home() {
     };
 
     handleScroll();
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -467,10 +629,10 @@ export default function Home() {
       style={{
         background:
           'radial-gradient(circle at top, rgba(201, 168, 76, 0.12), transparent 24%), linear-gradient(180deg, #050506 0%, #0c0c0f 100%)',
-        visibility: isViewReady ? 'visible' : 'hidden',
       }}
     >
       <RouteTransitionReady />
+      <DevelopmentEasterEgg />
       <section
         className="relative w-full h-screen flex flex-col items-center justify-center bg-cover bg-center"
         style={{ backgroundImage: "url('/images/hero_bg.png')" }}
