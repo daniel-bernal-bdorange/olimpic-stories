@@ -26,7 +26,6 @@ const oneLifeDataFont = DM_Mono({
   variable: "--font-onelife-data",
 });
 
-const labelColumnWidth = 220;
 const chartWidth = 1320;
 const axisHeight = 92;
 const eventBandHeight = 76;
@@ -62,6 +61,15 @@ type CategoryFilterBarProps = {
   className?: string;
 };
 
+type PointVisual = {
+  diameter: number;
+  innerDiameter: number;
+  outer: string;
+  inner: string;
+  copy: string;
+  showInner: boolean;
+};
+
 const xScale = scalePoint<number>()
   .domain([...olympicYears])
   .range([28, chartWidth - 28])
@@ -69,6 +77,10 @@ const xScale = scalePoint<number>()
 
 function getLinePosition(year: number) {
   return xScale(year) ?? 0;
+}
+
+function getLinePercent(year: number) {
+  return `${(getLinePosition(year) / chartWidth) * 100}%`;
 }
 
 function getTimelinePosition(year: number) {
@@ -160,35 +172,47 @@ function getHistoricalEventTone(noGame?: boolean) {
   };
 }
 
-function getPointToneClasses(medal: MedalType | null): { outer: string; inner: string; copy: string } {
+function getPointVisual(medal: MedalType | null): PointVisual {
   if (medal === "gold") {
     return {
-      outer: "border-[#c9a84c]/70 bg-[#c9a84c]/14 group-hover:border-[#e6c66e] group-focus-visible:border-[#e6c66e] group-focus-visible:bg-[#c9a84c]/18",
+      diameter: 16,
+      innerDiameter: 10,
+      outer: "border-[#c9a84c] bg-[#c9a84c]/16 group-hover:border-[#e6c66e] group-focus-visible:border-[#e6c66e] group-focus-visible:bg-[#c9a84c]/22",
       inner: "bg-[#d8bb68]",
       copy: "text-[#edd58f]",
+      showInner: true,
     };
   }
 
   if (medal === "silver") {
     return {
-      outer: "border-slate-200/70 bg-slate-200/12 group-hover:border-slate-100 group-focus-visible:border-slate-100 group-focus-visible:bg-slate-200/18",
+      diameter: 14,
+      innerDiameter: 8,
+      outer: "border-slate-200/90 bg-slate-200/14 group-hover:border-slate-100 group-focus-visible:border-slate-100 group-focus-visible:bg-slate-200/20",
       inner: "bg-slate-200",
       copy: "text-slate-100",
+      showInner: true,
     };
   }
 
   if (medal === "bronze") {
     return {
-      outer: "border-[#ba7b4d]/75 bg-[#ba7b4d]/14 group-hover:border-[#cf9368] group-focus-visible:border-[#cf9368] group-focus-visible:bg-[#ba7b4d]/18",
+      diameter: 12,
+      innerDiameter: 7,
+      outer: "border-[#cd7f32]/90 bg-[#cd7f32]/14 group-hover:border-[#e0a36e] group-focus-visible:border-[#e0a36e] group-focus-visible:bg-[#cd7f32]/20",
       inner: "bg-[#c8885a]",
       copy: "text-[#e3b18d]",
+      showInner: true,
     };
   }
 
   return {
-    outer: "border-white/30 bg-black/70 group-hover:border-white/60 group-focus-visible:border-white/60 group-focus-visible:bg-black/88",
-    inner: "bg-white/62",
+    diameter: 8,
+    innerDiameter: 0,
+    outer: "border-[#3a3a3a] bg-transparent group-hover:border-white/55 group-focus-visible:border-white/55",
+    inner: "bg-transparent",
     copy: "text-white/62",
+    showInner: false,
   };
 }
 
@@ -444,11 +468,11 @@ export default function TenOlympicsOneLifePage() {
             </div>
           </div>
 
-          <div className="overflow-x-auto px-4 py-6 sm:px-6 lg:px-8">
-            <div style={{ minWidth: labelColumnWidth + chartWidth + 24 }}>
+          <div className="px-4 py-6 sm:px-6 lg:px-8">
+            <div className="w-full">
               <div
-                className="mb-4 grid items-end gap-4"
-                style={{ gridTemplateColumns: `${labelColumnWidth}px ${chartWidth}px` }}
+                className="mb-4 grid items-end gap-4 lg:grid-cols-[220px_minmax(0,1fr)]"
+                style={{ gridTemplateColumns: `minmax(0, 1fr)` }}
               >
                 <div className="flex h-full flex-col justify-end px-4 pb-3">
                   <p
@@ -464,7 +488,13 @@ export default function TenOlympicsOneLifePage() {
                     Portrait, discipline, span, and an Olympic rhythm shared by all lives below.
                   </p>
                 </div>
-                <svg width={chartWidth} height={eventBandHeight + axisHeight} className="overflow-visible">
+                <svg
+                  width="100%"
+                  height={eventBandHeight + axisHeight}
+                  viewBox={`0 0 ${chartWidth} ${eventBandHeight + axisHeight}`}
+                  preserveAspectRatio="none"
+                  className="w-full overflow-visible"
+                >
                   <rect x={0} y={0} width={chartWidth} height={eventBandHeight + axisHeight} fill="rgba(255,255,255,0.02)" rx={24} />
 
                   {historicalEvents.map((event, index) => {
@@ -560,12 +590,11 @@ export default function TenOlympicsOneLifePage() {
                   return (
                     <div
                       key={athlete.id}
-                      className={`group/row grid items-center gap-4 rounded-[22px] border px-3 py-2 transition-[opacity,border-color,background-color,transform] duration-300 hover:-translate-y-[1px] hover:bg-white/[0.04] ${
+                      className={`group/row grid items-center gap-4 rounded-[22px] border px-3 py-2 transition-[opacity,border-color,background-color,transform] duration-300 hover:-translate-y-[1px] hover:bg-white/[0.04] lg:grid-cols-[220px_minmax(0,1fr)] ${
                         isRowActive
                           ? "border-white/8 bg-white/[0.03] opacity-100 hover:border-[#c9a84c]/40"
                           : "border-white/5 bg-white/[0.015] opacity-20 hover:border-white/15"
                       }`}
-                      style={{ gridTemplateColumns: `${labelColumnWidth}px ${chartWidth}px` }}
                     >
                       <div className="flex items-center gap-4 px-2">
                         <div className={`relative h-11 w-11 overflow-hidden rounded-full border transition-colors duration-300 ${
@@ -600,8 +629,14 @@ export default function TenOlympicsOneLifePage() {
                         </div>
                       </div>
 
-                      <div className="relative overflow-visible" style={{ width: chartWidth, height: rowHeight }}>
-                        <svg width={chartWidth} height={rowHeight} className="pointer-events-none absolute inset-0 overflow-visible">
+                      <div className="relative h-[68px] w-full overflow-visible" style={{ height: rowHeight }}>
+                        <svg
+                          width="100%"
+                          height={rowHeight}
+                          viewBox={`0 0 ${chartWidth} ${rowHeight}`}
+                          preserveAspectRatio="none"
+                          className="pointer-events-none absolute inset-0 h-full w-full overflow-visible"
+                        >
                           {historicalEvents.map((event) => {
                             const isNoGameEvent = "noGame" in event && event.noGame;
                             const tone = getHistoricalEventTone(isNoGameEvent);
@@ -639,8 +674,9 @@ export default function TenOlympicsOneLifePage() {
                             x2={getLinePosition(lastYear)}
                             y1={rowHeight / 2}
                             y2={rowHeight / 2}
-                            stroke={isRowActive ? "rgba(201,168,76,0.42)" : "rgba(255,255,255,0.14)"}
-                            strokeWidth={1.5}
+                            stroke={isRowActive ? "rgba(58,58,58,0.96)" : "rgba(255,255,255,0.1)"}
+                            strokeWidth={1.25}
+                            strokeLinecap="round"
                           />
                           <text
                             x={getLinePosition(firstYear)}
@@ -666,7 +702,7 @@ export default function TenOlympicsOneLifePage() {
                         </svg>
 
                         {editionPoints.map((point) => {
-                          const pointTone = getPointToneClasses(point.dominantMedal);
+                          const pointVisual = getPointVisual(point.dominantMedal);
 
                           return (
                             <button
@@ -674,12 +710,18 @@ export default function TenOlympicsOneLifePage() {
                               type="button"
                               aria-label={getPointAriaLabel(athlete, point)}
                               className="group absolute top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center bg-transparent focus-visible:outline-none"
-                              style={{ left: getLinePosition(point.year) }}
+                              style={{ left: getLinePercent(point.year) }}
                             >
                               <span
-                                className={`flex h-4 w-4 items-center justify-center rounded-full border transition duration-200 ${pointTone.outer}`}
+                                className={`flex items-center justify-center rounded-full border transition duration-200 ${pointVisual.outer}`}
+                                style={{ width: pointVisual.diameter, height: pointVisual.diameter }}
                               >
-                                <span className={`h-2.5 w-2.5 rounded-full ${pointTone.inner}`} />
+                                {pointVisual.showInner ? (
+                                  <span
+                                    className={`rounded-full ${pointVisual.inner}`}
+                                    style={{ width: pointVisual.innerDiameter, height: pointVisual.innerDiameter }}
+                                  />
+                                ) : null}
                               </span>
 
                               <span
@@ -723,7 +765,7 @@ export default function TenOlympicsOneLifePage() {
                                     </div>
                                   ) : (
                                     point.medals.map((medal) => {
-                                      const medalTone = getPointToneClasses(medal.type);
+                                      const medalTone = getPointVisual(medal.type);
 
                                       return (
                                         <div key={`${athlete.id}-${point.year}-${medal.type}-${medal.event}`} className="rounded-2xl border border-white/8 bg-white/[0.03] px-3 py-2">
