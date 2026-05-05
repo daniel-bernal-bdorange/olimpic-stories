@@ -1107,11 +1107,24 @@ export default function TenOlympicsOneLifePage() {
           </div>
 
           <div className="px-4 py-6 sm:px-6 lg:px-8">
-            <div className="w-full">
-              <div
-                className="mb-4 grid items-end gap-4 lg:grid-cols-[220px_minmax(0,1fr)]"
-                style={{ gridTemplateColumns: `minmax(0, 1fr)` }}
+            <div className="mb-4 flex items-center justify-between gap-3 lg:hidden">
+              <p
+                className="text-[10px] uppercase tracking-[0.26em] text-white/46"
+                style={{ fontFamily: "var(--font-onelife-data)" }}
               >
+                Swipe horizontally to follow the Olympic years.
+              </p>
+              <span
+                className="rounded-full border border-[#c9a84c]/18 bg-[#c9a84c]/8 px-3 py-1 text-[10px] uppercase tracking-[0.22em] text-[#d8bb68]"
+                style={{ fontFamily: "var(--font-onelife-data)" }}
+              >
+                Mobile view
+              </span>
+            </div>
+
+            <div className="-mx-1 overflow-x-auto px-1 pb-2">
+              <div className="w-fit min-w-full space-y-3 lg:w-full">
+                <div className="mb-4 grid items-end gap-4 [grid-template-columns:180px_1320px] lg:[grid-template-columns:220px_minmax(0,1fr)]">
                 <div className="flex h-full flex-col justify-end px-4 pb-3">
                   <p
                     className="text-[11px] uppercase tracking-[0.28em] text-white/72"
@@ -1126,7 +1139,7 @@ export default function TenOlympicsOneLifePage() {
                     Portrait, discipline, span, and an Olympic rhythm shared by all lives below.
                   </p>
                 </div>
-                <div className="relative">
+                <div className="relative w-[1320px] lg:w-full">
                   <svg
                     width="100%"
                     height={eventBandHeight + axisHeight}
@@ -1229,10 +1242,9 @@ export default function TenOlympicsOneLifePage() {
                     );
                   })}
                 </div>
-              </div>
-
-              <div ref={athleteRowsRef} className="space-y-3">
-                {athletes.map((athlete, athleteIndex) => {
+                </div>
+                <div ref={athleteRowsRef} className="space-y-3">
+                  {athletes.map((athlete, athleteIndex) => {
                   const isRowActive = activeCategory === "all" || athlete.category === activeCategory;
                   const isRowSelected = athlete.id === focusedAthleteId;
                   const isPanelRendered = athlete.id === renderedAthleteId;
@@ -1270,9 +1282,9 @@ export default function TenOlympicsOneLifePage() {
                           }
 
                           event.preventDefault();
-                        requestAthleteSelection(selectedAthleteId === athlete.id ? null : athlete.id);
+                          requestAthleteSelection(selectedAthleteId === athlete.id ? null : athlete.id);
                         }}
-                        className={`group/row relative grid cursor-pointer items-center gap-4 rounded-[22px] border px-3 py-2 transition-[border-color,background-color,transform,box-shadow,filter] ease-out hover:-translate-y-[1px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] lg:grid-cols-[220px_minmax(0,1fr)] ${
+                        className={`group/row relative grid cursor-pointer items-center gap-4 rounded-[22px] border px-3 py-2 transition-[border-color,background-color,transform,box-shadow,filter] ease-out hover:-translate-y-[1px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] [grid-template-columns:180px_1320px] lg:[grid-template-columns:220px_minmax(0,1fr)] ${
                           isRowSelected
                             ? "border-[#c9a84c]/55 bg-[#c9a84c]/10 shadow-[0_22px_44px_rgba(201,168,76,0.12)]"
                             : isRowActive
@@ -1331,7 +1343,7 @@ export default function TenOlympicsOneLifePage() {
                           </div>
                         </div>
 
-                        <div className="relative z-10 w-full overflow-visible" style={{ height: rowHeight }}>
+                        <div className="relative z-10 w-[1320px] overflow-visible lg:w-full" style={{ height: rowHeight }}>
                           <svg
                             width="100%"
                             height={rowHeight}
@@ -1559,6 +1571,7 @@ export default function TenOlympicsOneLifePage() {
                   );
                 })}
               </div>
+            </div>
             </div>
           </div>
         </div>
