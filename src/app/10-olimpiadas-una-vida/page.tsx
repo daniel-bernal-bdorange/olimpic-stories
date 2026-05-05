@@ -695,7 +695,7 @@ export default function TenOlympicsOneLifePage() {
                   return (
                     <div
                       key={athlete.id}
-                      className={`group/row relative grid items-center gap-4 overflow-hidden rounded-[22px] border px-3 py-2 transition-[opacity,border-color,background-color,transform,box-shadow,filter] ease-out hover:-translate-y-[1px] lg:grid-cols-[220px_minmax(0,1fr)] ${
+                      className={`group/row relative grid items-center gap-4 rounded-[22px] border px-3 py-2 transition-[opacity,border-color,background-color,transform,box-shadow,filter] ease-out hover:-translate-y-[1px] lg:grid-cols-[220px_minmax(0,1fr)] ${
                         isRowActive
                           ? "border-white/8 bg-white/[0.03] hover:border-[#c9a84c]/45 hover:bg-white/[0.05] hover:shadow-[0_18px_40px_rgba(201,168,76,0.08)]"
                           : "border-white/5 bg-white/[0.015] hover:border-white/18 hover:bg-white/[0.03]"
