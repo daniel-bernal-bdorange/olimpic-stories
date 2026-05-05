@@ -1,0 +1,682 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Memoria de proyecto | Olimpic Stories</title>
+    <style>
+      @page {
+        size: A4;
+        margin: 5mm;
+      }
+
+      :root {
+        --paper: #0b0b0d;
+        --paper-soft: #141419;
+        --ink: #f3f4f6;
+        --muted: #b7bcc6;
+        --line: rgba(201, 168, 76, 0.18);
+        --accent: #c9a84c;
+        --accent-soft: rgba(201, 168, 76, 0.14);
+        --panel: rgba(19, 19, 23, 0.84);
+        --ring-red: #ef4444;
+        --ring-blue: #3b82f6;
+        --ring-green: #10b981;
+        --ring-yellow: #eab308;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: "Segoe UI", Aptos, sans-serif;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      body {
+        min-height: 100vh;
+      }
+
+      .sheet {
+        position: relative;
+        overflow: hidden;
+        padding: 10mm;
+        background:
+          radial-gradient(circle at top left, rgba(201, 168, 76, 0.18), transparent 28%),
+          radial-gradient(circle at 82% 18%, rgba(59, 130, 246, 0.1), transparent 24%),
+          linear-gradient(180deg, rgba(8, 8, 10, 0.98) 0%, rgba(15, 15, 17, 0.94) 100%),
+          var(--paper);
+        border: 1px solid rgba(201, 168, 76, 0.18);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+      }
+
+      .sheet::before,
+      .sheet::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+      }
+
+      .sheet::before {
+        background-image: linear-gradient(rgba(255, 255, 255, 0.028) 1px, transparent 1px);
+        background-size: 100% 18px;
+        opacity: 0.2;
+      }
+
+      .sheet::after {
+        inset: 10px;
+        border: 1px solid rgba(201, 168, 76, 0.16);
+      }
+
+      .content {
+        position: relative;
+        z-index: 1;
+      }
+
+      .eyebrow {
+        margin: 0 0 6px;
+        color: var(--accent);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: 1.35fr 1fr;
+        gap: 12px;
+        align-items: start;
+        margin-bottom: 12px;
+      }
+
+      .hero-intro {
+        display: grid;
+        gap: 8px;
+      }
+
+      .hero-head {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0;
+        align-items: start;
+      }
+
+      .subtitle {
+        margin: 0;
+        max-width: 68ch;
+        color: var(--muted);
+        font-size: 16px;
+        line-height: 1.5;
+      }
+
+      .meta-box {
+        padding: 14px 14px;
+        min-height: 248px;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        backdrop-filter: blur(8px);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+      }
+
+      .cover-frame {
+        border: 1px solid rgba(201, 168, 76, 0.22);
+        background: rgba(255, 255, 255, 0.03);
+        aspect-ratio: 1.3 / 1;
+        min-height: 200px;
+        max-height: 200px;
+        overflow: hidden;
+        box-shadow:
+          0 16px 32px rgba(0, 0, 0, 0.28),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+      }
+
+      .cover-frame img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .meta-box h2,
+      .section h2 {
+        margin: 0 0 10px;
+        font-size: 11px;
+        font-weight: 800;
+        line-height: 1.3;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(201, 168, 76, 0.95);
+      }
+
+      .meta-list,
+      .stack-list,
+      .structure-list,
+      .routes-list,
+      .notes-list {
+        display: grid;
+        gap: 7px;
+      }
+
+      .meta-item,
+      .stack-item,
+      .structure-item,
+      .route-item,
+      .notes-item {
+        display: grid;
+        grid-template-columns: 88px 1fr;
+        gap: 8px;
+        align-items: start;
+        font-size: 11px;
+        line-height: 1.28;
+      }
+
+      .meta-item {
+        font-size: 13px;
+        line-height: 1.34;
+      }
+
+      .meta-item strong,
+      .stack-item strong,
+      .structure-item strong,
+      .route-item strong,
+      .notes-item strong {
+        font-size: 9px;
+        line-height: 1.3;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(201, 168, 76, 0.88);
+      }
+
+      .meta-item strong {
+        font-size: 10px;
+        display: block;
+      }
+
+      .link {
+        color: #f4f5f7;
+        text-decoration: none;
+        border-bottom: 1px solid rgba(201, 168, 76, 0.34);
+        overflow-wrap: anywhere;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+        margin-bottom: 12px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .stat {
+        padding: 16px 14px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .stat-value {
+        display: block;
+        margin-bottom: 3px;
+        font-family: "Arial Narrow", Arial, sans-serif;
+        font-size: 24px;
+        line-height: 1;
+        letter-spacing: 0.04em;
+      }
+
+      .stat-label {
+        display: block;
+        margin-bottom: 2px;
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .stat-copy {
+        color: var(--muted);
+        font-size: 10px;
+        line-height: 1.22;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: 10px;
+      }
+
+      .column {
+        display: grid;
+        gap: 10px;
+      }
+
+      .section {
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+      }
+
+      .section p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.34;
+      }
+
+      .section-tech p,
+      .section-structure p {
+        font-size: 15px;
+        line-height: 1.36;
+      }
+
+      .section-tech .stack-item,
+      .section-structure .structure-item {
+        display: block;
+        font-size: 15px;
+        line-height: 1.3;
+      }
+
+      .section-tech .stack-item strong,
+      .section-structure .structure-item strong {
+        display: block;
+        margin-bottom: 3px;
+        font-size: 13px;
+      }
+
+      .stack-list,
+      .structure-list,
+      .routes-list,
+      .notes-list {
+        margin-top: 8px;
+      }
+
+      code {
+        padding: 1px 4px;
+        background: var(--accent-soft);
+        border-radius: 999px;
+        font-family: Consolas, "Courier New", monospace;
+        font-size: 10px;
+        color: #f2d57c;
+      }
+
+      .routes-list {
+        gap: 7px;
+      }
+
+      .route-item {
+        grid-template-columns: 74px 1fr;
+        padding-left: 8px;
+        border-left: 2px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .route-item.route-home {
+        border-left-color: var(--accent);
+      }
+
+      .route-item.route-red {
+        border-left-color: var(--ring-red);
+      }
+
+      .route-item.route-blue {
+        border-left-color: var(--ring-blue);
+      }
+
+      .route-item.route-green {
+        border-left-color: var(--ring-green);
+      }
+
+      .route-item.route-yellow {
+        border-left-color: var(--ring-yellow);
+      }
+
+      .route-copy {
+        display: grid;
+        gap: 2px;
+      }
+
+      .route-title {
+        color: #f4f5f7;
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .route-meta {
+        color: rgba(201, 168, 76, 0.78);
+        font-size: 9px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .route-description {
+        color: var(--muted);
+        font-size: 10px;
+        line-height: 1.28;
+      }
+
+      .footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        margin-top: 10px;
+        padding-top: 6px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 9px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      @media screen and (max-width: 900px) {
+        .sheet {
+          padding: 24px;
+        }
+
+        .hero-head,
+        .hero,
+        .grid,
+        .stats {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media print {
+        .sheet {
+          padding: 5mm;
+        }
+
+        .hero,
+        .hero-head,
+        .grid {
+          gap: 9px;
+        }
+
+        .subtitle,
+        .section p,
+        .route-description {
+          font-size: 10px;
+          line-height: 1.24;
+        }
+
+        .subtitle {
+          font-size: 12px;
+          line-height: 1.28;
+        }
+
+        .section-tech p,
+        .section-structure p {
+          font-size: 14px;
+          line-height: 1.2;
+        }
+
+        .section-tech .stack-item,
+        .section-structure .structure-item {
+          display: block;
+          font-size: 14px;
+          line-height: 1.14;
+        }
+
+        .section-tech .stack-item strong,
+        .section-structure .structure-item strong {
+          display: block;
+          margin-bottom: 2px;
+          font-size: 12px;
+        }
+
+        .route-meta,
+        .stat-copy,
+        .meta-item,
+        .stack-item,
+        .structure-item,
+        .route-item,
+        .notes-item {
+          font-size: 9.5px;
+        }
+
+        .meta-item {
+          font-size: 10px;
+          line-height: 1.14;
+        }
+
+        .meta-item strong {
+          font-size: 9px;
+        }
+
+        .routes-list,
+        .stack-list,
+        .structure-list,
+        .notes-list,
+        .meta-list {
+          gap: 4px;
+        }
+
+        .cover-frame {
+          min-height: 56px;
+          max-height: 56px;
+        }
+
+        .content {
+          transform: scale(0.63);
+          transform-origin: top left;
+          width: 158.8%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="sheet">
+      <div class="content">
+        <p class="eyebrow">Memoria Ejecutiva · Mayo 2026</p>
+
+        <section class="hero">
+          <div class="hero-intro">
+            <div class="hero-head">
+              <div class="cover-frame">
+                <img src="./cover.png" alt="Portada del proyecto Olimpic Stories" />
+              </div>
+            </div>
+            <p class="subtitle">
+              Aplicación web editorial de scrollytelling sobre historias olímpicas. La web combina visualización de datos,
+              narrativa interactiva, animación y una home cinematográfica para articular una colección de piezas digitales con
+              identidad propia pero lenguaje visual compartido.
+            </p>
+          </div>
+
+          <aside class="meta-box">
+            <h2>Enlaces</h2>
+            <div class="meta-list">
+              <div class="meta-item">
+                <strong>App</strong>
+                <a class="link" href="https://olimpic-stories.vercel.app/">https://olimpic-stories.vercel.app/</a>
+              </div>
+              <div class="meta-item">
+                <strong>Repo</strong>
+                <a class="link" href="https://github.com/daniel-bernal-bdorange/olimpic-stories.git">https://github.com/daniel-bernal-bdorange/olimpic-stories.git</a>
+              </div>
+              <div class="meta-item">
+                <strong>DevOps</strong>
+                <a class="link" href="https://dev.azure.com/innolabspain/olimpic-data-story">https://dev.azure.com/innolabspain/olimpic-data-story</a>
+              </div>
+              <div class="meta-item">
+                <strong>Deploy</strong>
+                <span>Vercel con build de Next.js y publicación web continua.</span>
+              </div>
+              <div class="meta-item">
+                <strong>Objetivo</strong>
+                <span>Portfolio y concurso de visualización narrativa aplicada a datos olímpicos.</span>
+              </div>
+            </div>
+          </aside>
+        </section>
+
+        <section class="stats">
+          <article class="stat">
+            <span class="stat-label">Framework</span>
+            <span class="stat-value">Next 16</span>
+            <span class="stat-copy">App Router, renderizado web moderno y rutas por historia.</span>
+          </article>
+          <article class="stat">
+            <span class="stat-label">UI</span>
+            <span class="stat-value">React 19</span>
+            <span class="stat-copy">Componentes cliente para navegación, estados y experiencias interactivas.</span>
+          </article>
+          <article class="stat">
+            <span class="stat-label">Datos y motion</span>
+            <span class="stat-value">D3 + GSAP</span>
+            <span class="stat-copy">Gráficos, timelines, hover states y animaciones editoriales.</span>
+          </article>
+          <article class="stat">
+            <span class="stat-label">Base técnica</span>
+            <span class="stat-value">TS + TW4</span>
+            <span class="stat-copy">TypeScript, Tailwind CSS 4 y ESLint para mantener consistencia.</span>
+          </article>
+        </section>
+
+        <section class="grid">
+          <div class="column">
+            <article class="section section-tech">
+              <h2>Tecnologías utilizadas</h2>
+              <p>
+                El proyecto está construido con <code>Next.js 16.2.4</code>, <code>React 19.2.4</code> y <code>TypeScript 5</code>.
+                Para el estilo se usa <code>Tailwind CSS 4</code>; para visualización y comportamiento interactivo se integran
+                <code>D3 7.9</code> y <code>GSAP 3.15</code>. El control de calidad se apoya en <code>ESLint 9</code> y la app
+                está preparada para despliegue en Vercel.
+              </p>
+              <div class="stack-list">
+                <div class="stack-item">
+                  <strong>Frontend</strong>
+                  <span>Next.js App Router, React, TypeScript y componentes reutilizables en <code>src/components</code>.</span>
+                </div>
+                <div class="stack-item">
+                  <strong>Estilo</strong>
+                  <span>Tailwind CSS 4, CSS local por historia cuando la pieza necesita identidad propia.</span>
+                </div>
+                <div class="stack-item">
+                  <strong>Visualización</strong>
+                  <span>D3 para ejes, grids y timelines; GSAP para transiciones, scroll reveals y motion editorial.</span>
+                </div>
+                <div class="stack-item">
+                  <strong>DevOps</strong>
+                  <span>Repositorio GitHub, despliegue Vercel y automatizaciones auxiliares en <code>scripts</code>.</span>
+                </div>
+              </div>
+            </article>
+
+            <article class="section section-structure">
+              <h2>Estructura del proyecto</h2>
+              <div class="structure-list">
+                <div class="structure-item">
+                  <strong><code>src/app</code></strong>
+                  <span>Rutas principales, layout global, home y páginas narrativas por historia.</span>
+                </div>
+                <div class="structure-item">
+                  <strong><code>src/components</code></strong>
+                  <span>Transiciones, shells reutilizables y soporte de navegación.</span>
+                </div>
+                <div class="structure-item">
+                  <strong><code>src/lib</code></strong>
+                  <span>Utilidades y definición compartida de secciones.</span>
+                </div>
+                <div class="structure-item">
+                  <strong><code>public/images</code></strong>
+                  <span>Activos visuales, retratos y vectores usados por las historias.</span>
+                </div>
+                <div class="structure-item">
+                  <strong><code>docs</code></strong>
+                  <span>Briefs creativos, copy, contexto de proyecto y documentación de apoyo.</span>
+                </div>
+                <div class="structure-item">
+                  <strong><code>scripts</code></strong>
+                  <span>Automatizaciones y utilidades de validación o preparación de assets.</span>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <div class="column">
+            <article class="section">
+              <h2>Contenido publicado</h2>
+              <div class="routes-list">
+                <div class="route-item route-home">
+                  <strong><code>/</code></strong>
+                  <div class="route-copy">
+                    <span class="route-title">Home editorial</span>
+                    <span class="route-meta">Hub de navegación · transición cinematográfica · carrusel narrativo</span>
+                    <span class="route-description">Portada inmersiva que presenta las historias, gestiona la navegación entre piezas y actúa como eje visual de todo el proyecto.</span>
+                  </div>
+                </div>
+                <div class="route-item route-red">
+                  <strong><code>/cold-war-in-gold</code></strong>
+                  <div class="route-copy">
+                    <span class="route-title">Cold War in Gold</span>
+                    <span class="route-meta">Story de rivalidad geopolítica · gráfico comparativo · scroll storytelling</span>
+                    <span class="route-description">Analiza cómo la pugna entre potencias se trasladó al medallero olímpico mediante gráficos animados, paneles contextuales y lectura dirigida por scroll.</span>
+                  </div>
+                </div>
+                <div class="route-item route-blue">
+                  <strong><code>/atlas-cuerpo-olimpico</code></strong>
+                  <div class="route-copy">
+                    <span class="route-title">Atlas Cuerpo Olímpico</span>
+                    <span class="route-meta">Comparativa corporal · grid interactivo · panel de detalle</span>
+                    <span class="route-description">Explora diferencias físicas entre disciplinas con siluetas, filtros, tooltips y paneles editoriales que convierten el dato en relato comparativo.</span>
+                  </div>
+                </div>
+                <div class="route-item route-green">
+                  <strong><code>/cementerio-olimpico</code></strong>
+                  <div class="route-copy">
+                    <span class="route-title">Cementerio Olímpico</span>
+                    <span class="route-meta">Archivo de deportes perdidos · timeline vertical · fichas editoriales</span>
+                    <span class="route-description">Reconstruye los deportes desaparecidos del programa olímpico con una cronología visual, filtros por era y tarjetas narrativas de lectura museográfica.</span>
+                  </div>
+                </div>
+                <div class="route-item route-yellow">
+                  <strong><code>/10-olimpiadas-una-vida</code></strong>
+                  <div class="route-copy">
+                    <span class="route-title">10 Olimpiadas, una vida</span>
+                    <span class="route-meta">Longevidad deportiva · timeline por atleta · detalle expandible</span>
+                    <span class="route-description">Recorre carreras olímpicas extraordinariamente largas con filtros, líneas temporales horizontales, selección de atletas y capas biográficas.</span>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="section">
+              <h2>Notas clave</h2>
+              <div class="notes-list">
+                <div class="notes-item">
+                  <strong>Arquitectura</strong>
+                  <span>Separación por historia: cada pieza tiene su propia página, datos y lógica interactiva.</span>
+                </div>
+                <div class="notes-item">
+                  <strong>Escalabilidad</strong>
+                  <span>La estructura permite añadir nuevas historias sin romper la home ni el layout compartido.</span>
+                </div>
+                <div class="notes-item">
+                  <strong>Calidad</strong>
+                  <span>Scripts de lint y builds de Next garantizan verificación rápida antes de despliegue.</span>
+                </div>
+                <div class="notes-item">
+                  <strong>Repositorio</strong>
+                  <span>La documentación funcional y creativa vive junto al código para facilitar continuidad.</span>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <footer class="footer">
+          <span>Documento resumen del proyecto</span>
+          <span>Olympic Data Story · 1 página · preparado para impresión PDF</span>
+        </footer>
+      </div>
+    </main>
+  </body>
+</html>
