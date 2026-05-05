@@ -16,10 +16,18 @@ export type OlympicHost = {
   city: string;
 };
 
+export type HistoricalEventAlignment = "left" | "right";
+
 export type HistoricalEvent = {
   year: number;
   label: string;
+  align: HistoricalEventAlignment;
   noGame?: boolean;
+};
+
+export type AthleteEditorialNote = {
+  year: number;
+  label: string;
 };
 
 export type Athlete = {
@@ -35,6 +43,7 @@ export type Athlete = {
   medals: AthleteMedal[];
   bio: string;
   note: string;
+  editorialNotes: AthleteEditorialNote[];
   photo: string;
 };
 
@@ -78,15 +87,16 @@ export const olympicHosts = [
 ] as const satisfies readonly OlympicHost[];
 
 export const historicalEvents = [
-  { year: 1948, label: "Post-WWII Games" },
-  { year: 1968, label: "Mexico protests" },
-  { year: 1972, label: "Munich massacre" },
-  { year: 1980, label: "USA boycott" },
-  { year: 1984, label: "USSR boycott" },
-  { year: 1988, label: "Last Cold War Games" },
-  { year: 1992, label: "USSR dissolved" },
-  { year: 2001, label: "9/11", noGame: true },
-  { year: 2020, label: "Covid Games" },
+  { year: 1948, label: "Post-WWII Games", align: "right" },
+  { year: 1968, label: "Mexico protests", align: "right" },
+  { year: 1972, label: "Munich massacre", align: "right" },
+  { year: 1980, label: "USA boycott", align: "right" },
+  { year: 1984, label: "USSR boycott", align: "right" },
+  { year: 1988, label: "Last Cold War Games", align: "right" },
+  { year: 1989, label: "Berlin Wall falls", align: "right", noGame: true },
+  { year: 1992, label: "USSR dissolved", align: "right" },
+  { year: 2001, label: "9/11", align: "right", noGame: true },
+  { year: 2020, label: "Covid Games", align: "right" },
 ] as const satisfies readonly HistoricalEvent[];
 
 const olympicHostsBySeason = olympicHosts.reduce<Record<OlympicSeason, Record<number, string>>>(
@@ -115,6 +125,7 @@ export const athletes: Athlete[] = [
     medals: [{ year: 2008, type: "silver", event: "Team, Open" }],
     bio: "The most decorated Olympic equestrian career in history. Ian Millar competed for Canada across five decades, missing only Moscow 1980 due to the boycott. He was 65 years old at his final Games in London 2012.",
     note: "Missed 1980. Canada boycotted the Moscow Games.",
+    editorialNotes: [{ year: 1980, label: "Missed Moscow when Canada joined the boycott." }],
     photo: "/images/one-life/athletes/ian-millar.webp",
   },
   {
@@ -133,6 +144,10 @@ export const athletes: Athlete[] = [
     ],
     bio: "Nine consecutive Olympic Games from Tokyo 1964 to Atlanta 1996. The Austrian sailor competed through boycotts, political storms, and three decades of changing equipment.",
     note: "Competed in both the 1980 and 1984 boycott Games.",
+    editorialNotes: [
+      { year: 1980, label: "Won silver inside the first boycott Games." },
+      { year: 1984, label: "Returned for the mirrored boycott in Los Angeles." },
+    ],
     photo: "/images/one-life/athletes/hubert-raudaschl.webp",
   },
   {
@@ -151,6 +166,7 @@ export const athletes: Athlete[] = [
     ],
     bio: "Competed first for the Soviet Union, then as an independent after Latvia regained independence. His career spans the Cold War, its end, and the birth of a new nation.",
     note: "Competed as USSR, then as independent Latvia.",
+    editorialNotes: [{ year: 1992, label: "Returned after the Soviet collapse under Latvia's flag." }],
     photo: "/images/one-life/athletes/afanasijs-kuzmins.webp",
   },
   {
@@ -170,6 +186,7 @@ export const athletes: Athlete[] = [
     ],
     bio: "Two medals in Seoul 1988 at age 17. A bronze in Beijing 2008 twenty years later. Nino Salukvadze is the only woman in Olympic history to win medals in four different decades.",
     note: "At Tokyo 2020, she carried Georgia's flag at the Opening Ceremony.",
+    editorialNotes: [{ year: 2020, label: "Flag bearer for Georgia in Tokyo at age 52." }],
     photo: "/images/one-life/athletes/nino-salukvadze.webp",
   },
   {
@@ -191,6 +208,7 @@ export const athletes: Athlete[] = [
     ],
     bio: "Born in Germany, she later competed for Italy and collected five Olympic medals across 24 years. Her gold in Sydney 2000 came 16 years after her first Olympic appearance.",
     note: "Competed for West Germany, then Italy.",
+    editorialNotes: [{ year: 1988, label: "Reappeared for Italy after opening in 1984 for West Germany." }],
     photo: "/images/one-life/athletes/josefa-idem-guerrini.webp",
   },
   {
@@ -213,6 +231,7 @@ export const athletes: Athlete[] = [
     ],
     bio: "Three consecutive team golds from 1992 to 2000. Then a 16-year gap, a comeback at 62, and two more medals in Tokyo 2020.",
     note: "Returned from retirement for Tokyo 2020 aged 62.",
+    editorialNotes: [{ year: 2020, label: "Came back from retirement and medaled again at 62." }],
     photo: "/images/one-life/athletes/andrew-hoy.webp",
   },
   {
@@ -233,6 +252,10 @@ export const athletes: Athlete[] = [
     ],
     bio: "Four consecutive gold medals from London 1948 to Rome 1960. Then retirement, a long absence, and two more Games in 1984 and 1988, competing alongside his daughter Trine.",
     note: "Competed with his daughter Trine in Los Angeles 1984 and Seoul 1988.",
+    editorialNotes: [
+      { year: 1984, label: "Returned to the Olympics and sailed alongside daughter Trine." },
+      { year: 1988, label: "Closed his Olympic life with the same father-daughter crew." },
+    ],
     photo: "/images/one-life/athletes/paul-elvstrom.webp",
   },
   {
@@ -251,6 +274,7 @@ export const athletes: Athlete[] = [
     ],
     bio: "At Tokyo 2020, Oksana Chusovitina competed in artistic gymnastics at age 46, in an event dominated by teenagers. Her first Olympic gold came in 1992.",
     note: "Competed for USSR, Uzbekistan and Germany across her Olympic life.",
+    editorialNotes: [{ year: 2020, label: "Still vaulting in Tokyo at 46, decades after her first gold." }],
     photo: "/images/one-life/athletes/oksana-chusovitina.webp",
   },
   {
@@ -276,6 +300,7 @@ export const athletes: Athlete[] = [
     ],
     bio: "Nine Olympic medals across four decades. After a disputed suspension, she returned at 42 for PyeongChang 2018 and again at 50 for Beijing 2022.",
     note: "The oldest German Winter Olympian ever at Beijing 2022.",
+    editorialNotes: [{ year: 2022, label: "Became Germany's oldest Winter Olympian in Beijing." }],
     photo: "/images/one-life/athletes/claudia-pechstein.webp",
   },
   {
@@ -291,6 +316,7 @@ export const athletes: Athlete[] = [
     medals: [],
     bio: "Eight consecutive Olympic Games in race walking. Zero medals. From Barcelona 1992 to Tokyo 2020, his Olympic life stretched across 28 years without ever leaving the circuit.",
     note: "He opened at his home Games in Barcelona and closed at age 51 in Tokyo.",
+    editorialNotes: [{ year: 2020, label: "Closed an eight-Games span in Tokyo at 51 without ever leaving the circuit." }],
     photo: "/images/one-life/athletes/jesus-angel-garcia.webp",
   },
 ];

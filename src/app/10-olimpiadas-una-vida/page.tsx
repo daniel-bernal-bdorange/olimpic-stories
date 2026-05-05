@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { scalePoint } from "d3";
 import { Bebas_Neue, Cormorant_Garamond, DM_Mono } from "next/font/google";
 import { RouteTransitionReady, TransitionLink } from "@/components/route-transition";
-import { athletes, categoryLabels, categoryPills, getOlympicHostCity, historicalEvents, introCopy, olympicYears, type Athlete, type MedalType, winterOlympicYears } from "./data";
+import { athletes, categoryLabels, categoryPills, getOlympicHostCity, historicalEvents, introCopy, olympicYears, type Athlete, type HistoricalEvent, type MedalType, winterOlympicYears } from "./data";
 
 const oneLifeDisplayFont = Bebas_Neue({
   weight: "400",
@@ -27,9 +27,9 @@ const oneLifeDataFont = DM_Mono({
 });
 
 const chartWidth = 1320;
-const axisHeight = 92;
-const eventBandHeight = 76;
-const rowHeight = 68;
+const axisHeight = 56;
+const eventBandHeight = 136;
+const rowHeight = 92;
 
 const medalWeight: Record<MedalType, number> = {
   gold: 3,
@@ -170,6 +170,26 @@ function getHistoricalEventTone(noGame?: boolean) {
     stroke: "rgba(255,255,255,0.18)",
     label: "rgba(245,242,235,0.38)",
   };
+}
+
+function getHistoricalEventLabelOffset(event: HistoricalEvent) {
+  return event.align === "left" ? -8 : 8;
+}
+
+function getHistoricalEventTextAnchor(event: HistoricalEvent) {
+  return event.align === "left" ? "end" : "start";
+}
+
+function getEditorialNotePlacement(index: number) {
+  return index % 2 === 0 ? "top" : "bottom";
+}
+
+function getEditorialTooltipClasses(placement: "top" | "bottom") {
+  if (placement === "top") {
+    return "top-[calc(100%+12px)] left-1/2 -translate-x-1/2";
+  }
+
+  return "bottom-[calc(100%+12px)] left-1/2 -translate-x-1/2";
 }
 
 function getPointVisual(medal: MedalType | null): PointVisual {
@@ -488,96 +508,109 @@ export default function TenOlympicsOneLifePage() {
                     Portrait, discipline, span, and an Olympic rhythm shared by all lives below.
                   </p>
                 </div>
-                <svg
-                  width="100%"
-                  height={eventBandHeight + axisHeight}
-                  viewBox={`0 0 ${chartWidth} ${eventBandHeight + axisHeight}`}
-                  preserveAspectRatio="none"
-                  className="w-full overflow-visible"
-                >
-                  <rect x={0} y={0} width={chartWidth} height={eventBandHeight + axisHeight} fill="rgba(255,255,255,0.02)" rx={24} />
+                <div className="relative">
+                  <svg
+                    width="100%"
+                    height={eventBandHeight + axisHeight}
+                    viewBox={`0 0 ${chartWidth} ${eventBandHeight + axisHeight}`}
+                    preserveAspectRatio="none"
+                    className="w-full"
+                  >
+                    <rect x={0} y={0} width={chartWidth} height={eventBandHeight + axisHeight} fill="rgba(255,255,255,0.02)" rx={24} />
 
-                  {historicalEvents.map((event, index) => {
-                    const x = getTimelinePosition(event.year);
-                    const isNoGameEvent = "noGame" in event && event.noGame;
-                    const tone = getHistoricalEventTone(isNoGameEvent);
-                    const labelX = x + (index % 2 === 0 ? -6 : 8);
+                    {historicalEvents.map((event) => {
+                      const x = getTimelinePosition(event.year);
+                      const isNoGameEvent = "noGame" in event && event.noGame;
+                      const tone = getHistoricalEventTone(isNoGameEvent);
+                      const labelOffset = getHistoricalEventLabelOffset(event);
+                      const labelY = eventBandHeight - 12;
 
-                    return (
-                      <g key={`${event.year}-${event.label}`} transform={`translate(${x}, 0)`}>
-                        <line
-                          x1={0}
-                          x2={0}
-                          y1={eventBandHeight - 12}
-                          y2={eventBandHeight + axisHeight}
-                          stroke={tone.stroke}
-                          strokeWidth={1}
-                          strokeDasharray="4 5"
-                        />
-                        <text
-                          x={labelX - x}
-                          y={eventBandHeight - 18}
-                          fill={tone.label}
-                          fontSize={9}
-                          letterSpacing="0.18em"
-                          textAnchor="end"
-                          transform={`rotate(-90 ${labelX - x} ${eventBandHeight - 18})`}
-                          style={{ fontFamily: "var(--font-onelife-data)", textTransform: "uppercase" }}
-                        >
-                          {event.label}
-                        </text>
-                      </g>
-                    );
-                  })}
+                      return (
+                        <g key={`${event.year}-${event.label}`} transform={`translate(${x}, 0)`}>
+                          <line
+                            x1={0}
+                            x2={0}
+                            y1={eventBandHeight - 18}
+                            y2={eventBandHeight + axisHeight}
+                            stroke={tone.stroke}
+                            strokeWidth={1}
+                            strokeDasharray="4 5"
+                          />
+                          <text
+                            x={labelOffset}
+                            y={labelY}
+                            fill={tone.label}
+                            fontSize={9}
+                            letterSpacing="0.18em"
+                            textAnchor={getHistoricalEventTextAnchor(event)}
+                            transform={`rotate(-90 ${labelOffset} ${labelY})`}
+                            style={{ fontFamily: "var(--font-onelife-data)", textTransform: "uppercase" }}
+                          >
+                            {event.label}
+                          </text>
+                        </g>
+                      );
+                    })}
 
-                  <line x1={0} x2={chartWidth} y1={eventBandHeight + axisHeight - 20} y2={eventBandHeight + axisHeight - 20} stroke="rgba(255,255,255,0.12)" strokeWidth={1} />
+                    <line x1={0} x2={chartWidth} y1={eventBandHeight + axisHeight - 20} y2={eventBandHeight + axisHeight - 20} stroke="rgba(255,255,255,0.12)" strokeWidth={1} />
+
+                    {olympicYears.map((year) => {
+                      const x = getLinePosition(year);
+                      const isWinterYear = winterOlympicYears.has(year);
+
+                      return (
+                        <g key={year} transform={`translate(${x}, 0)`}>
+                          <line x1={0} x2={0} y1={eventBandHeight + 18} y2={eventBandHeight + axisHeight} stroke="rgba(255,255,255,0.12)" strokeWidth={1} />
+                          <circle cx={0} cy={eventBandHeight + axisHeight - 20} r={isWinterYear ? 3 : 4} fill={isWinterYear ? "rgba(201,168,76,0.55)" : "rgba(245,242,235,0.82)"} />
+                          <text
+                            x={0}
+                            y={eventBandHeight + 18}
+                            textAnchor="middle"
+                            fill={isWinterYear ? "rgba(245,242,235,0.44)" : "rgba(245,242,235,0.7)"}
+                            fontSize={10}
+                            letterSpacing="0.24em"
+                            style={{ fontFamily: "var(--font-onelife-data)", textTransform: "uppercase" }}
+                          >
+                            {year}
+                          </text>
+                        </g>
+                      );
+                    })}
+                  </svg>
 
                   {olympicYears.map((year) => {
-                    const x = getLinePosition(year);
                     const isWinterYear = winterOlympicYears.has(year);
                     const hostCity = getOlympicHostCity(year, isWinterYear ? "winter" : "summer");
+                    const alignment = getTooltipAlignment(year);
 
                     return (
-                      <g key={year} transform={`translate(${x}, 0)`}>
-                        <line x1={0} x2={0} y1={eventBandHeight + 18} y2={eventBandHeight + axisHeight} stroke="rgba(255,255,255,0.12)" strokeWidth={1} />
-                        <circle cx={0} cy={eventBandHeight + axisHeight - 20} r={isWinterYear ? 3 : 4} fill={isWinterYear ? "rgba(201,168,76,0.55)" : "rgba(245,242,235,0.82)"} />
-                        <text
-                          x={0}
-                          y={eventBandHeight + 18}
-                          textAnchor="middle"
-                          fill={isWinterYear ? "rgba(245,242,235,0.44)" : "rgba(245,242,235,0.7)"}
-                          fontSize={10}
-                          letterSpacing="0.24em"
-                          style={{ fontFamily: "var(--font-onelife-data)", textTransform: "uppercase" }}
+                      <button
+                        key={`edition-tooltip-${year}`}
+                        type="button"
+                        aria-label={`${year} ${hostCity}${isWinterYear ? ", Winter Games" : ", Summer Games"}`}
+                        className="group absolute z-10 h-16 w-14 -translate-x-1/2 bg-transparent focus-visible:outline-none"
+                        style={{ left: getLinePercent(year), top: eventBandHeight - 6 }}
+                      >
+                        <span
+                          className={`pointer-events-none absolute bottom-[calc(100%-6px)] z-20 w-40 rounded-[18px] border border-white/12 bg-[rgba(8,8,8,0.96)] px-3 py-2 text-left opacity-0 shadow-[0_18px_50px_rgba(0,0,0,0.4)] transition duration-200 ${getTooltipPositionClasses(alignment)} group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100`}
                         >
-                          {year}
-                        </text>
-                        <text
-                          x={0}
-                          y={eventBandHeight + 40}
-                          textAnchor="middle"
-                          fill={isWinterYear ? "rgba(201,168,76,0.9)" : "rgba(245,242,235,0.62)"}
-                          fontSize={9}
-                          letterSpacing="0.12em"
-                          style={{ fontFamily: "var(--font-onelife-data)", textTransform: "uppercase" }}
-                        >
-                          {hostCity}
-                        </text>
-                        <text
-                          x={0}
-                          y={eventBandHeight + 58}
-                          textAnchor="middle"
-                          fill={isWinterYear ? "rgba(201,168,76,0.6)" : "rgba(245,242,235,0.34)"}
-                          fontSize={8}
-                          letterSpacing="0.24em"
-                          style={{ fontFamily: "var(--font-onelife-data)", textTransform: "uppercase" }}
-                        >
-                          {isWinterYear ? "Winter" : "Summer"}
-                        </text>
-                      </g>
+                          <p
+                            className="text-[10px] uppercase tracking-[0.28em] text-[#c9a84c]"
+                            style={{ fontFamily: "var(--font-onelife-data)" }}
+                          >
+                            {year}
+                          </p>
+                          <p
+                            className="mt-1 text-sm italic leading-relaxed text-white/82"
+                            style={{ fontFamily: "var(--font-onelife-body)" }}
+                          >
+                            {hostCity}
+                          </p>
+                        </span>
+                      </button>
                     );
                   })}
-                </svg>
+                </div>
               </div>
 
               <div className="space-y-3">
@@ -629,7 +662,7 @@ export default function TenOlympicsOneLifePage() {
                         </div>
                       </div>
 
-                      <div className="relative h-[68px] w-full overflow-visible" style={{ height: rowHeight }}>
+                      <div className="relative w-full overflow-visible" style={{ height: rowHeight }}>
                         <svg
                           width="100%"
                           height={rowHeight}
@@ -637,23 +670,6 @@ export default function TenOlympicsOneLifePage() {
                           preserveAspectRatio="none"
                           className="pointer-events-none absolute inset-0 h-full w-full overflow-visible"
                         >
-                          {historicalEvents.map((event) => {
-                            const isNoGameEvent = "noGame" in event && event.noGame;
-                            const tone = getHistoricalEventTone(isNoGameEvent);
-
-                            return (
-                              <line
-                                key={`${athlete.id}-${event.year}-${event.label}`}
-                                x1={getTimelinePosition(event.year)}
-                                x2={getTimelinePosition(event.year)}
-                                y1={0}
-                                y2={rowHeight}
-                                stroke={tone.stroke}
-                                strokeWidth={1}
-                                strokeDasharray="4 5"
-                              />
-                            );
-                          })}
                           {olympicYears.map((year) => {
                             const x = getLinePosition(year);
 
@@ -703,6 +719,7 @@ export default function TenOlympicsOneLifePage() {
 
                         {editionPoints.map((point) => {
                           const pointVisual = getPointVisual(point.dominantMedal);
+                          const pointEditorialNotes = athlete.editorialNotes.filter((note) => note.year === point.year);
 
                           return (
                             <button
@@ -785,7 +802,56 @@ export default function TenOlympicsOneLifePage() {
                                       );
                                     })
                                   )}
+
+                                  {pointEditorialNotes.map((note) => (
+                                    <div key={`${athlete.id}-${point.year}-${note.label}`} className="rounded-2xl border border-[#c9a84c]/25 bg-[#c9a84c]/8 px-3 py-2">
+                                      <p
+                                        className="text-[11px] uppercase tracking-[0.22em] text-[#d8bb68]"
+                                        style={{ fontFamily: "var(--font-onelife-data)" }}
+                                      >
+                                        Editorial note
+                                      </p>
+                                      <p
+                                        className="mt-1 text-xs italic leading-relaxed text-white/80"
+                                        style={{ fontFamily: "var(--font-onelife-body)" }}
+                                      >
+                                        {note.label}
+                                      </p>
+                                    </div>
+                                  ))}
                                 </div>
+                              </span>
+                            </button>
+                          );
+                        })}
+
+                        {athlete.editorialNotes.map((note, index) => {
+                          const placement = getEditorialNotePlacement(index);
+
+                          return (
+                            <button
+                              key={`${athlete.id}-${note.year}-${note.label}`}
+                              type="button"
+                              aria-label={`${athlete.name}. Editorial note for ${note.year}. ${note.label}`}
+                              className={`group absolute z-10 -translate-x-1/2 rounded-full border border-[#c9a84c]/40 bg-[rgba(10,10,10,0.92)] px-2.5 py-1 text-[9px] uppercase tracking-[0.18em] text-[#d8bb68] shadow-[0_14px_30px_rgba(0,0,0,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] ${placement === "top" ? "top-1" : "bottom-1"}`}
+                              style={{ left: getLinePercent(note.year), fontFamily: "var(--font-onelife-data)" }}
+                            >
+                              {note.year}
+                              <span
+                                className={`pointer-events-none absolute z-20 w-60 rounded-[18px] border border-[#c9a84c]/20 bg-[rgba(8,8,8,0.96)] px-4 py-3 text-left opacity-0 shadow-[0_20px_55px_rgba(0,0,0,0.45)] transition duration-200 group-hover:opacity-100 group-focus-visible:opacity-100 ${getEditorialTooltipClasses(placement)}`}
+                              >
+                                <p
+                                  className="text-[10px] uppercase tracking-[0.28em] text-[#c9a84c]"
+                                  style={{ fontFamily: "var(--font-onelife-data)" }}
+                                >
+                                  Key year {note.year}
+                                </p>
+                                <p
+                                  className="mt-2 text-sm italic leading-relaxed text-white/80"
+                                  style={{ fontFamily: "var(--font-onelife-body)" }}
+                                >
+                                  {note.label}
+                                </p>
                               </span>
                             </button>
                           );
