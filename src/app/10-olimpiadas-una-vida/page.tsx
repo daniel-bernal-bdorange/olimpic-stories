@@ -30,6 +30,11 @@ const chartWidth = 1320;
 const axisHeight = 56;
 const eventBandHeight = 136;
 const rowHeight = 92;
+const entranceTransitionDurationMs = 700;
+const rowEntranceBaseDelayMs = 180;
+const rowEntranceStepMs = 140;
+const pointEntranceOffsetMs = 240;
+const pointEntranceStepMs = 70;
 
 const medalWeight: Record<MedalType, number> = {
   gold: 3,
@@ -192,6 +197,14 @@ function getEditorialTooltipClasses(placement: "top" | "bottom") {
   return "bottom-[calc(100%+12px)] left-1/2 -translate-x-1/2";
 }
 
+function getRowEntranceDelay(index: number) {
+  return rowEntranceBaseDelayMs + index * rowEntranceStepMs;
+}
+
+function getPointEntranceDelay(rowIndex: number, pointIndex: number) {
+  return getRowEntranceDelay(rowIndex) + pointEntranceOffsetMs + pointIndex * pointEntranceStepMs;
+}
+
 function getPointVisual(medal: MedalType | null): PointVisual {
   if (medal === "gold") {
     return {
@@ -297,7 +310,10 @@ function CategoryFilterBar({ activeCategory, onSelectCategory, className = "" }:
 export default function TenOlympicsOneLifePage() {
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>("all");
   const heroRef = useRef<HTMLElement | null>(null);
+  const athleteRowsRef = useRef<HTMLDivElement | null>(null);
   const [showPinnedFilterBar, setShowPinnedFilterBar] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [showTimelineRows, setShowTimelineRows] = useState(false);
 
   useEffect(() => {
     const updatePinnedFilterBar = () => {
@@ -322,6 +338,59 @@ export default function TenOlympicsOneLifePage() {
       window.removeEventListener("resize", updatePinnedFilterBar);
     };
   }, []);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const syncMotionPreference = () => {
+      setPrefersReducedMotion(mediaQuery.matches);
+    };
+
+    syncMotionPreference();
+
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", syncMotionPreference);
+
+      return () => {
+        mediaQuery.removeEventListener("change", syncMotionPreference);
+      };
+    }
+
+    mediaQuery.addListener(syncMotionPreference);
+
+    return () => {
+      mediaQuery.removeListener(syncMotionPreference);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (prefersReducedMotion) {
+      return;
+    }
+
+    const athleteRows = athleteRowsRef.current;
+
+    if (!athleteRows) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) {
+          return;
+        }
+
+        setShowTimelineRows(true);
+        observer.disconnect();
+      },
+      { threshold: 0.16 },
+    );
+
+    observer.observe(athleteRows);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [prefersReducedMotion]);
 
   return (
     <main
@@ -613,23 +682,35 @@ export default function TenOlympicsOneLifePage() {
                 </div>
               </div>
 
-              <div className="space-y-3">
-                {athletes.map((athlete) => {
+              <div ref={athleteRowsRef} className="space-y-3">
+                {athletes.map((athlete, athleteIndex) => {
                   const isRowActive = activeCategory === "all" || athlete.category === activeCategory;
                   const firstYear = athlete.years[0];
                   const lastYear = athlete.years[athlete.years.length - 1];
                   const editionPoints = getAthleteEditionPoints(athlete);
+                  const rowIsVisible = showTimelineRows || prefersReducedMotion;
+                  const rowOpacityClass = rowIsVisible ? (isRowActive ? "opacity-100" : "opacity-20") : "opacity-0";
+                  const rowDelay = prefersReducedMotion ? 0 : getRowEntranceDelay(athleteIndex);
 
                   return (
                     <div
                       key={athlete.id}
-                      className={`group/row grid items-center gap-4 rounded-[22px] border px-3 py-2 transition-[opacity,border-color,background-color,transform] duration-300 hover:-translate-y-[1px] hover:bg-white/[0.04] lg:grid-cols-[220px_minmax(0,1fr)] ${
+                      className={`group/row relative grid items-center gap-4 overflow-hidden rounded-[22px] border px-3 py-2 transition-[opacity,border-color,background-color,transform,box-shadow,filter] ease-out hover:-translate-y-[1px] lg:grid-cols-[220px_minmax(0,1fr)] ${
                         isRowActive
-                          ? "border-white/8 bg-white/[0.03] opacity-100 hover:border-[#c9a84c]/40"
-                          : "border-white/5 bg-white/[0.015] opacity-20 hover:border-white/15"
-                      }`}
+                          ? "border-white/8 bg-white/[0.03] hover:border-[#c9a84c]/45 hover:bg-white/[0.05] hover:shadow-[0_18px_40px_rgba(201,168,76,0.08)]"
+                          : "border-white/5 bg-white/[0.015] hover:border-white/18 hover:bg-white/[0.03]"
+                      } ${rowOpacityClass} ${rowIsVisible ? "translate-y-0 blur-0" : "translate-y-5 blur-[2px]"}`}
+                      style={{
+                        transitionDelay: `${rowIsVisible ? rowDelay : 0}ms`,
+                        transitionDuration: `${entranceTransitionDurationMs}ms`,
+                      }}
                     >
-                      <div className="flex items-center gap-4 px-2">
+                      <div
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[linear-gradient(90deg,rgba(201,168,76,0.08)_0%,rgba(201,168,76,0.03)_36%,rgba(255,255,255,0)_100%)] opacity-0 transition-opacity duration-300 group-hover/row:opacity-100"
+                      />
+
+                      <div className="relative z-10 flex items-center gap-4 px-2 transition-transform duration-300 group-hover/row:translate-x-1">
                         <div className={`relative h-11 w-11 overflow-hidden rounded-full border transition-colors duration-300 ${
                           isRowActive ? "border-white/18 group-hover/row:border-[#c9a84c]/70" : "border-white/10 group-hover/row:border-white/28"
                         }`}>
@@ -662,7 +743,7 @@ export default function TenOlympicsOneLifePage() {
                         </div>
                       </div>
 
-                      <div className="relative w-full overflow-visible" style={{ height: rowHeight }}>
+                      <div className="relative z-10 w-full overflow-visible" style={{ height: rowHeight }}>
                         <svg
                           width="100%"
                           height={rowHeight}
@@ -690,16 +771,20 @@ export default function TenOlympicsOneLifePage() {
                             x2={getLinePosition(lastYear)}
                             y1={rowHeight / 2}
                             y2={rowHeight / 2}
-                            stroke={isRowActive ? "rgba(58,58,58,0.96)" : "rgba(255,255,255,0.1)"}
                             strokeWidth={1.25}
                             strokeLinecap="round"
+                            className={`transition-[stroke] duration-300 ${
+                              isRowActive
+                                ? "stroke-[#3a3a3a] group-hover/row:stroke-[#c9a84c]/70"
+                                : "stroke-white/10 group-hover/row:stroke-white/25"
+                            }`}
                           />
                           <text
                             x={getLinePosition(firstYear)}
                             y={18}
-                            fill="rgba(245,242,235,0.38)"
                             fontSize={10}
                             letterSpacing="0.16em"
+                            className="fill-[rgba(245,242,235,0.38)] transition-[fill] duration-300 group-hover/row:fill-[rgba(245,242,235,0.62)]"
                             style={{ fontFamily: "var(--font-onelife-data)", textTransform: "uppercase" }}
                           >
                             {firstYear}
@@ -708,29 +793,36 @@ export default function TenOlympicsOneLifePage() {
                             x={getLinePosition(lastYear)}
                             y={18}
                             textAnchor="end"
-                            fill="rgba(201,168,76,0.85)"
                             fontSize={10}
                             letterSpacing="0.16em"
+                            className="fill-[rgba(201,168,76,0.85)] transition-[fill] duration-300 group-hover/row:fill-[rgba(237,213,143,1)]"
                             style={{ fontFamily: "var(--font-onelife-data)", textTransform: "uppercase" }}
                           >
                             {lastYear}
                           </text>
                         </svg>
 
-                        {editionPoints.map((point) => {
+                        {editionPoints.map((point, pointIndex) => {
                           const pointVisual = getPointVisual(point.dominantMedal);
                           const pointEditorialNotes = athlete.editorialNotes.filter((note) => note.year === point.year);
+                          const pointDelay = prefersReducedMotion ? 0 : getPointEntranceDelay(athleteIndex, pointIndex);
 
                           return (
                             <button
                               key={`${athlete.id}-${point.year}`}
                               type="button"
                               aria-label={getPointAriaLabel(athlete, point)}
-                              className="group absolute top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center bg-transparent focus-visible:outline-none"
-                              style={{ left: getLinePercent(point.year) }}
+                              className={`group absolute top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center bg-transparent transition-[transform,opacity] ease-out focus-visible:outline-none ${
+                                rowIsVisible ? "opacity-100 scale-100" : "opacity-0 scale-[0.7]"
+                              }`}
+                              style={{
+                                left: getLinePercent(point.year),
+                                transitionDelay: `${rowIsVisible ? pointDelay : 0}ms`,
+                                transitionDuration: `${entranceTransitionDurationMs}ms`,
+                              }}
                             >
                               <span
-                                className={`flex items-center justify-center rounded-full border transition duration-200 ${pointVisual.outer}`}
+                                className={`flex items-center justify-center rounded-full border transition duration-200 group-hover/row:scale-110 ${pointVisual.outer}`}
                                 style={{ width: pointVisual.diameter, height: pointVisual.diameter }}
                               >
                                 {pointVisual.showInner ? (
