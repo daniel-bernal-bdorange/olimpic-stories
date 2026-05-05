@@ -1008,7 +1008,7 @@ export default function TenOlympicsOneLifePage() {
             }}
             className="rounded-full border border-white/15 px-4 py-2 text-[11px] uppercase tracking-[0.24em] text-white/72 transition-colors hover:border-[#c9a84c] hover:text-white"
           >
-            Volver a home
+            Back home
           </TransitionLink>
 
           <div className="hidden text-right sm:block">
@@ -1019,7 +1019,7 @@ export default function TenOlympicsOneLifePage() {
               04 / One Life, Ten Games
             </p>
             <p className="text-xs uppercase tracking-[0.22em] text-white/78">
-              Longevidad competitiva y tiempo olimpico
+              Competitive longevity across Olympic time
             </p>
           </div>
         </div>
@@ -1160,7 +1160,7 @@ export default function TenOlympicsOneLifePage() {
                 className="text-[10px] uppercase tracking-[0.26em] text-white/46"
                 style={{ fontFamily: "var(--font-onelife-data)" }}
               >
-                Swipe horizontally to follow the Olympic years.
+                Tap any row to open the full career detail.
               </p>
               <span
                 className="rounded-full border border-[#c9a84c]/18 bg-[#c9a84c]/8 px-3 py-1 text-[10px] uppercase tracking-[0.22em] text-[#d8bb68]"
@@ -1170,9 +1170,9 @@ export default function TenOlympicsOneLifePage() {
               </span>
             </div>
 
-            <div className="-mx-1 overflow-x-auto px-1 pb-2">
-              <div className="w-fit min-w-full space-y-3 lg:w-full">
-                <div className="mb-4 grid items-end gap-4 [grid-template-columns:180px_1320px] lg:[grid-template-columns:220px_minmax(0,1fr)]">
+            <div className="min-w-0 pb-2">
+              <div className="min-w-0 space-y-3">
+                <div className="mb-4 grid items-end gap-4 [grid-template-columns:180px_minmax(0,1fr)] lg:[grid-template-columns:220px_minmax(0,1fr)]">
                 <div className="flex h-full flex-col justify-end px-4 pb-3">
                   <p
                     className="text-[11px] uppercase tracking-[0.28em] text-white/72"
@@ -1187,7 +1187,7 @@ export default function TenOlympicsOneLifePage() {
                     Portrait, discipline, span, and an Olympic rhythm shared by all lives below.
                   </p>
                 </div>
-                <div className="relative w-[1320px] lg:w-full">
+                <div className="relative min-w-0 w-full">
                   <svg
                     width="100%"
                     height={eventBandHeight + axisHeight}
@@ -1332,7 +1332,7 @@ export default function TenOlympicsOneLifePage() {
                           event.preventDefault();
                           requestAthleteSelection(selectedAthleteId === athlete.id ? null : athlete.id);
                         }}
-                        className={`group/row relative grid cursor-pointer items-center gap-4 rounded-[22px] border px-3 py-2 transition-[border-color,background-color,transform,box-shadow,filter] ease-out hover:-translate-y-[1px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] [grid-template-columns:180px_1320px] lg:[grid-template-columns:220px_minmax(0,1fr)] ${
+                        className={`group/row relative grid cursor-pointer items-center gap-4 rounded-[22px] border px-3 py-2 transition-[border-color,background-color,transform,box-shadow,filter] ease-out hover:-translate-y-[1px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] [grid-template-columns:180px_minmax(0,1fr)] lg:[grid-template-columns:220px_minmax(0,1fr)] ${
                           isRowSelected
                             ? "border-[#c9a84c]/55 bg-[#c9a84c]/10 shadow-[0_22px_44px_rgba(201,168,76,0.12)]"
                             : isRowActive
@@ -1391,7 +1391,7 @@ export default function TenOlympicsOneLifePage() {
                           </div>
                         </div>
 
-                        <div className="relative z-10 w-[1320px] overflow-visible lg:w-full" style={{ height: rowHeight }}>
+                        <div className="relative z-10 min-w-0 w-full overflow-visible" style={{ height: rowHeight }}>
                           <svg
                             width="100%"
                             height={rowHeight}
@@ -1673,7 +1673,7 @@ export default function TenOlympicsOneLifePage() {
                 }}
                 className="inline-flex items-center justify-center rounded-full border border-[#c9a84c]/42 bg-[#c9a84c]/12 px-5 py-3 text-[11px] uppercase tracking-[0.28em] text-white transition-[border-color,background-color,transform] duration-300 hover:-translate-y-0.5 hover:border-[#d8bb68] hover:bg-[#c9a84c]/20"
               >
-                <span style={{ fontFamily: "var(--font-onelife-data)" }}>Volver a home</span>
+                <span style={{ fontFamily: "var(--font-onelife-data)" }}>Back home</span>
               </TransitionLink>
 
               {firstStory ? (
@@ -1686,7 +1686,7 @@ export default function TenOlympicsOneLifePage() {
                   }}
                   className="inline-flex items-center justify-center rounded-full border border-white/14 px-5 py-3 text-[11px] uppercase tracking-[0.28em] text-white/76 transition-[border-color,color,transform] duration-300 hover:-translate-y-0.5 hover:border-white/32 hover:text-white"
                 >
-                  <span style={{ fontFamily: "var(--font-onelife-data)" }}>Volver a la primera historia</span>
+                  <span style={{ fontFamily: "var(--font-onelife-data)" }}>Back to the first story</span>
                 </TransitionLink>
               ) : null}
             </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { RouteTransitionReady, useRouteTransition } from '@/components/route-transition';
@@ -25,8 +25,8 @@ const storiesData: StoryItem[] = [
     id: 'cold-war-in-gold',
     number: '01',
     title: 'COLD WAR IN GOLD',
-    category: 'DATA STORY · 1952-2020',
-    description: 'Dos superpotencias. Una sola tabla de clasificacion. Como la Guerra Fria se libro en los marcadores olimpicos.',
+    category: 'DATA STORY · 1952–2020',
+    description: 'Two superpowers. One scoreboard. How the Cold War was fought on Olympic scoreboards.',
     slug: 'cold-war-in-gold',
     image: '/images/cold_war_in_gold.jpg',
     accentColor: 'var(--ring-red)',
@@ -40,7 +40,7 @@ const storiesData: StoryItem[] = [
     number: '02',
     title: 'BODY ATLAS',
     category: 'DATA STORY · 15 SPORTS',
-    description: 'El deporte que practicas moldea el cuerpo que tienes. 28 centimetros separan al gimnasta del jugador de baloncesto.',
+    description: 'The sport you play shapes the body you have. 28 centimetres separate the gymnast from the basketball player.',
     slug: 'atlas-cuerpo-olimpico',
     image: '/images/Body_atlas.png',
     accentColor: 'var(--ring-blue)',
@@ -53,61 +53,93 @@ const storiesData: StoryItem[] = [
     id: 'lost-sports',
     number: '03',
     title: 'LOST SPORTS',
-    category: 'DATA STORY · 1900-1936',
-    description: 'Cricket, soga, polo, pelota vasca. Nueve deportes que los Juegos Olimpicos olvidaron para siempre.',
+    category: 'DATA STORY · 1900–2012',
+    description: 'Cricket, tug of war, polo, Basque pelota. Thirty-two sports the Olympic Games forgot forever.',
     slug: 'cementerio-olimpico',
     image: '/images/lost_sporgs.png',
     accentColor: 'var(--ring-green)',
     metadata: {
       label: 'LOST SPORTS',
-      stats: ['9 FORGOTTEN SPORTS', '1900 - 1936', 'GBR DOMINATED ALL'],
+      stats: ['32 FORGOTTEN SPORTS', '1900 — 2012', 'PARIS WAS THE WORST'],
     },
   },
   {
     id: 'one-life',
     number: '04',
     title: 'ONE LIFE, TEN GAMES',
-    category: 'DATA STORY · 1964-2012',
-    description: 'Un jinete canadiense compitio en diez Olimpiadas durante cuarenta anos. Estas son las vidas mas largas del deporte.',
+    category: 'DATA STORY · 1948–2022',
+    description: 'A Canadian equestrian competed in ten Olympics over forty years. These are the longest careers in sport.',
     slug: '10-olimpiadas-una-vida',
     image: '/images/one_life_ten_games.png',
     accentColor: 'var(--ring-yellow)',
     metadata: {
       label: 'ONE LIFE, TEN GAMES',
-      stats: ['10 OLYMPIC GAMES', '40 YEARS COMPETING', '6 EXTRAORDINARY LIVES'],
+      stats: ['10 OLYMPIC GAMES', '40 YEARS COMPETING', '10 EXTRAORDINARY LIVES'],
     },
   },
 ];
 
 const OlympicRings = () => (
-  <svg
-    viewBox="0 0 110 60"
-    className="h-10 w-auto opacity-100 hover:opacity-100 transition-opacity duration-400"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <circle cx="15" cy="30" r="10" stroke="#0085c7" strokeWidth="2.5" />
-    <circle cx="55" cy="30" r="10" stroke="#000000" strokeWidth="2.5" />
-    <circle cx="95" cy="30" r="10" stroke="#d4271f" strokeWidth="2.5" />
-    <circle cx="35" cy="50" r="10" stroke="#f4c300" strokeWidth="2.5" />
-    <circle cx="75" cy="50" r="10" stroke="#009f3d" strokeWidth="2.5" />
-  </svg>
+  <Image
+    src="/images/Olympic_rings_without_rims.png"
+    alt="Olympic rings"
+    width={160}
+    height={54}
+    className="h-10 w-auto opacity-100 transition-opacity duration-400"
+    priority
+  />
 );
+
+const chromeTextureStyle = {
+  backgroundImage:
+    "linear-gradient(180deg, rgba(7, 7, 8, 0.92) 0%, rgba(12, 12, 14, 0.78) 100%), url('/images/carbonfiber.png')",
+  backgroundSize: 'cover',
+  backgroundRepeat: 'no-repeat',
+  backgroundColor: '#09090b',
+  backgroundBlendMode: 'multiply',
+} as const;
+
+const headerChromeStyle = {
+  background: 'transparent',
+  backdropFilter: 'none',
+} as const;
+
+const panelSurfaceStyle = {
+  background:
+    'linear-gradient(180deg, rgba(20, 20, 23, 0.56) 0%, rgba(12, 12, 14, 0.38) 100%)',
+  borderColor: 'rgba(201, 168, 76, 0.12)',
+  backdropFilter: 'blur(8px)',
+} as const;
+
+const mainStageStyle = {
+  background:
+    "radial-gradient(circle at top left, rgba(201, 168, 76, 0.12), transparent 30%), radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.08), transparent 28%), linear-gradient(180deg, rgba(8, 8, 10, 0.62) 0%, rgba(15, 15, 17, 0.56) 100%), url('/images/fondo-home.png')",
+  backgroundSize: 'cover, cover, cover, 420px auto',
+  backgroundPosition: 'left top, right top, center, center',
+  backgroundRepeat: 'no-repeat, no-repeat, no-repeat, repeat',
+} as const;
+
+const centerPanelStyle = {
+  background:
+    'radial-gradient(circle at top left, rgba(201, 168, 76, 0.16), transparent 30%), radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.12), transparent 28%), linear-gradient(180deg, rgba(8, 8, 10, 0.98) 0%, rgba(15, 15, 17, 0.96) 100%)',
+} as const;
 
 const Header = ({ isVisible }: { isVisible: boolean }) => (
   <header
-    className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gold/20 py-4 sm:py-6 lg:py-8 transition-opacity duration-500"
+    className="absolute inset-x-0 top-0 z-20 transition-opacity duration-500"
     style={{
-      backgroundImage: "url('/images/carbonfiber.png')",
-      backgroundSize: 'cover',
-      backgroundRepeat: 'no-repeat',
-      backgroundColor: 'rgba(244, 244, 245, 0.7)',
-      backgroundBlendMode: 'multiply',
+      ...headerChromeStyle,
       opacity: isVisible ? 1 : 0,
       pointerEvents: isVisible ? 'auto' : 'none',
     }}
   >
-    <div className="px-4 sm:px-8 lg:px-12 flex items-center justify-between gap-4">
+    <div
+      className="flex items-center justify-between gap-4 border-b px-4 py-4 sm:px-8 sm:py-6 lg:px-12 lg:py-8"
+      style={{
+        borderColor: 'rgba(201, 168, 76, 0.18)',
+        boxShadow: '0 18px 40px rgba(0, 0, 0, 0.28)',
+      }}
+    >
       <div className="flex items-center gap-3 sm:gap-6 group cursor-pointer">
         <div className="flex flex-col">
           <div className="font-bebas text-zinc-100 text-3xl sm:text-4xl lg:text-5xl tracking-wider leading-none">ODS</div>
@@ -136,7 +168,10 @@ const SectionsList = ({
   onHover: (idx: number) => void;
   onSelect: (slug: string) => void;
 }) => (
-  <aside className="w-full lg:w-1/4 flex lg:flex-col lg:justify-center pt-6 lg:pt-20 px-4 sm:px-8 gap-4 lg:space-y-12 lg:gap-0 bg-white overflow-x-auto">
+  <aside
+    className="w-full lg:w-1/4 flex lg:flex-col lg:justify-center pt-6 lg:pt-20 px-4 sm:px-8 gap-4 lg:space-y-12 lg:gap-0 overflow-x-auto border-b lg:border-b-0 lg:border-r"
+    style={panelSurfaceStyle}
+  >
     {storiesData.map((story, idx) => (
       <div
         key={story.id}
@@ -154,7 +189,7 @@ const SectionsList = ({
 
         <div
           className={`font-bebas tracking-wider mb-3 transition-colors duration-300 ${
-            activeIndex === idx ? 'text-foreground' : 'text-gray-400'
+            activeIndex === idx ? 'text-zinc-100' : 'text-zinc-500'
           }`}
           style={{
             fontSize: 'clamp(1.6rem, 3vw, 3.2rem)',
@@ -186,7 +221,10 @@ const CarouselCenter = ({
   onSelect: (slug: string) => void;
 }) => {
   return (
-    <section className="w-full lg:w-1/2 flex flex-col justify-center items-center px-4 sm:px-8 lg:px-12 bg-white overflow-hidden">
+    <section
+      className="w-full lg:w-1/2 flex flex-col justify-center items-center px-4 sm:px-8 lg:px-12 overflow-hidden border-b lg:border-b-0 lg:border-r"
+      style={centerPanelStyle}
+    >
       <div className="relative w-full max-w-sm sm:max-w-md h-72 sm:h-80 lg:h-96">
         {storiesData.map((story, idx) => {
           const position = idx - activeIndex;
@@ -266,7 +304,10 @@ const DescriptionPanel = ({
   const story = storiesData[activeIndex];
 
   return (
-    <aside className="w-full lg:w-1/4 flex flex-col justify-center px-4 sm:px-8 py-4 lg:py-0 space-y-6 lg:space-y-8 bg-white">
+    <aside
+      className="w-full lg:w-1/4 flex flex-col justify-center px-4 sm:px-8 py-4 lg:py-0 space-y-6 lg:space-y-8 border-b lg:border-b-0"
+      style={panelSurfaceStyle}
+    >
       <div>
         <div className="font-dm-mono text-xs tracking-widest text-gold-accent mb-4">
           {story.metadata.label}
@@ -280,10 +321,10 @@ const DescriptionPanel = ({
             const label = parts.slice(1).join(' ') || stat;
             return (
               <div key={idx}>
-                <div className="font-bebas" style={{ fontSize: 'clamp(2rem, 3.5vw, 3.8rem)', color: '#18181b', lineHeight: '1' }}>
+                <div className="font-bebas" style={{ fontSize: 'clamp(2rem, 3.5vw, 3.8rem)', color: '#f5f2eb', lineHeight: '1' }}>
                   {number}
                 </div>
-                <div className="font-dm-mono text-xs text-gray-500 tracking-widest mt-1">
+                <div className="font-dm-mono text-xs text-zinc-500 tracking-widest mt-1">
                   {label}
                 </div>
               </div>
@@ -293,19 +334,19 @@ const DescriptionPanel = ({
       </div>
 
       <div>
-        <p className="text-sm text-foreground leading-relaxed font-light mb-6">
+        <p className="text-sm text-zinc-300 leading-relaxed font-light mb-6">
           {story.description}
         </p>
 
         <button
           type="button"
           onClick={() => onExplore(story.slug)}
-          className="inline-flex items-center gap-2 font-dm-mono text-xs tracking-widest text-foreground hover:text-gold-accent transition-colors duration-300 group cursor-pointer"
+          className="inline-flex items-center gap-2 font-dm-mono text-xs tracking-widest text-zinc-100 hover:text-gold-accent transition-colors duration-300 group cursor-pointer"
         >
           <span className="transition-transform duration-300 group-hover:translate-x-1" style={{ color: 'var(--gold-accent)' }}>
             {'->'}
           </span>
-          ENTER STORY
+          EXPLORE STORY
         </button>
       </div>
     </aside>
@@ -313,11 +354,11 @@ const DescriptionPanel = ({
 };
 
 const Footer = () => (
-  <footer className="bg-white border-t border-gold/20" style={{ backgroundImage: "url('/images/carbonfiber.png')", backgroundSize: 'cover', backgroundRepeat: 'no-repeat', backgroundColor: 'rgba(244, 244, 245, 0.7)', backgroundBlendMode: 'multiply' }}>
-    <div className="h-10 px-4 sm:px-8 flex items-center justify-between text-[10px] sm:text-xs text-zinc-200 font-dm-mono tracking-widest">
-      <span>© 2026</span>
+  <footer className="border-t" style={{ ...chromeTextureStyle, borderColor: 'rgba(201, 168, 76, 0.18)' }}>
+    <div className="h-10 px-4 sm:px-8 flex items-center justify-between text-[10px] sm:text-xs text-zinc-300 font-dm-mono tracking-widest">
+      <span>1896 — 2024</span>
       <span className="hidden sm:inline">4 DATA STORIES</span>
-      <span>SCROLL TO VIEW ALL</span>
+      <span>↓ SCROLL TO NAVIGATE</span>
     </div>
   </footer>
 );
@@ -327,6 +368,7 @@ export default function Home() {
   const { startTransition: beginRouteTransition } = useRouteTransition();
   const [activeStoryIndex, setActiveStoryIndex] = useState(0);
   const [showHeader, setShowHeader] = useState(false);
+  const [isViewReady, setIsViewReady] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const startTransition = useCallback(
@@ -346,15 +388,34 @@ export default function Home() {
     [beginRouteTransition],
   );
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
+    const shouldOpenMenu = searchParams.get('menu') === '1';
 
-    if (searchParams.get('menu') === '1') {
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+
+    if (shouldOpenMenu) {
       // Saltar la portada hero y mostrar directamente el menú de historias
       window.scrollTo({ top: window.innerHeight, behavior: 'instant' });
+
+      const nextUrl = new URL(window.location.href);
+      nextUrl.searchParams.delete('menu');
+      const nextLocation = `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`;
+      window.history.replaceState(window.history.state, '', nextLocation);
     } else {
-      window.scrollTo(0, 0);
+      window.scrollTo({ top: 0, behavior: 'instant' });
     }
+
+    setShowHeader(shouldOpenMenu);
+    setIsViewReady(true);
+
+    return () => {
+      if ('scrollRestoration' in window.history) {
+        window.history.scrollRestoration = 'auto';
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -366,9 +427,11 @@ export default function Home() {
   useEffect(() => {
     const handleScroll = () => {
       const scrollTop = window.scrollY || document.documentElement.scrollTop;
-      setShowHeader(scrollTop > window.innerHeight * 0.5);
+      const menuStart = window.innerHeight;
+      setShowHeader(scrollTop >= menuStart);
     };
 
+    handleScroll();
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -398,29 +461,60 @@ export default function Home() {
   }, []);
 
   return (
-    <div ref={containerRef} className="relative w-full overflow-x-hidden">
+    <div
+      ref={containerRef}
+      className="relative w-full overflow-x-hidden text-zinc-100"
+      style={{
+        background:
+          'radial-gradient(circle at top, rgba(201, 168, 76, 0.12), transparent 24%), linear-gradient(180deg, #050506 0%, #0c0c0f 100%)',
+        visibility: isViewReady ? 'visible' : 'hidden',
+      }}
+    >
       <RouteTransitionReady />
-      <section className="relative w-full h-screen flex flex-col items-center justify-center bg-white bg-cover bg-center" style={{ backgroundImage: "url('/images/hero_bg.png')" }}>
-        <div className="absolute inset-0 bg-white/65" />
+      <section
+        className="relative w-full h-screen flex flex-col items-center justify-center bg-cover bg-center"
+        style={{ backgroundImage: "url('/images/hero_bg.png')" }}
+      >
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'linear-gradient(180deg, rgba(6, 6, 7, 0.58) 0%, rgba(6, 6, 7, 0.36) 35%, rgba(6, 6, 7, 0.72) 100%), radial-gradient(circle at 50% 30%, rgba(201, 168, 76, 0.18), transparent 30%)',
+          }}
+        />
+        <div className="absolute inset-x-4 top-6 z-10 sm:inset-x-8 lg:inset-x-12">
+          <div className="inline-flex items-center gap-3 rounded-full border border-amber-200/20 bg-black/25 px-4 py-2 font-dm-mono text-[10px] tracking-[0.34em] text-amber-100/80 uppercase backdrop-blur-md sm:text-xs">
+            Home Arena
+          </div>
+        </div>
 
-        <div className="relative z-10 text-center">
-          <h1 className="font-bebas text-foreground tracking-wider" style={{ fontSize: 'clamp(4rem, 16vw, 16rem)', lineHeight: '0.9' }}>
+        <div className="relative z-10 text-center px-4">
+          <h1 className="font-bebas text-zinc-100 tracking-[0.08em]" style={{ fontSize: 'clamp(4rem, 16vw, 16rem)', lineHeight: '0.9' }}>
             OLYMPIC
           </h1>
-          <h2 className="font-bebas text-foreground tracking-wider" style={{ fontSize: 'clamp(4rem, 16vw, 16rem)', lineHeight: '0.9' }}>
-            DATA
+          <h2 className="font-bebas tracking-[0.08em] text-amber-200" style={{ fontSize: 'clamp(4rem, 16vw, 16rem)', lineHeight: '0.9' }}>
+            DATA STORIES
           </h2>
-          <h3 className="font-bebas text-foreground tracking-wider" style={{ fontSize: 'clamp(4rem, 16vw, 16rem)', lineHeight: '0.9' }}>
-            STORIES
-          </h3>
-          <p className="font-dm-mono text-muted tracking-widest text-xs mt-8">SCROLL TO EXPLORE</p>
+          <p className="mx-auto mt-6 max-w-2xl text-sm leading-relaxed text-zinc-300 sm:text-base">
+            Four stories. 128 years of data.
+          </p>
+          <p className="mt-3 font-dm-mono text-[11px] tracking-[0.34em] text-zinc-400 uppercase sm:text-xs">
+            1896 — 2024
+          </p>
+          <p className="font-dm-mono text-amber-200/80 tracking-[0.34em] text-xs mt-8">SCROLL TO EXPLORE</p>
         </div>
       </section>
 
       <div className="relative w-full">
         <Header isVisible={showHeader} />
 
-        <main className="flex flex-col lg:flex-row pt-20 sm:pt-24 lg:pt-32 pb-10 min-h-screen lg:h-screen relative z-10 bg-white">
+        <main
+          className="flex flex-col lg:flex-row pt-20 sm:pt-24 lg:pt-32 min-h-[calc(100vh-2.5rem)] lg:h-[calc(100vh-2.5rem)] relative z-10 border-y"
+          style={{
+            ...mainStageStyle,
+            borderColor: 'rgba(201, 168, 76, 0.16)',
+          }}
+        >
           <SectionsList
             activeIndex={activeStoryIndex}
             onHover={setActiveStoryIndex}

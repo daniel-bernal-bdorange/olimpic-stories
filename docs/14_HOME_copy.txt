@@ -1,0 +1,121 @@
+HOME — ALL COPY TEXTS
+Olympic Data Stories · Página de inicio
+========================================
+
+
+HEADER
+======
+
+Logo:        ODS
+Tagline:     OLYMPIC DATA STORIES
+
+
+HERO (estado inicial, antes de interactuar)
+============================================
+
+Título línea 1:   OLYMPIC
+Título línea 2:   DATA STORIES
+Subtítulo:        Four stories. 128 years of data. Hover to explore.
+Año rango:        1896 — 2024
+
+
+LISTA DE CAPÍTULOS — ESTADOS
+==============================
+
+
+── ÍTEM 01 ──────────────────────────────────────
+
+Número:           01
+Título:           COLD WAR IN GOLD
+Categoría:        DATA STORY · 1952–2020
+
+Descripción:
+  Two superpowers. One scoreboard.
+  How the Cold War was fought on Olympic scoreboards.
+
+CTA:              → EXPLORE STORY
+
+Overlay de datos (esquina inferior derecha de la imagen):
+  Label:          COLD WAR IN GOLD
+  Stat 1:         68 YEARS OF DATA
+  Stat 2:         16 OLYMPIC GAMES
+  Stat 3:         2 SUPERPOWERS
+
+
+── ÍTEM 02 ──────────────────────────────────────
+
+Número:           02
+Título:           BODY ATLAS
+Categoría:        DATA STORY · 15 SPORTS
+
+Descripción:
+  The sport you play shapes the body you have.
+  28 centimetres separate the gymnast from the basketball player.
+
+CTA:              → EXPLORE STORY
+
+Overlay de datos:
+  Label:          BODY ATLAS
+  Stat 1:         15 SPORTS ANALYZED
+  Stat 2:         100K+ ATHLETES
+  Stat 3:         28CM DIFFERENCE
+
+
+── ÍTEM 03 ──────────────────────────────────────
+
+Número:           03
+Título:           LOST SPORTS
+Categoría:        DATA STORY · 1900–2012
+
+Descripción:
+  Cricket, tug of war, polo, Basque pelota. Thirty-two sports
+  the Olympic Games forgot forever.
+
+CTA:              → EXPLORE STORY
+
+Overlay de datos:
+  Label:          LOST SPORTS
+  Stat 1:         32 FORGOTTEN SPORTS
+  Stat 2:         1900 — 2012
+  Stat 3:         PARIS WAS THE WORST
+
+
+── ÍTEM 04 ──────────────────────────────────────
+
+Número:           04
+Título:           ONE LIFE, TEN GAMES
+Categoría:        DATA STORY · 1948–2022
+
+Descripción:
+  A Canadian equestrian competed in ten Olympics over forty years.
+  These are the longest careers in sport.
+
+CTA:              → EXPLORE STORY
+
+Overlay de datos:
+  Label:          ONE LIFE, TEN GAMES
+  Stat 1:         10 OLYMPIC GAMES
+  Stat 2:         40 YEARS COMPETING
+  Stat 3:         10 EXTRAORDINARY LIVES
+
+
+FOOTER (fijo, parte inferior)
+==============================
+
+Izquierda:        1896 — 2024
+Centro:           4 DATA STORIES
+Derecha:          ↓ SCROLL TO NAVIGATE
+
+
+========================================
+NOTAS DE IMPLEMENTACIÓN
+========================================
+
+— El overlay de datos usa CSS var para el color de acento:
+  01 Cold War   → --ring-red    #DF0024
+  02 Body Atlas → --ring-blue   #0085C7
+  03 Lost Sports→ --ring-green  #009F6B
+  04 One Life   → --ring-yellow #F4C300
+
+========================================
+END OF COPY

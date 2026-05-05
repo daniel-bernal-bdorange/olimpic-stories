@@ -205,7 +205,7 @@ export default function AtlasCuerpoOlimpicoPage() {
             }}
             className="font-dm-mono rounded-full border border-white/15 px-4 py-2 text-[11px] uppercase tracking-[0.24em] text-white/72 transition-colors hover:border-[#c9a84c] hover:text-white"
           >
-            Volver a home
+            Back home
           </TransitionLink>
 
           <div className="text-left sm:text-right">
@@ -216,7 +216,7 @@ export default function AtlasCuerpoOlimpicoPage() {
               02 / Body Atlas
             </p>
             <p className="text-xs uppercase tracking-[0.22em] text-white/55">
-              Controles exploratorios y copy contextual
+              Olympic physiques shaped by sport
             </p>
           </div>
         </div>
@@ -289,10 +289,10 @@ export default function AtlasCuerpoOlimpicoPage() {
                 className="text-[11px] uppercase tracking-[0.3em] text-white/54"
                 style={{ fontFamily: "var(--font-atlas-data)" }}
               >
-                Story frame
+                Story premise
               </p>
               <p className="mt-4 max-w-2xl text-balance text-lg italic text-white/80 sm:text-xl" style={{ fontFamily: "var(--font-atlas-body)" }}>
-                Body Atlas arranca como una pieza editorial exploratoria: hero inmersivo, controles persistentes y un escenario listo para conectar D3 sin tocar los estilos globales.
+                Body Atlas reads the Olympic field as a map of physiques, from compact gymnasts to towering basketball players, showing how each sport leaves a visible signature on the body.
               </p>
             </div>
 
@@ -440,13 +440,7 @@ export default function AtlasCuerpoOlimpicoPage() {
         }}
       >
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-12 px-5 py-10 sm:px-8 lg:py-14">
-          <div className="max-w-3xl space-y-3">
-            <p
-              className="text-[11px] uppercase tracking-[0.28em] text-[#c9a84c]"
-              style={{ fontFamily: "var(--font-atlas-data)" }}
-            >
-              BA-10 slice
-            </p>
+          <div className="max-w-3xl">
             <p className="text-xl italic text-white/72 sm:text-2xl" style={{ fontFamily: "var(--font-atlas-body)" }}>
               Lock any {selectedViewLabel.toLowerCase()} sport to compare it against the Olympic average and reveal the editorial layer behind the active metric lens.
             </p>
@@ -482,10 +476,10 @@ export default function AtlasCuerpoOlimpicoPage() {
                   className="text-[11px] uppercase tracking-[0.28em] text-white/48"
                   style={{ fontFamily: "var(--font-atlas-data)" }}
                 >
-                  Next slice
+                  Next story
                 </p>
                 <p className="text-2xl text-white sm:text-3xl" style={{ fontFamily: "var(--font-atlas-display)" }}>
-                  Tooltip previews and the sliding detail panel can now build on top of the active card system without changing the grid foundation.
+                  From body measurements to forgotten events, the next chapter follows the sports the Olympic program left behind.
                 </p>
               </div>
 
@@ -494,11 +488,11 @@ export default function AtlasCuerpoOlimpicoPage() {
                 transition={{
                   sourceLabel: "HEAT 02",
                   destinationLabel: "HEAT 03",
-                  title: "El Cementerio Olimpico",
+                  title: "Lost Sports",
                 }}
                 className="font-dm-mono w-fit rounded-full border border-[#c9a84c]/40 px-5 py-3 text-[11px] uppercase tracking-[0.25em] text-[#f5f2eb] transition-colors hover:border-[#c9a84c] hover:bg-[#c9a84c]/10"
               >
-                Siguiente historia
+                Explore next story
               </TransitionLink>
             </div>
           </div>
