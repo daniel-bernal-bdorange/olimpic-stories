@@ -35,6 +35,27 @@ export type LostSportEra = {
   featuredCount: number;
 };
 
+export type LostSportTimelineRawEntry = {
+  sport: string;
+  first: number;
+  last: number;
+  editions: number;
+  hasCard: boolean;
+};
+
+export type LostSportTimelineEntry = {
+  id: string;
+  sport: string;
+  first: number;
+  last: number;
+  editions: number;
+  hasCard: boolean;
+  cardId: LostSport["id"] | null;
+  years: string;
+  timelineBlurb: string;
+  order: number;
+};
+
 export const lostSports = [
   {
     id: "cricket",
@@ -263,6 +284,123 @@ export const lostSports = [
   },
 ] as const satisfies readonly LostSport[];
 
+const lostSportsTimelineCardMap = {
+  Croquet: "croquet",
+  Cricket: "cricket",
+  Firefighting: "firefighting",
+  "Basque Pelota": "basque-pelota",
+  Motorboating: "motorboating",
+  "Tug-Of-War": "tug-of-war",
+  Rugby: "rugby",
+  Polo: "polo",
+  Racquets: "racquets",
+  "Jeu De Paume": "jeu-de-paume",
+  "Art Competitions": "art-competitions",
+  Softball: "softball",
+} as const satisfies Record<string, LostSport["id"]>;
+
+const lostSportsById = new Map<LostSport["id"], LostSport>(lostSports.map((sport) => [sport.id, sport]));
+
+function formatLostSportTimelineYears(first: number, last: number) {
+  return first === last ? `${last}` : `${first}-${last}`;
+}
+
+function formatLostSportTimelineBlurb(first: number, last: number, editions: number) {
+  if (editions === 1) {
+    return first === last ? `${last} only` : `${formatLostSportTimelineYears(first, last)} · single edition`;
+  }
+
+  return `${formatLostSportTimelineYears(first, last)} · ${editions} editions`;
+}
+
+export function compareLostSportsChronologically(left: Pick<LostSport, "sport" | "first" | "last">, right: Pick<LostSport, "sport" | "first" | "last">) {
+  if (left.last !== right.last) {
+    return left.last - right.last;
+  }
+
+  if (left.first !== right.first) {
+    return left.first - right.first;
+  }
+
+  return left.sport.localeCompare(right.sport);
+}
+
+const lostSportsTimelineRawEntries = [
+  { sport: "Ballooning", first: 1900, last: 1900, editions: 1, hasCard: false },
+  { sport: "Automobile Racing", first: 1900, last: 1900, editions: 1, hasCard: false },
+  { sport: "Croquet", first: 1900, last: 1900, editions: 1, hasCard: true },
+  { sport: "Boules", first: 1900, last: 1900, editions: 1, hasCard: false },
+  { sport: "Cricket", first: 1900, last: 1900, editions: 1, hasCard: true },
+  { sport: "Fishing", first: 1900, last: 1900, editions: 1, hasCard: false },
+  { sport: "Firefighting", first: 1900, last: 1900, editions: 1, hasCard: true },
+  { sport: "Equestrian Driving", first: 1900, last: 1900, editions: 1, hasCard: false },
+  { sport: "Longue Paume", first: 1900, last: 1900, editions: 1, hasCard: false },
+  { sport: "Military Exercise", first: 1900, last: 1900, editions: 1, hasCard: false },
+  { sport: "Lifesaving", first: 1900, last: 1900, editions: 1, hasCard: false },
+  { sport: "Motorcycle Sports", first: 1900, last: 1900, editions: 1, hasCard: false },
+  { sport: "Basque Pelota", first: 1900, last: 1992, editions: 4, hasCard: true },
+  { sport: "Motorboating", first: 1900, last: 1908, editions: 2, hasCard: true },
+  { sport: "Tug-Of-War", first: 1900, last: 1920, editions: 5, hasCard: true },
+  { sport: "Rugby", first: 1900, last: 1924, editions: 4, hasCard: true },
+  { sport: "Polo", first: 1900, last: 1936, editions: 5, hasCard: true },
+  { sport: "Roque", first: 1904, last: 1904, editions: 1, hasCard: false },
+  { sport: "American Football", first: 1904, last: 1932, editions: 2, hasCard: false },
+  { sport: "Lacrosse", first: 1904, last: 1948, editions: 5, hasCard: false },
+  { sport: "Racquets", first: 1908, last: 1908, editions: 1, hasCard: true },
+  { sport: "Bicycle Polo", first: 1908, last: 1908, editions: 1, hasCard: false },
+  { sport: "Jeu De Paume", first: 1908, last: 1908, editions: 1, hasCard: true },
+  { sport: "Glima", first: 1908, last: 1912, editions: 2, hasCard: false },
+  { sport: "Art Competitions", first: 1912, last: 1952, editions: 8, hasCard: true },
+  { sport: "Equestrian Vaulting", first: 1920, last: 1920, editions: 1, hasCard: false },
+  { sport: "Korfball", first: 1920, last: 1928, editions: 2, hasCard: false },
+  { sport: "Savate", first: 1924, last: 1924, editions: 1, hasCard: false },
+  { sport: "Canne De Combat", first: 1924, last: 1924, editions: 1, hasCard: false },
+  { sport: "Military Ski Patrol", first: 1924, last: 1948, editions: 4, hasCard: false },
+  { sport: "Alpinism", first: 1924, last: 1936, editions: 3, hasCard: false },
+  { sport: "Skijoring", first: 1928, last: 1928, editions: 1, hasCard: false },
+  { sport: "Kaatsen", first: 1928, last: 1928, editions: 1, hasCard: false },
+  { sport: "Dogsled Racing", first: 1932, last: 1932, editions: 1, hasCard: false },
+  { sport: "Gliding", first: 1936, last: 1936, editions: 1, hasCard: false },
+  { sport: "Aeronautics", first: 1936, last: 1936, editions: 1, hasCard: false },
+  { sport: "Canoe Marathon", first: 1936, last: 1956, editions: 4, hasCard: false },
+  { sport: "Ice Stock Sport", first: 1936, last: 1964, editions: 2, hasCard: false },
+  { sport: "Winter Pentathlon", first: 1948, last: 1948, editions: 1, hasCard: false },
+  { sport: "Pesapallo", first: 1952, last: 1952, editions: 1, hasCard: false },
+  { sport: "Bandy", first: 1952, last: 1952, editions: 1, hasCard: false },
+  { sport: "Australian Rules Football", first: 1956, last: 1956, editions: 1, hasCard: false },
+  { sport: "Kendo", first: 1964, last: 1964, editions: 1, hasCard: false },
+  { sport: "Waterskiing", first: 1972, last: 1972, editions: 1, hasCard: false },
+  { sport: "Bowling", first: 1988, last: 1988, editions: 1, hasCard: false },
+  { sport: "Roller Hockey", first: 1992, last: 1992, editions: 1, hasCard: false },
+  { sport: "Speed Skiing", first: 1992, last: 1992, editions: 1, hasCard: false },
+  { sport: "Wushu", first: 2008, last: 2008, editions: 1, hasCard: false },
+  { sport: "Softball", first: 1996, last: 2008, editions: 4, hasCard: true },
+] as const satisfies readonly LostSportTimelineRawEntry[];
+
+export const lostSportsTimelineEntries: readonly LostSportTimelineEntry[] = lostSportsTimelineRawEntries.map((entry, order) => {
+  const cardId =
+    entry.sport in lostSportsTimelineCardMap
+      ? lostSportsTimelineCardMap[entry.sport as keyof typeof lostSportsTimelineCardMap]
+      : null;
+  const cardSport = cardId ? lostSportsById.get(cardId) ?? null : null;
+  const first = cardSport?.first ?? entry.first;
+  const last = cardSport?.last ?? entry.last;
+  const editions = cardSport?.editions ?? entry.editions;
+
+  return {
+    id: cardSport?.id ?? entry.sport.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
+    sport: cardSport?.sport ?? entry.sport,
+    first,
+    last,
+    editions,
+    hasCard: cardSport !== null,
+    cardId: cardSport?.id ?? null,
+    years: cardSport?.years ?? formatLostSportTimelineYears(first, last),
+    timelineBlurb: formatLostSportTimelineBlurb(first, last, editions),
+    order,
+  };
+});
+
 const lostSportsFeaturedCounts = lostSports.reduce<Record<LostSportNarrativeEraKey, number>>(
   (counts, sport) => {
     counts[sport.era] += 1;
@@ -330,9 +468,9 @@ export const lostSportsSummary = {
 } as const;
 
 export const lostSportsStoryMeta = {
-  currentSliceId: "LS-03",
-  currentSliceTitle: "Sticky era filters",
-  currentSliceDescription: "Barra accesible con conteos por periodo",
+  currentSliceId: "HEAT 03",
+  currentSliceTitle: "Lost Sports",
+  currentSliceDescription: "Forgotten events removed from the Olympic programme",
 } as const;
 
 export const lostSportsHero = {
@@ -357,3 +495,31 @@ export const lostSportsIntro = [
   "Since the first modern Games in Athens 1896, 32 sports have been added - and quietly removed.",
   "Some lasted a single afternoon. Some lasted decades. All of them were, briefly, Olympic.",
 ] as const;
+
+export const lostSportsEditorialPanels = {
+  filtersDescription: "Move through the cemetery by era and watch how whole clusters of sports disappear from the programme.",
+  focusSummaryLabel: "featured obituaries",
+  archiveSummaryLabel: "sports in the archive",
+  timelineTitle: "How to read the cemetery",
+  timelineSummary:
+    "The left rail now behaves like an obituary ledger: every vanished sport remains in the archive, while the gold marker tracks the featured story closest to you.",
+  ledgerTitle: "At a glance",
+  ledgerSummary:
+    "Twelve obituary cards guide this walk, but the cemetery is larger: a full archive of 32 removed sports stretching from 1900 to 2012.",
+} as const;
+
+export const lostSportsClosing = [
+  "The IOC votes on the programme every four years.",
+  "The criteria: universality, youth appeal, TV audience.",
+  "What it leaves out: history, culture, and the sports",
+  "that didn't have a lobby powerful enough to survive.",
+] as const;
+
+export const lostSportsNextStory = {
+  number: "04 / ONE LIFE, TEN GAMES",
+  title: "10 OLYMPIC GAMES, ONE LIFE",
+  description:
+    "From sports that vanished to athletes who refused to leave: the next story follows Olympic careers stretched across decades.",
+  href: "/10-olimpiadas-una-vida",
+  ctaLabel: "ENTER THE NEXT STORY",
+} as const;
