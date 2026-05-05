@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { scalePoint } from "d3";
 import { Bebas_Neue, Cormorant_Garamond, DM_Mono } from "next/font/google";
 import { RouteTransitionReady, TransitionLink } from "@/components/route-transition";
+import { storySections } from "@/lib/sections";
 import { athletes, categoryLabels, categoryPills, getOlympicHostCity, historicalEvents, introCopy, olympicYears, type Athlete, type HistoricalEvent, type MedalType, winterOlympicYears } from "./data";
 
 const oneLifeDisplayFont = Bebas_Neue({
@@ -762,6 +763,7 @@ function AthleteDetailPanel({ athlete, isActive, onClose, onExited, reduceMotion
 }
 
 export default function TenOlympicsOneLifePage() {
+  const firstStory = storySections[0];
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>("all");
   const [selectedAthleteId, setSelectedAthleteId] = useState<string | null>(null);
   const [renderedAthleteId, setRenderedAthleteId] = useState<string | null>(null);
@@ -1562,12 +1564,72 @@ export default function TenOlympicsOneLifePage() {
         </div>
 
         <div className="mx-auto mt-16 max-w-2xl text-center">
-          <p
-            className="text-[1.3rem] italic leading-relaxed text-white/76 sm:text-[1.5rem]"
-            style={{ fontFamily: "var(--font-onelife-body)" }}
-          >
-            Forty years is not a career. It is a life measured in four-year intervals, in the rhythm of cities and flags that sometimes change between editions.
-          </p>
+          <div className="space-y-5">
+            <p
+              className="text-[1.3rem] italic leading-relaxed text-white/76 sm:text-[1.5rem]"
+              style={{ fontFamily: "var(--font-onelife-body)" }}
+            >
+              Forty years is not a career. It is a life measured in four-year intervals, in the rhythm of cities and anthems and flags that sometimes change between editions.
+            </p>
+
+            <p
+              className="text-[1.2rem] italic leading-relaxed text-[#d8bb68] sm:text-[1.35rem]"
+              style={{ fontFamily: "var(--font-onelife-body)" }}
+            >
+              These athletes did not just compete in the Olympics. They grew old inside them.
+            </p>
+          </div>
+
+          <div className="mt-10 rounded-[28px] border border-[#c9a84c]/24 bg-[linear-gradient(180deg,rgba(201,168,76,0.08)_0%,rgba(255,255,255,0.02)_24%,rgba(10,10,10,0.84)_100%)] px-6 py-7 shadow-[0_24px_80px_rgba(0,0,0,0.28)] sm:px-8 sm:py-8">
+            <p
+              className="text-[10px] uppercase tracking-[0.34em] text-[#c9a84c]"
+              style={{ fontFamily: "var(--font-onelife-data)" }}
+            >
+              End of the series
+            </p>
+
+            <h2
+              className="mt-4 text-[clamp(2.6rem,8vw,4.8rem)] uppercase leading-[0.9] text-white"
+              style={{ fontFamily: "var(--font-onelife-display)", color: "#ffffff" }}
+            >
+              Leave the track or start again
+            </h2>
+
+            <p
+              className="mt-4 mx-auto max-w-xl text-[1.02rem] italic leading-relaxed text-white/72 sm:text-[1.12rem]"
+              style={{ fontFamily: "var(--font-onelife-body)" }}
+            >
+              This was the last chapter. The usual exit is back to the home hub, with the option to reopen the route from the first story.
+            </p>
+
+            <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <TransitionLink
+                href="/?menu=1"
+                transition={{
+                  sourceLabel: "HEAT 04",
+                  destinationLabel: "HOME ARENA",
+                  title: "Olympic Data Stories",
+                }}
+                className="inline-flex items-center justify-center rounded-full border border-[#c9a84c]/42 bg-[#c9a84c]/12 px-5 py-3 text-[11px] uppercase tracking-[0.28em] text-white transition-[border-color,background-color,transform] duration-300 hover:-translate-y-0.5 hover:border-[#d8bb68] hover:bg-[#c9a84c]/20"
+              >
+                <span style={{ fontFamily: "var(--font-onelife-data)" }}>Volver a home</span>
+              </TransitionLink>
+
+              {firstStory ? (
+                <TransitionLink
+                  href={`/${firstStory.slug}`}
+                  transition={{
+                    sourceLabel: "HEAT 04",
+                    destinationLabel: "HEAT 01",
+                    title: firstStory.title,
+                  }}
+                  className="inline-flex items-center justify-center rounded-full border border-white/14 px-5 py-3 text-[11px] uppercase tracking-[0.28em] text-white/76 transition-[border-color,color,transform] duration-300 hover:-translate-y-0.5 hover:border-white/32 hover:text-white"
+                >
+                  <span style={{ fontFamily: "var(--font-onelife-data)" }}>Volver a la primera historia</span>
+                </TransitionLink>
+              ) : null}
+            </div>
+          </div>
         </div>
       </section>
     </main>
