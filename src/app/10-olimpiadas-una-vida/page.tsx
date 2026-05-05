@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import gsap from "gsap";
 import { useEffect, useRef, useState } from "react";
 import { scalePoint } from "d3";
 import { Bebas_Neue, Cormorant_Garamond, DM_Mono } from "next/font/google";
@@ -36,6 +37,8 @@ const rowEntranceStepMs = 140;
 const pointEntranceOffsetMs = 240;
 const pointEntranceStepMs = 70;
 const detailPanelTransitionDurationMs = 500;
+const categoryFilterTransitionDuration = 0.42;
+const categoryFilterButtonDuration = 0.28;
 
 const medalWeight: Record<MedalType, number> = {
   gold: 3,
@@ -74,6 +77,12 @@ type PointVisual = {
   inner: string;
   copy: string;
   showInner: boolean;
+};
+
+type AthleteRowVisualState = {
+  autoAlpha: number;
+  scale: number;
+  y: number;
 };
 
 const xScale = scalePoint<number>()
@@ -250,6 +259,56 @@ function getPointVisual(medal: MedalType | null): PointVisual {
   };
 }
 
+function getAthleteRowVisualState({
+  rowIsVisible,
+  isCategoryActive,
+  isSelected,
+  hasFocusedAthlete,
+}: {
+  rowIsVisible: boolean;
+  isCategoryActive: boolean;
+  isSelected: boolean;
+  hasFocusedAthlete: boolean;
+}): AthleteRowVisualState {
+  if (!rowIsVisible) {
+    return {
+      autoAlpha: 0,
+      scale: 0.975,
+      y: 18,
+    };
+  }
+
+  if (hasFocusedAthlete) {
+    if (isSelected) {
+      return {
+        autoAlpha: 1,
+        scale: 1,
+        y: 0,
+      };
+    }
+
+    return {
+      autoAlpha: isCategoryActive ? 0.2 : 0.1,
+      scale: isCategoryActive ? 0.992 : 0.985,
+      y: isCategoryActive ? 2 : 6,
+    };
+  }
+
+  if (isCategoryActive) {
+    return {
+      autoAlpha: 1,
+      scale: 1,
+      y: 0,
+    };
+  }
+
+  return {
+    autoAlpha: 0.2,
+    scale: 0.992,
+    y: 6,
+  };
+}
+
 function getAthleteEditionPoints(athlete: Athlete): AthleteEditionPoint[] {
   return athlete.years.map((year) => {
     const medals = athlete.medals.filter((medal) => medal.year === year);
@@ -277,8 +336,40 @@ function getPointAriaLabel(athlete: Athlete, point: AthleteEditionPoint): string
 }
 
 function CategoryFilterBar({ activeCategory, onSelectCategory, className = "" }: CategoryFilterBarProps) {
+  const filterBarRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const filterBar = filterBarRef.current;
+
+    if (!filterBar) {
+      return;
+    }
+
+    const filterButtons = Array.from(filterBar.querySelectorAll<HTMLButtonElement>("[data-one-life-filter-pill]"));
+
+    for (const button of filterButtons) {
+      const isActive = button.dataset.category === activeCategory;
+
+      gsap.killTweensOf(button);
+      gsap.to(button, {
+        duration: categoryFilterButtonDuration,
+        ease: "power2.out",
+        overwrite: true,
+        scale: isActive ? 1.02 : 1,
+        y: isActive ? -1 : 0,
+        boxShadow: isActive ? "0 14px 28px rgba(201,168,76,0.18)" : "0 0 0 rgba(0,0,0,0)",
+      });
+    }
+
+    return () => {
+      for (const button of filterButtons) {
+        gsap.killTweensOf(button);
+      }
+    };
+  }, [activeCategory]);
+
   return (
-    <section className={className}>
+    <section ref={filterBarRef} className={className}>
       <div className="mx-auto flex max-w-7xl flex-wrap gap-3 px-5 py-3 sm:px-8 lg:px-12">
         {categoryPills.map((category) => {
           const isActive = activeCategory === category;
@@ -290,9 +381,11 @@ function CategoryFilterBar({ activeCategory, onSelectCategory, className = "" }:
             <button
               key={category}
               type="button"
+              data-one-life-filter-pill
+              data-category={category}
               aria-pressed={isActive}
               onClick={() => onSelectCategory(category)}
-              className={`rounded-full border px-4 py-2 text-[11px] uppercase tracking-[0.26em] transition-colors ${
+              className={`rounded-full border px-4 py-2 text-[11px] uppercase tracking-[0.26em] transition-[color,border-color,background-color,transform,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] ${
                 isActive
                   ? "border-[#c9a84c] bg-[#c9a84c] text-black"
                   : "border-white/15 text-white/60 hover:border-white/30 hover:text-white"
@@ -329,13 +422,13 @@ function AthleteMiniTimeline({ athlete }: AthleteMiniTimelineProps) {
   const editionPoints = getAthleteEditionPoints(athlete);
 
   return (
-    <div className="overflow-x-auto pb-2">
-      <div className="relative min-w-[680px] rounded-[24px] border border-white/10 bg-black/20 px-4 py-5 sm:px-5">
+    <div className="pb-2">
+      <div className="relative rounded-[24px] border border-white/10 bg-black/20 px-3 py-5 sm:px-5">
         <div className="absolute left-7 right-7 top-[74px] h-px bg-white/10" aria-hidden="true" />
 
         <div
-          className="relative grid gap-3"
-          style={{ gridTemplateColumns: `repeat(${editionPoints.length}, minmax(56px, 1fr))` }}
+          className="relative grid gap-2 sm:gap-3"
+          style={{ gridTemplateColumns: `repeat(${editionPoints.length}, minmax(0, 1fr))` }}
         >
           {editionPoints.map((point) => {
             const pointVisual = getPointVisual(point.dominantMedal);
@@ -349,7 +442,7 @@ function AthleteMiniTimeline({ athlete }: AthleteMiniTimelineProps) {
                 className="group relative flex min-w-0 flex-col items-center bg-transparent text-center focus-visible:outline-none"
               >
                 <span
-                  className="text-[10px] uppercase tracking-[0.18em] text-white/56"
+                  className="text-[9px] uppercase tracking-[0.14em] text-white/56 sm:text-[10px] sm:tracking-[0.18em]"
                   style={{ fontFamily: "var(--font-onelife-data)" }}
                 >
                   {point.year}
@@ -370,7 +463,7 @@ function AthleteMiniTimeline({ athlete }: AthleteMiniTimelineProps) {
                 </span>
 
                 <span
-                  className="mt-3 line-clamp-2 max-w-[8ch] text-[10px] italic leading-tight text-white/48"
+                  className="mt-3 line-clamp-2 max-w-[7ch] text-[9px] italic leading-tight text-white/48 sm:max-w-[8ch] sm:text-[10px]"
                   style={{ fontFamily: "var(--font-onelife-body)" }}
                 >
                   {point.city}
@@ -798,6 +891,54 @@ export default function TenOlympicsOneLifePage() {
     };
   }, [prefersReducedMotion]);
 
+  useEffect(() => {
+    const athleteRows = athleteRowsRef.current;
+
+    if (!athleteRows) {
+      return;
+    }
+
+    const rowIsVisible = showTimelineRows || prefersReducedMotion;
+
+    if (!rowIsVisible && !prefersReducedMotion) {
+      return;
+    }
+
+    const rowWrappers = Array.from(athleteRows.querySelectorAll<HTMLElement>("[data-one-life-athlete-row]"));
+    const hasFocusedAthlete = focusedAthleteId !== null;
+
+    for (const rowWrapper of rowWrappers) {
+      const athleteId = rowWrapper.dataset.athleteId;
+      const athleteCategory = rowWrapper.dataset.category as CategoryFilter | undefined;
+      const rowState = getAthleteRowVisualState({
+        rowIsVisible,
+        isCategoryActive: activeCategory === "all" || athleteCategory === activeCategory,
+        isSelected: athleteId === focusedAthleteId,
+        hasFocusedAthlete,
+      });
+
+      gsap.killTweensOf(rowWrapper);
+
+      if (prefersReducedMotion) {
+        gsap.set(rowWrapper, rowState);
+        continue;
+      }
+
+      gsap.to(rowWrapper, {
+        ...rowState,
+        duration: categoryFilterTransitionDuration,
+        ease: "power2.out",
+        overwrite: true,
+      });
+    }
+
+    return () => {
+      for (const rowWrapper of rowWrappers) {
+        gsap.killTweensOf(rowWrapper);
+      }
+    };
+  }, [activeCategory, focusedAthleteId, prefersReducedMotion, showTimelineRows]);
+
   return (
     <main
       className={`${oneLifeDisplayFont.variable} ${oneLifeBodyFont.variable} ${oneLifeDataFont.variable} relative min-h-screen overflow-x-clip bg-[#070707] text-[#f5f2eb]`}
@@ -1097,21 +1238,16 @@ export default function TenOlympicsOneLifePage() {
                   const lastYear = athlete.years[athlete.years.length - 1];
                   const editionPoints = getAthleteEditionPoints(athlete);
                   const rowIsVisible = showTimelineRows || prefersReducedMotion;
-                  const rowOpacityClass = rowIsVisible
-                    ? focusedAthleteId
-                      ? isRowSelected
-                        ? "opacity-100"
-                        : isRowActive
-                          ? "opacity-20"
-                          : "opacity-10"
-                      : isRowActive
-                        ? "opacity-100"
-                        : "opacity-20"
-                    : "opacity-0";
                   const rowDelay = prefersReducedMotion ? 0 : getRowEntranceDelay(athleteIndex);
 
                   return (
-                    <div key={athlete.id} className="space-y-3">
+                    <div
+                      key={athlete.id}
+                      data-one-life-athlete-row
+                      data-athlete-id={athlete.id}
+                      data-category={athlete.category}
+                      className="space-y-3"
+                    >
                       <div
                         role="button"
                         tabIndex={0}
@@ -1134,13 +1270,13 @@ export default function TenOlympicsOneLifePage() {
                           event.preventDefault();
                         requestAthleteSelection(selectedAthleteId === athlete.id ? null : athlete.id);
                         }}
-                        className={`group/row relative grid cursor-pointer items-center gap-4 rounded-[22px] border px-3 py-2 transition-[opacity,border-color,background-color,transform,box-shadow,filter] ease-out hover:-translate-y-[1px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] lg:grid-cols-[220px_minmax(0,1fr)] ${
+                        className={`group/row relative grid cursor-pointer items-center gap-4 rounded-[22px] border px-3 py-2 transition-[border-color,background-color,transform,box-shadow,filter] ease-out hover:-translate-y-[1px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] lg:grid-cols-[220px_minmax(0,1fr)] ${
                           isRowSelected
                             ? "border-[#c9a84c]/55 bg-[#c9a84c]/10 shadow-[0_22px_44px_rgba(201,168,76,0.12)]"
                             : isRowActive
                               ? "border-white/8 bg-white/[0.03] hover:border-[#c9a84c]/45 hover:bg-white/[0.05] hover:shadow-[0_18px_40px_rgba(201,168,76,0.08)]"
                               : "border-white/5 bg-white/[0.015] hover:border-white/18 hover:bg-white/[0.03]"
-                        } ${rowOpacityClass} ${rowIsVisible ? "translate-y-0 blur-0" : "translate-y-5 blur-[2px]"}`}
+                        } ${rowIsVisible ? "translate-y-0 blur-0 opacity-100" : "translate-y-5 blur-[2px] opacity-0"}`}
                         style={{
                           transitionDelay: `${rowIsVisible ? rowDelay : 0}ms`,
                           transitionDuration: `${entranceTransitionDurationMs}ms`,
