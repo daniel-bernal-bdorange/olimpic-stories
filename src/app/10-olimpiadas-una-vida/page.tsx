@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import gsap from "gsap";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { scalePoint } from "d3";
 import { Bebas_Neue, Cormorant_Garamond, DM_Mono } from "next/font/google";
 import { RouteTransitionReady, TransitionLink } from "@/components/route-transition";
@@ -69,6 +69,7 @@ type CategoryFilterBarProps = {
   activeCategory: CategoryFilter;
   onSelectCategory: (category: CategoryFilter) => void;
   className?: string;
+  style?: CSSProperties;
 };
 
 type PointVisual = {
@@ -336,7 +337,7 @@ function getPointAriaLabel(athlete: Athlete, point: AthleteEditionPoint): string
   return `${point.city} ${point.year}. ${athlete.name}, ${athlete.sport}. ${summary}.`;
 }
 
-function CategoryFilterBar({ activeCategory, onSelectCategory, className = "" }: CategoryFilterBarProps) {
+function CategoryFilterBar({ activeCategory, onSelectCategory, className = "", style }: CategoryFilterBarProps) {
   const filterBarRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -370,33 +371,35 @@ function CategoryFilterBar({ activeCategory, onSelectCategory, className = "" }:
   }, [activeCategory]);
 
   return (
-    <section ref={filterBarRef} className={className}>
-      <div className="mx-auto flex max-w-7xl flex-wrap gap-3 px-5 py-3 sm:px-8 lg:px-12">
-        {categoryPills.map((category) => {
-          const isActive = activeCategory === category;
-          const count = category === "all"
-            ? athletes.length
-            : athletes.filter((athlete) => athlete.category === category).length;
+    <section ref={filterBarRef} className={className} style={style}>
+      <div className="mx-auto max-w-7xl overflow-x-auto px-5 py-3 sm:px-8 lg:px-12 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex min-w-max gap-3">
+          {categoryPills.map((category) => {
+            const isActive = activeCategory === category;
+            const count = category === "all"
+              ? athletes.length
+              : athletes.filter((athlete) => athlete.category === category).length;
 
-          return (
-            <button
-              key={category}
-              type="button"
-              data-one-life-filter-pill
-              data-category={category}
-              aria-pressed={isActive}
-              onClick={() => onSelectCategory(category)}
-              className={`rounded-full border px-4 py-2 text-[11px] uppercase tracking-[0.26em] transition-[color,border-color,background-color,transform,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] ${
-                isActive
-                  ? "border-[#c9a84c] bg-[#c9a84c] text-black"
-                  : "border-white/15 text-white/60 hover:border-white/30 hover:text-white"
-              }`}
-              style={{ fontFamily: "var(--font-onelife-data)" }}
-            >
-              {categoryLabels[category]} · {count}
-            </button>
-          );
-        })}
+            return (
+              <button
+                key={category}
+                type="button"
+                data-one-life-filter-pill
+                data-category={category}
+                aria-pressed={isActive}
+                onClick={() => onSelectCategory(category)}
+                className={`shrink-0 rounded-full border px-4 py-2 text-[11px] uppercase tracking-[0.26em] transition-[color,border-color,background-color,transform,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] ${
+                  isActive
+                    ? "border-[#c9a84c] bg-[#c9a84c] text-black"
+                    : "border-white/15 text-white/60 hover:border-white/30 hover:text-white"
+                }`}
+                style={{ fontFamily: "var(--font-onelife-data)" }}
+              >
+                {categoryLabels[category]} · {count}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </section>
   );
@@ -596,7 +599,7 @@ function AthleteDetailPanel({ athlete, isActive, onClose, onExited, reduceMotion
 
   return (
     <div
-      className={`mt-3 grid overflow-hidden transition-[grid-template-rows,opacity,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+      className={`mt-3 grid w-[min(100vw-2rem,46rem)] max-w-full overflow-hidden transition-[grid-template-rows,opacity,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] lg:w-full ${
         panelIsOpen ? "translate-y-0 opacity-100" : "-translate-y-2 opacity-0"
       }`}
       style={{ gridTemplateRows: panelIsOpen ? "1fr" : "0fr" }}
@@ -618,14 +621,14 @@ function AthleteDetailPanel({ athlete, isActive, onClose, onExited, reduceMotion
           </div>
 
           <div className="mt-4 grid gap-6 xl:grid-cols-[240px_minmax(0,1fr)] xl:items-start">
-            <div className="rounded-[24px] border border-white/10 bg-[#111111] p-3">
+            <div className="mx-auto w-full max-w-sm rounded-[24px] border border-white/10 bg-[#111111] p-3 xl:mx-0 xl:max-w-none">
               <div className="relative h-[300px] overflow-hidden rounded-[20px] border border-white/10 border-l-[3px] border-l-[#c9a84c] bg-[#161616]">
                 {athlete.photo ? (
                   <Image
                     src={athlete.photo}
                     alt={`${athlete.name} portrait`}
                     fill
-                    sizes="(max-width: 1279px) 100vw, 240px"
+                    sizes="(max-width: 639px) calc(100vw - 4.5rem), (max-width: 1279px) 24rem, 240px"
                     className="object-cover object-top transition duration-500"
                   />
                 ) : (
@@ -767,11 +770,13 @@ export default function TenOlympicsOneLifePage() {
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>("all");
   const [selectedAthleteId, setSelectedAthleteId] = useState<string | null>(null);
   const [renderedAthleteId, setRenderedAthleteId] = useState<string | null>(null);
+  const headerRef = useRef<HTMLElement | null>(null);
   const heroRef = useRef<HTMLElement | null>(null);
   const athleteRowsRef = useRef<HTMLDivElement | null>(null);
   const [showPinnedFilterBar, setShowPinnedFilterBar] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [showTimelineRows, setShowTimelineRows] = useState(false);
+  const [headerHeight, setHeaderHeight] = useState(92);
   const focusedAthleteId = selectedAthleteId ?? renderedAthleteId;
 
   const requestAthleteSelection = (nextAthleteId: string | null) => {
@@ -817,6 +822,32 @@ export default function TenOlympicsOneLifePage() {
   };
 
   useEffect(() => {
+    const header = headerRef.current;
+
+    if (!header) {
+      return;
+    }
+
+    const syncHeaderHeight = () => {
+      setHeaderHeight(Math.ceil(header.getBoundingClientRect().height));
+    };
+
+    syncHeaderHeight();
+
+    const resizeObserver = new ResizeObserver(() => {
+      syncHeaderHeight();
+    });
+
+    resizeObserver.observe(header);
+    window.addEventListener("resize", syncHeaderHeight);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", syncHeaderHeight);
+    };
+  }, []);
+
+  useEffect(() => {
     const updatePinnedFilterBar = () => {
       const hero = heroRef.current;
 
@@ -824,10 +855,9 @@ export default function TenOlympicsOneLifePage() {
         return;
       }
 
-      const headerOffset = window.innerWidth >= 640 ? 73 : 92;
       const heroBottom = hero.getBoundingClientRect().bottom;
 
-      setShowPinnedFilterBar(heroBottom <= headerOffset);
+      setShowPinnedFilterBar(heroBottom <= headerHeight);
     };
 
     updatePinnedFilterBar();
@@ -838,7 +868,7 @@ export default function TenOlympicsOneLifePage() {
       window.removeEventListener("scroll", updatePinnedFilterBar);
       window.removeEventListener("resize", updatePinnedFilterBar);
     };
-  }, []);
+  }, [headerHeight]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -866,6 +896,16 @@ export default function TenOlympicsOneLifePage() {
   useEffect(() => {
     if (prefersReducedMotion) {
       return;
+    }
+
+    if (window.matchMedia("(max-width: 1023px)").matches) {
+      const animationFrame = window.requestAnimationFrame(() => {
+        setShowTimelineRows(true);
+      });
+
+      return () => {
+        window.cancelAnimationFrame(animationFrame);
+      };
     }
 
     const athleteRows = athleteRowsRef.current;
@@ -952,12 +992,13 @@ export default function TenOlympicsOneLifePage() {
         <CategoryFilterBar
           activeCategory={activeCategory}
           onSelectCategory={handleSelectCategory}
-          className="fixed inset-x-0 top-[92px] z-40 border-y border-white/10 bg-black/66 shadow-[0_14px_36px_rgba(0,0,0,0.22)] backdrop-blur-xl sm:top-[73px]"
+          className="fixed inset-x-0 z-40 border-y border-white/10 bg-black/66 shadow-[0_14px_36px_rgba(0,0,0,0.22)] backdrop-blur-xl"
+          style={{ top: headerHeight }}
         />
       ) : null}
 
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-black/44 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl flex-col items-start gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8">
+      <header ref={headerRef} className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-black/44 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
           <TransitionLink
             href="/?menu=1"
             transition={{
@@ -970,7 +1011,7 @@ export default function TenOlympicsOneLifePage() {
             Volver a home
           </TransitionLink>
 
-          <div className="text-left sm:text-right">
+          <div className="hidden text-right sm:block">
             <p
               className="text-[11px] uppercase tracking-[0.32em] text-[#c9a84c]"
               style={{ fontFamily: "var(--font-onelife-data)" }}
@@ -984,7 +1025,14 @@ export default function TenOlympicsOneLifePage() {
         </div>
       </header>
 
-      <section ref={heroRef} className="relative isolate mt-[92px] flex h-[calc(100svh-92px)] items-end overflow-hidden px-5 pb-6 pt-8 sm:mt-[73px] sm:h-[calc(100svh-73px)] sm:px-8 sm:pb-8 sm:pt-10 lg:px-12 lg:pb-10 lg:pt-14">
+      <section
+        ref={heroRef}
+        className="relative isolate flex items-end overflow-hidden px-5 pb-6 pt-8 sm:px-8 sm:pb-8 sm:pt-10 lg:px-12 lg:pb-10 lg:pt-14"
+        style={{
+          marginTop: headerHeight,
+          height: `calc(100svh - ${headerHeight}px)`,
+        }}
+      >
           <div className="absolute inset-0">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_28%,rgba(201,168,76,0.14),transparent_36%),linear-gradient(90deg,rgba(7,7,7,0.72)_0%,rgba(7,7,7,0.46)_42%,rgba(7,7,7,0.58)_72%,rgba(7,7,7,0.8)_100%)]" />
           </div>
