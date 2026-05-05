@@ -45,6 +45,7 @@ export type Athlete = {
   note: string;
   editorialNotes: AthleteEditorialNote[];
   photo: string;
+  thumbnailPhotoPosition?: string;
 };
 
 export const olympicYears = [
@@ -168,6 +169,7 @@ export const athletes: Athlete[] = [
     note: "Competed as USSR, then as independent Latvia.",
     editorialNotes: [{ year: 1992, label: "Returned after the Soviet collapse under Latvia's flag." }],
     photo: "/images/one-life/athletes/afanasijs-kuzmins.webp",
+    thumbnailPhotoPosition: "78% 20%",
   },
   {
     id: "nino-salukvadze",
@@ -188,6 +190,7 @@ export const athletes: Athlete[] = [
     note: "At Tokyo 2020, she carried Georgia's flag at the Opening Ceremony.",
     editorialNotes: [{ year: 2020, label: "Flag bearer for Georgia in Tokyo at age 52." }],
     photo: "/images/one-life/athletes/nino-salukvadze.webp",
+    thumbnailPhotoPosition: "76% 18%",
   },
   {
     id: "josefa-idem-guerrini",
@@ -256,7 +259,7 @@ export const athletes: Athlete[] = [
       { year: 1984, label: "Returned to the Olympics and sailed alongside daughter Trine." },
       { year: 1988, label: "Closed his Olympic life with the same father-daughter crew." },
     ],
-    photo: "/images/one-life/athletes/paul-elvstrom.webp",
+    photo: "/images/Paul%20Elvstrom.jpg",
   },
   {
     id: "oksana-chusovitina",

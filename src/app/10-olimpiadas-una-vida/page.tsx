@@ -35,6 +35,7 @@ const rowEntranceBaseDelayMs = 180;
 const rowEntranceStepMs = 140;
 const pointEntranceOffsetMs = 240;
 const pointEntranceStepMs = 70;
+const detailPanelTransitionDurationMs = 500;
 
 const medalWeight: Record<MedalType, number> = {
   gold: 3,
@@ -307,13 +308,418 @@ function CategoryFilterBar({ activeCategory, onSelectCategory, className = "" }:
   );
 }
 
+function getAthleteTotalMedals(athlete: Athlete) {
+  return athlete.medals.length;
+}
+
+function getAthleteInitials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
+type AthleteMiniTimelineProps = {
+  athlete: Athlete;
+};
+
+function AthleteMiniTimeline({ athlete }: AthleteMiniTimelineProps) {
+  const editionPoints = getAthleteEditionPoints(athlete);
+
+  return (
+    <div className="overflow-x-auto pb-2">
+      <div className="relative min-w-[680px] rounded-[24px] border border-white/10 bg-black/20 px-4 py-5 sm:px-5">
+        <div className="absolute left-7 right-7 top-[74px] h-px bg-white/10" aria-hidden="true" />
+
+        <div
+          className="relative grid gap-3"
+          style={{ gridTemplateColumns: `repeat(${editionPoints.length}, minmax(56px, 1fr))` }}
+        >
+          {editionPoints.map((point) => {
+            const pointVisual = getPointVisual(point.dominantMedal);
+            const pointEditorialNotes = athlete.editorialNotes.filter((note) => note.year === point.year);
+
+            return (
+              <button
+                key={`${athlete.id}-detail-${point.year}`}
+                type="button"
+                aria-label={getPointAriaLabel(athlete, point)}
+                className="group relative flex min-w-0 flex-col items-center bg-transparent text-center focus-visible:outline-none"
+              >
+                <span
+                  className="text-[10px] uppercase tracking-[0.18em] text-white/56"
+                  style={{ fontFamily: "var(--font-onelife-data)" }}
+                >
+                  {point.year}
+                </span>
+
+                <span className="mt-3 flex h-8 items-center justify-center">
+                  <span
+                    className={`flex items-center justify-center rounded-full border transition duration-200 group-hover:scale-110 group-focus-visible:scale-110 ${pointVisual.outer}`}
+                    style={{ width: pointVisual.diameter * 1.35, height: pointVisual.diameter * 1.35 }}
+                  >
+                    {pointVisual.showInner ? (
+                      <span
+                        className={`rounded-full ${pointVisual.inner}`}
+                        style={{ width: Math.max(pointVisual.innerDiameter * 1.2, 8), height: Math.max(pointVisual.innerDiameter * 1.2, 8) }}
+                      />
+                    ) : null}
+                  </span>
+                </span>
+
+                <span
+                  className="mt-3 line-clamp-2 max-w-[8ch] text-[10px] italic leading-tight text-white/48"
+                  style={{ fontFamily: "var(--font-onelife-body)" }}
+                >
+                  {point.city}
+                </span>
+
+                {pointEditorialNotes.length > 0 ? (
+                  <span
+                    className="mt-2 rounded-full border border-[#c9a84c]/30 bg-[#c9a84c]/10 px-2 py-1 text-[9px] uppercase tracking-[0.16em] text-[#d8bb68]"
+                    style={{ fontFamily: "var(--font-onelife-data)" }}
+                  >
+                    Key year
+                  </span>
+                ) : (
+                  <span className="mt-2 h-[25px]" aria-hidden="true" />
+                )}
+
+                <span
+                  className={`pointer-events-none absolute bottom-[calc(100%+18px)] z-20 w-60 rounded-[18px] border border-white/12 bg-[rgba(8,8,8,0.96)] px-4 py-3 text-left opacity-0 shadow-[0_20px_55px_rgba(0,0,0,0.45)] transition duration-200 ${getTooltipPositionClasses(point.alignment)} group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100`}
+                >
+                  <p
+                    className="text-[10px] uppercase tracking-[0.28em] text-[#c9a84c]"
+                    style={{ fontFamily: "var(--font-onelife-data)" }}
+                  >
+                    {point.city} {point.year}
+                  </p>
+
+                  <div className="mt-3 space-y-2">
+                    {point.medals.length === 0 ? (
+                      <div className="rounded-2xl border border-white/8 bg-white/[0.03] px-3 py-2">
+                        <p
+                          className="text-[11px] uppercase tracking-[0.22em] text-white/78"
+                          style={{ fontFamily: "var(--font-onelife-data)" }}
+                        >
+                          Participation only
+                        </p>
+                      </div>
+                    ) : (
+                      point.medals.map((medal) => {
+                        const medalTone = getPointVisual(medal.type);
+
+                        return (
+                          <div key={`${athlete.id}-${point.year}-detail-${medal.type}-${medal.event}`} className="rounded-2xl border border-white/8 bg-white/[0.03] px-3 py-2">
+                            <p
+                              className={`text-[11px] uppercase tracking-[0.22em] ${medalTone.copy}`}
+                              style={{ fontFamily: "var(--font-onelife-data)" }}
+                            >
+                              {medalLabel[medal.type]} medal
+                            </p>
+                            <p
+                              className="mt-1 text-xs italic leading-relaxed text-white/78"
+                              style={{ fontFamily: "var(--font-onelife-body)" }}
+                            >
+                              {medal.event}
+                            </p>
+                          </div>
+                        );
+                      })
+                    )}
+
+                    {pointEditorialNotes.map((note) => (
+                      <div key={`${athlete.id}-${point.year}-detail-note-${note.label}`} className="rounded-2xl border border-[#c9a84c]/25 bg-[#c9a84c]/8 px-3 py-2">
+                        <p
+                          className="text-[11px] uppercase tracking-[0.22em] text-[#d8bb68]"
+                          style={{ fontFamily: "var(--font-onelife-data)" }}
+                        >
+                          Editorial note
+                        </p>
+                        <p
+                          className="mt-1 text-xs italic leading-relaxed text-white/80"
+                          style={{ fontFamily: "var(--font-onelife-body)" }}
+                        >
+                          {note.label}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type AthleteDetailPanelProps = {
+  athlete: Athlete;
+  isActive: boolean;
+  onClose: () => void;
+  onExited: () => void;
+  reduceMotion?: boolean;
+};
+
+function AthleteDetailPanel({ athlete, isActive, onClose, onExited, reduceMotion = false }: AthleteDetailPanelProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const firstYear = athlete.years[0];
+  const lastYear = athlete.years[athlete.years.length - 1];
+  const firstCity = getOlympicHostCity(firstYear, athlete.season);
+  const lastCity = getOlympicHostCity(lastYear, athlete.season);
+  const medalCount = getAthleteTotalMedals(athlete);
+  const panelIsOpen = reduceMotion ? isActive : isOpen;
+
+  useEffect(() => {
+    if (reduceMotion) {
+      return;
+    }
+
+    const animationFrame = window.requestAnimationFrame(() => {
+      setIsOpen(isActive);
+    });
+
+    let exitTimer: number | undefined;
+
+    if (!isActive) {
+      exitTimer = window.setTimeout(() => {
+        onExited();
+      }, detailPanelTransitionDurationMs);
+    }
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+
+      if (exitTimer !== undefined) {
+        window.clearTimeout(exitTimer);
+      }
+    };
+  }, [isActive, onExited, reduceMotion]);
+
+  return (
+    <div
+      className={`mt-3 grid overflow-hidden transition-[grid-template-rows,opacity,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+        panelIsOpen ? "translate-y-0 opacity-100" : "-translate-y-2 opacity-0"
+      }`}
+      style={{ gridTemplateRows: panelIsOpen ? "1fr" : "0fr" }}
+    >
+      <div className="min-h-0">
+        <section
+          id={`athlete-detail-${athlete.id}`}
+          className="rounded-[28px] border border-[#c9a84c]/22 bg-[linear-gradient(180deg,rgba(201,168,76,0.08)_0%,rgba(255,255,255,0.02)_14%,rgba(8,8,8,0.82)_100%)] px-4 py-4 shadow-[0_24px_90px_rgba(0,0,0,0.32)] sm:px-6 sm:py-5 lg:px-8"
+        >
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-full border border-white/14 px-4 py-2 text-[10px] uppercase tracking-[0.24em] text-white/72 transition-colors hover:border-[#c9a84c] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c]"
+              style={{ fontFamily: "var(--font-onelife-data)" }}
+            >
+              Close detail
+            </button>
+          </div>
+
+          <div className="mt-4 grid gap-6 xl:grid-cols-[240px_minmax(0,1fr)] xl:items-start">
+            <div className="rounded-[24px] border border-white/10 bg-[#111111] p-3">
+              <div className="relative h-[300px] overflow-hidden rounded-[20px] border border-white/10 border-l-[3px] border-l-[#c9a84c] bg-[#161616]">
+                {athlete.photo ? (
+                  <Image
+                    src={athlete.photo}
+                    alt={`${athlete.name} portrait`}
+                    fill
+                    sizes="(max-width: 1279px) 100vw, 240px"
+                    className="object-cover object-top transition duration-500"
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-[4rem] uppercase tracking-[0.05em] text-[#c9a84c]" style={{ fontFamily: "var(--font-onelife-display)" }}>
+                    {getAthleteInitials(athlete.name)}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <div className="border-b border-white/10 pb-5">
+                <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                  <div>
+                    <p
+                      className="text-[11px] uppercase tracking-[0.3em] text-[#c9a84c]"
+                      style={{ fontFamily: "var(--font-onelife-data)" }}
+                    >
+                      {athlete.country}
+                    </p>
+                    <h3
+                      className="mt-3 text-[clamp(2.8rem,7vw,5.25rem)] uppercase leading-[0.86] tracking-[0.04em] text-white"
+                      style={{ fontFamily: "var(--font-onelife-display)", color: "#ffffff" }}
+                    >
+                      {athlete.name}
+                    </h3>
+                    <p
+                      className="mt-2 text-lg italic leading-relaxed text-white/78"
+                      style={{ fontFamily: "var(--font-onelife-body)" }}
+                    >
+                      {athlete.sport}
+                    </p>
+                  </div>
+ 
+                  <p
+                    className="max-w-lg text-sm italic leading-relaxed text-[#d8bb68]"
+                    style={{ fontFamily: "var(--font-onelife-body)" }}
+                  >
+                    {athlete.note}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid gap-3 border-b border-white/10 py-5 sm:grid-cols-2 xl:grid-cols-5">
+                <div className="rounded-[20px] border border-white/8 bg-white/[0.03] px-4 py-4">
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-white/52" style={{ fontFamily: "var(--font-onelife-data)" }}>
+                    Editions
+                  </p>
+                  <p className="mt-3 text-[2.8rem] uppercase leading-none text-white" style={{ fontFamily: "var(--font-onelife-display)" }}>
+                    {athlete.editions}
+                  </p>
+                </div>
+                <div className="rounded-[20px] border border-[#c9a84c]/16 bg-[#c9a84c]/6 px-4 py-4">
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-white/52" style={{ fontFamily: "var(--font-onelife-data)" }}>
+                    Years span
+                  </p>
+                  <p className="mt-3 text-[2.8rem] uppercase leading-none text-[#c9a84c]" style={{ fontFamily: "var(--font-onelife-display)" }}>
+                    {athlete.span}
+                  </p>
+                </div>
+                <div className="rounded-[20px] border border-white/8 bg-white/[0.03] px-4 py-4">
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-white/52" style={{ fontFamily: "var(--font-onelife-data)" }}>
+                    Medals
+                  </p>
+                  <p className="mt-3 text-[2.8rem] uppercase leading-none text-white" style={{ fontFamily: "var(--font-onelife-display)" }}>
+                    {medalCount}
+                  </p>
+                </div>
+                <div className="rounded-[20px] border border-white/8 bg-white/[0.03] px-4 py-4">
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-white/52" style={{ fontFamily: "var(--font-onelife-data)" }}>
+                    First game
+                  </p>
+                  <p className="mt-3 text-[2.1rem] uppercase leading-none text-white" style={{ fontFamily: "var(--font-onelife-display)" }}>
+                    {firstYear}
+                  </p>
+                  <p className="mt-2 text-[10px] uppercase tracking-[0.18em] text-white/56" style={{ fontFamily: "var(--font-onelife-data)" }}>
+                    {firstCity}
+                  </p>
+                </div>
+                <div className="rounded-[20px] border border-white/8 bg-white/[0.03] px-4 py-4">
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-white/52" style={{ fontFamily: "var(--font-onelife-data)" }}>
+                    Last game
+                  </p>
+                  <p className="mt-3 text-[2.1rem] uppercase leading-none text-white" style={{ fontFamily: "var(--font-onelife-display)" }}>
+                    {lastYear}
+                  </p>
+                  <p className="mt-2 text-[10px] uppercase tracking-[0.18em] text-white/56" style={{ fontFamily: "var(--font-onelife-data)" }}>
+                    {lastCity}
+                  </p>
+                </div>
+              </div>
+
+              <div className="border-b border-white/10 py-5">
+                <div className="flex items-end justify-between gap-4">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.24em] text-[#c9a84c]" style={{ fontFamily: "var(--font-onelife-data)" }}>
+                      Mini timeline
+                    </p>
+                    <p className="mt-2 text-sm italic leading-relaxed text-white/64" style={{ fontFamily: "var(--font-onelife-body)" }}>
+                      A focused view of the same Olympic life, expanded enough to read each return.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-5">
+                  <AthleteMiniTimeline athlete={athlete} />
+                </div>
+              </div>
+
+              <div className="pt-5">
+                <p
+                  className="text-[10px] uppercase tracking-[0.24em] text-white/48"
+                  style={{ fontFamily: "var(--font-onelife-data)" }}
+                >
+                  Biography
+                </p>
+                <p className="mt-3 max-w-3xl text-[1.05rem] italic leading-relaxed text-white/80 sm:text-[1.12rem]" style={{ fontFamily: "var(--font-onelife-body)" }}>
+                  {athlete.bio}
+                </p>
+                <div className="mt-4 rounded-[20px] border border-[#c9a84c]/20 bg-[#c9a84c]/8 px-4 py-3">
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-[#d8bb68]" style={{ fontFamily: "var(--font-onelife-data)" }}>
+                    Editorial note
+                  </p>
+                  <p className="mt-2 text-sm italic leading-relaxed text-white/82" style={{ fontFamily: "var(--font-onelife-body)" }}>
+                    {athlete.note}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
 export default function TenOlympicsOneLifePage() {
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>("all");
+  const [selectedAthleteId, setSelectedAthleteId] = useState<string | null>(null);
+  const [renderedAthleteId, setRenderedAthleteId] = useState<string | null>(null);
   const heroRef = useRef<HTMLElement | null>(null);
   const athleteRowsRef = useRef<HTMLDivElement | null>(null);
   const [showPinnedFilterBar, setShowPinnedFilterBar] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [showTimelineRows, setShowTimelineRows] = useState(false);
+  const focusedAthleteId = selectedAthleteId ?? renderedAthleteId;
+
+  const requestAthleteSelection = (nextAthleteId: string | null) => {
+    setSelectedAthleteId(nextAthleteId);
+
+    if (nextAthleteId) {
+      setRenderedAthleteId(nextAthleteId);
+      return;
+    }
+
+    if (prefersReducedMotion) {
+      setRenderedAthleteId(null);
+    }
+  };
+
+  const handleSelectCategory = (category: CategoryFilter) => {
+    setActiveCategory(category);
+    setSelectedAthleteId((current) => {
+      if (!current) {
+        return null;
+      }
+
+      const athlete = athletes.find((entry) => entry.id === current);
+
+      if (!athlete) {
+        if (prefersReducedMotion) {
+          setRenderedAthleteId(null);
+        }
+
+        return null;
+      }
+
+      if (category === "all" || athlete.category === category) {
+        return current;
+      }
+
+      if (prefersReducedMotion) {
+        setRenderedAthleteId(null);
+      }
+
+      return null;
+    });
+  };
 
   useEffect(() => {
     const updatePinnedFilterBar = () => {
@@ -402,7 +808,7 @@ export default function TenOlympicsOneLifePage() {
       {showPinnedFilterBar ? (
         <CategoryFilterBar
           activeCategory={activeCategory}
-          onSelectCategory={setActiveCategory}
+          onSelectCategory={handleSelectCategory}
           className="fixed inset-x-0 top-[92px] z-40 border-y border-white/10 bg-black/66 shadow-[0_14px_36px_rgba(0,0,0,0.22)] backdrop-blur-xl sm:top-[73px]"
         />
       ) : null}
@@ -506,7 +912,7 @@ export default function TenOlympicsOneLifePage() {
 
       <CategoryFilterBar
         activeCategory={activeCategory}
-        onSelectCategory={setActiveCategory}
+        onSelectCategory={handleSelectCategory}
         className="relative z-10 border-y border-white/10 bg-black/64 shadow-[0_14px_36px_rgba(0,0,0,0.16)]"
       />
 
@@ -685,270 +1091,332 @@ export default function TenOlympicsOneLifePage() {
               <div ref={athleteRowsRef} className="space-y-3">
                 {athletes.map((athlete, athleteIndex) => {
                   const isRowActive = activeCategory === "all" || athlete.category === activeCategory;
+                  const isRowSelected = athlete.id === focusedAthleteId;
+                  const isPanelRendered = athlete.id === renderedAthleteId;
                   const firstYear = athlete.years[0];
                   const lastYear = athlete.years[athlete.years.length - 1];
                   const editionPoints = getAthleteEditionPoints(athlete);
                   const rowIsVisible = showTimelineRows || prefersReducedMotion;
-                  const rowOpacityClass = rowIsVisible ? (isRowActive ? "opacity-100" : "opacity-20") : "opacity-0";
+                  const rowOpacityClass = rowIsVisible
+                    ? focusedAthleteId
+                      ? isRowSelected
+                        ? "opacity-100"
+                        : isRowActive
+                          ? "opacity-20"
+                          : "opacity-10"
+                      : isRowActive
+                        ? "opacity-100"
+                        : "opacity-20"
+                    : "opacity-0";
                   const rowDelay = prefersReducedMotion ? 0 : getRowEntranceDelay(athleteIndex);
 
                   return (
-                    <div
-                      key={athlete.id}
-                      className={`group/row relative grid items-center gap-4 rounded-[22px] border px-3 py-2 transition-[opacity,border-color,background-color,transform,box-shadow,filter] ease-out hover:-translate-y-[1px] lg:grid-cols-[220px_minmax(0,1fr)] ${
-                        isRowActive
-                          ? "border-white/8 bg-white/[0.03] hover:border-[#c9a84c]/45 hover:bg-white/[0.05] hover:shadow-[0_18px_40px_rgba(201,168,76,0.08)]"
-                          : "border-white/5 bg-white/[0.015] hover:border-white/18 hover:bg-white/[0.03]"
-                      } ${rowOpacityClass} ${rowIsVisible ? "translate-y-0 blur-0" : "translate-y-5 blur-[2px]"}`}
-                      style={{
-                        transitionDelay: `${rowIsVisible ? rowDelay : 0}ms`,
-                        transitionDuration: `${entranceTransitionDurationMs}ms`,
-                      }}
-                    >
+                    <div key={athlete.id} className="space-y-3">
                       <div
-                        aria-hidden="true"
-                        className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[linear-gradient(90deg,rgba(201,168,76,0.08)_0%,rgba(201,168,76,0.03)_36%,rgba(255,255,255,0)_100%)] opacity-0 transition-opacity duration-300 group-hover/row:opacity-100"
-                      />
+                        role="button"
+                        tabIndex={0}
+                        aria-expanded={isRowSelected}
+                        aria-controls={isRowSelected ? `athlete-detail-${athlete.id}` : undefined}
+                        onClick={(event) => {
+                          const target = event.target;
 
-                      <div className="relative z-10 flex items-center gap-4 px-2 transition-transform duration-300 group-hover/row:translate-x-1">
-                        <div className={`relative h-11 w-11 overflow-hidden rounded-full border transition-colors duration-300 ${
-                          isRowActive ? "border-white/18 group-hover/row:border-[#c9a84c]/70" : "border-white/10 group-hover/row:border-white/28"
-                        }`}>
-                          <Image
-                            src={athlete.photo}
-                            alt={athlete.name}
-                            fill
-                            sizes="44px"
-                            className={`object-cover object-top transition duration-300 ${
-                              isRowActive ? "grayscale group-hover/row:grayscale-0" : "grayscale-[100%] group-hover/row:grayscale-[35%]"
-                            }`}
-                          />
-                        </div>
-                        <div className="min-w-0">
-                          <p
-                            className={`truncate text-[13px] uppercase tracking-[0.18em] ${isRowActive ? "text-white/82" : "text-white/62"}`}
-                            style={{ fontFamily: "var(--font-onelife-data)" }}
-                          >
-                            {athlete.name}
-                          </p>
-                          <p className={`truncate text-sm italic ${isRowActive ? "text-white/72" : "text-white/52"}`} style={{ fontFamily: "var(--font-onelife-body)" }}>
-                            {athlete.sport} · {athlete.country}
-                          </p>
-                          <p
-                            className={`mt-1 text-[10px] uppercase tracking-[0.24em] ${isRowActive ? "text-[#c9a84c]/88" : "text-white/34"}`}
-                            style={{ fontFamily: "var(--font-onelife-data)" }}
-                          >
-                            {athlete.editions} editions · {athlete.span} years
-                          </p>
-                        </div>
-                      </div>
+                          if (target instanceof HTMLElement && target.closest("[data-ignore-row-selection='true']")) {
+                            return;
+                          }
 
-                      <div className="relative z-10 w-full overflow-visible" style={{ height: rowHeight }}>
-                        <svg
-                          width="100%"
-                          height={rowHeight}
-                          viewBox={`0 0 ${chartWidth} ${rowHeight}`}
-                          preserveAspectRatio="none"
-                          className="pointer-events-none absolute inset-0 h-full w-full overflow-visible"
-                        >
-                          {olympicYears.map((year) => {
-                            const x = getLinePosition(year);
+                          requestAthleteSelection(selectedAthleteId === athlete.id ? null : athlete.id);
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key !== "Enter" && event.key !== " ") {
+                            return;
+                          }
+
+                          event.preventDefault();
+                        requestAthleteSelection(selectedAthleteId === athlete.id ? null : athlete.id);
+                        }}
+                        className={`group/row relative grid cursor-pointer items-center gap-4 rounded-[22px] border px-3 py-2 transition-[opacity,border-color,background-color,transform,box-shadow,filter] ease-out hover:-translate-y-[1px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] lg:grid-cols-[220px_minmax(0,1fr)] ${
+                          isRowSelected
+                            ? "border-[#c9a84c]/55 bg-[#c9a84c]/10 shadow-[0_22px_44px_rgba(201,168,76,0.12)]"
+                            : isRowActive
+                              ? "border-white/8 bg-white/[0.03] hover:border-[#c9a84c]/45 hover:bg-white/[0.05] hover:shadow-[0_18px_40px_rgba(201,168,76,0.08)]"
+                              : "border-white/5 bg-white/[0.015] hover:border-white/18 hover:bg-white/[0.03]"
+                        } ${rowOpacityClass} ${rowIsVisible ? "translate-y-0 blur-0" : "translate-y-5 blur-[2px]"}`}
+                        style={{
+                          transitionDelay: `${rowIsVisible ? rowDelay : 0}ms`,
+                          transitionDuration: `${entranceTransitionDurationMs}ms`,
+                        }}
+                      >
+                        <div
+                          aria-hidden="true"
+                          className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[linear-gradient(90deg,rgba(201,168,76,0.08)_0%,rgba(201,168,76,0.03)_36%,rgba(255,255,255,0)_100%)] opacity-0 transition-opacity duration-300 group-hover/row:opacity-100"
+                        />
+
+                        <div className="relative z-10 flex items-center gap-4 px-2 transition-transform duration-300 group-hover/row:translate-x-1">
+                          <div className={`relative h-11 w-11 overflow-hidden rounded-full border transition-colors duration-300 ${
+                            isRowSelected
+                              ? "border-[#c9a84c]/70"
+                              : isRowActive
+                                ? "border-white/18 group-hover/row:border-[#c9a84c]/70"
+                                : "border-white/10 group-hover/row:border-white/28"
+                          }`}>
+                            <Image
+                              src={athlete.photo}
+                              alt={athlete.name}
+                              fill
+                              sizes="44px"
+                              className={`object-cover object-top transition duration-300 ${
+                                isRowSelected
+                                  ? "grayscale-0"
+                                  : isRowActive
+                                    ? "grayscale group-hover/row:grayscale-0"
+                                    : "grayscale-[100%] group-hover/row:grayscale-[35%]"
+                              }`}
+                              style={{ objectPosition: athlete.thumbnailPhotoPosition ?? "center top" }}
+                            />
+                          </div>
+                          <div className="min-w-0">
+                            <p
+                              className={`truncate text-[13px] uppercase tracking-[0.18em] ${isRowSelected ? "text-white" : isRowActive ? "text-white/82" : "text-white/62"}`}
+                              style={{ fontFamily: "var(--font-onelife-data)" }}
+                            >
+                              {athlete.name}
+                            </p>
+                            <p className={`truncate text-sm italic ${isRowSelected ? "text-white/82" : isRowActive ? "text-white/72" : "text-white/52"}`} style={{ fontFamily: "var(--font-onelife-body)" }}>
+                              {athlete.sport} · {athlete.country}
+                            </p>
+                            <p
+                              className={`mt-1 text-[10px] uppercase tracking-[0.24em] ${isRowSelected ? "text-[#d8bb68]" : isRowActive ? "text-[#c9a84c]/88" : "text-white/34"}`}
+                              style={{ fontFamily: "var(--font-onelife-data)" }}
+                            >
+                              {athlete.editions} editions · {athlete.span} years
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="relative z-10 w-full overflow-visible" style={{ height: rowHeight }}>
+                          <svg
+                            width="100%"
+                            height={rowHeight}
+                            viewBox={`0 0 ${chartWidth} ${rowHeight}`}
+                            preserveAspectRatio="none"
+                            className="pointer-events-none absolute inset-0 h-full w-full overflow-visible"
+                          >
+                            {olympicYears.map((year) => {
+                              const x = getLinePosition(year);
+
+                              return (
+                                <line
+                                  key={`${athlete.id}-${year}`}
+                                  x1={x}
+                                  x2={x}
+                                  y1={0}
+                                  y2={rowHeight}
+                                  stroke="rgba(255,255,255,0.05)"
+                                  strokeWidth={1}
+                                />
+                              );
+                            })}
+                            <line
+                              x1={getLinePosition(firstYear)}
+                              x2={getLinePosition(lastYear)}
+                              y1={rowHeight / 2}
+                              y2={rowHeight / 2}
+                              strokeWidth={1.25}
+                              strokeLinecap="round"
+                              className={`transition-[stroke] duration-300 ${
+                                isRowSelected
+                                  ? "stroke-[#c9a84c]"
+                                  : isRowActive
+                                    ? "stroke-[#3a3a3a] group-hover/row:stroke-[#c9a84c]/70"
+                                    : "stroke-white/10 group-hover/row:stroke-white/25"
+                              }`}
+                            />
+                            <text
+                              x={getLinePosition(firstYear)}
+                              y={18}
+                              fontSize={10}
+                              letterSpacing="0.16em"
+                              className="fill-[rgba(245,242,235,0.38)] transition-[fill] duration-300 group-hover/row:fill-[rgba(245,242,235,0.62)]"
+                              style={{ fontFamily: "var(--font-onelife-data)", textTransform: "uppercase" }}
+                            >
+                              {firstYear}
+                            </text>
+                            <text
+                              x={getLinePosition(lastYear)}
+                              y={18}
+                              textAnchor="end"
+                              fontSize={10}
+                              letterSpacing="0.16em"
+                              className="fill-[rgba(201,168,76,0.85)] transition-[fill] duration-300 group-hover/row:fill-[rgba(237,213,143,1)]"
+                              style={{ fontFamily: "var(--font-onelife-data)", textTransform: "uppercase" }}
+                            >
+                              {lastYear}
+                            </text>
+                          </svg>
+
+                          {editionPoints.map((point, pointIndex) => {
+                            const pointVisual = getPointVisual(point.dominantMedal);
+                            const pointEditorialNotes = athlete.editorialNotes.filter((note) => note.year === point.year);
+                            const pointDelay = prefersReducedMotion ? 0 : getPointEntranceDelay(athleteIndex, pointIndex);
 
                             return (
-                              <line
-                                key={`${athlete.id}-${year}`}
-                                x1={x}
-                                x2={x}
-                                y1={0}
-                                y2={rowHeight}
-                                stroke="rgba(255,255,255,0.05)"
-                                strokeWidth={1}
-                              />
+                              <button
+                                key={`${athlete.id}-${point.year}`}
+                                type="button"
+                                aria-label={getPointAriaLabel(athlete, point)}
+                                data-ignore-row-selection="true"
+                                className={`group absolute top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center bg-transparent transition-[transform,opacity] ease-out focus-visible:outline-none ${
+                                  rowIsVisible ? "opacity-100 scale-100" : "opacity-0 scale-[0.7]"
+                                }`}
+                                style={{
+                                  left: getLinePercent(point.year),
+                                  transitionDelay: `${rowIsVisible ? pointDelay : 0}ms`,
+                                  transitionDuration: `${entranceTransitionDurationMs}ms`,
+                                }}
+                              >
+                                <span
+                                  className={`flex items-center justify-center rounded-full border transition duration-200 group-hover/row:scale-110 ${pointVisual.outer}`}
+                                  style={{ width: pointVisual.diameter, height: pointVisual.diameter }}
+                                >
+                                  {pointVisual.showInner ? (
+                                    <span
+                                      className={`rounded-full ${pointVisual.inner}`}
+                                      style={{ width: pointVisual.innerDiameter, height: pointVisual.innerDiameter }}
+                                    />
+                                  ) : null}
+                                </span>
+
+                                <span
+                                  className={`pointer-events-none absolute bottom-[calc(100%+18px)] z-20 w-64 rounded-[20px] border border-white/12 bg-[rgba(8,8,8,0.96)] px-4 py-3 text-left opacity-0 shadow-[0_20px_55px_rgba(0,0,0,0.45)] transition duration-200 ${getTooltipPositionClasses(point.alignment)} group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100`}
+                                >
+                                  <p
+                                    className="text-[10px] uppercase tracking-[0.28em] text-[#c9a84c]"
+                                    style={{ fontFamily: "var(--font-onelife-data)" }}
+                                  >
+                                    {point.city} {point.year}
+                                  </p>
+                                  <div className="mt-3 h-px w-full bg-white/10" />
+                                  <p
+                                    className="mt-3 text-[1.75rem] uppercase leading-none text-white"
+                                    style={{ fontFamily: "var(--font-onelife-display)" }}
+                                  >
+                                    {athlete.name}
+                                  </p>
+                                  <p
+                                    className="mt-1 text-sm italic leading-relaxed text-white/78"
+                                    style={{ fontFamily: "var(--font-onelife-body)" }}
+                                  >
+                                    {athlete.sport} · {athlete.country}
+                                  </p>
+
+                                  <div className="mt-3 space-y-2">
+                                    {point.medals.length === 0 ? (
+                                      <div className="rounded-2xl border border-white/8 bg-white/[0.03] px-3 py-2">
+                                        <p
+                                          className="text-[11px] uppercase tracking-[0.22em] text-white/78"
+                                          style={{ fontFamily: "var(--font-onelife-data)" }}
+                                        >
+                                          Participation only
+                                        </p>
+                                        <p
+                                          className="mt-1 text-xs italic leading-relaxed text-white/72"
+                                          style={{ fontFamily: "var(--font-onelife-body)" }}
+                                        >
+                                          No medal this edition.
+                                        </p>
+                                      </div>
+                                    ) : (
+                                      point.medals.map((medal) => {
+                                        const medalTone = getPointVisual(medal.type);
+
+                                        return (
+                                          <div key={`${athlete.id}-${point.year}-${medal.type}-${medal.event}`} className="rounded-2xl border border-white/8 bg-white/[0.03] px-3 py-2">
+                                            <p
+                                              className={`text-[11px] uppercase tracking-[0.22em] ${medalTone.copy}`}
+                                              style={{ fontFamily: "var(--font-onelife-data)" }}
+                                            >
+                                              {medalLabel[medal.type]} medal
+                                            </p>
+                                            <p
+                                              className="mt-1 text-xs italic leading-relaxed text-white/78"
+                                              style={{ fontFamily: "var(--font-onelife-body)" }}
+                                            >
+                                              {medal.event}
+                                            </p>
+                                          </div>
+                                        );
+                                      })
+                                    )}
+
+                                    {pointEditorialNotes.map((note) => (
+                                      <div key={`${athlete.id}-${point.year}-${note.label}`} className="rounded-2xl border border-[#c9a84c]/25 bg-[#c9a84c]/8 px-3 py-2">
+                                        <p
+                                          className="text-[11px] uppercase tracking-[0.22em] text-[#d8bb68]"
+                                          style={{ fontFamily: "var(--font-onelife-data)" }}
+                                        >
+                                          Editorial note
+                                        </p>
+                                        <p
+                                          className="mt-1 text-xs italic leading-relaxed text-white/80"
+                                          style={{ fontFamily: "var(--font-onelife-body)" }}
+                                        >
+                                          {note.label}
+                                        </p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </span>
+                              </button>
                             );
                           })}
-                          <line
-                            x1={getLinePosition(firstYear)}
-                            x2={getLinePosition(lastYear)}
-                            y1={rowHeight / 2}
-                            y2={rowHeight / 2}
-                            strokeWidth={1.25}
-                            strokeLinecap="round"
-                            className={`transition-[stroke] duration-300 ${
-                              isRowActive
-                                ? "stroke-[#3a3a3a] group-hover/row:stroke-[#c9a84c]/70"
-                                : "stroke-white/10 group-hover/row:stroke-white/25"
-                            }`}
-                          />
-                          <text
-                            x={getLinePosition(firstYear)}
-                            y={18}
-                            fontSize={10}
-                            letterSpacing="0.16em"
-                            className="fill-[rgba(245,242,235,0.38)] transition-[fill] duration-300 group-hover/row:fill-[rgba(245,242,235,0.62)]"
-                            style={{ fontFamily: "var(--font-onelife-data)", textTransform: "uppercase" }}
-                          >
-                            {firstYear}
-                          </text>
-                          <text
-                            x={getLinePosition(lastYear)}
-                            y={18}
-                            textAnchor="end"
-                            fontSize={10}
-                            letterSpacing="0.16em"
-                            className="fill-[rgba(201,168,76,0.85)] transition-[fill] duration-300 group-hover/row:fill-[rgba(237,213,143,1)]"
-                            style={{ fontFamily: "var(--font-onelife-data)", textTransform: "uppercase" }}
-                          >
-                            {lastYear}
-                          </text>
-                        </svg>
 
-                        {editionPoints.map((point, pointIndex) => {
-                          const pointVisual = getPointVisual(point.dominantMedal);
-                          const pointEditorialNotes = athlete.editorialNotes.filter((note) => note.year === point.year);
-                          const pointDelay = prefersReducedMotion ? 0 : getPointEntranceDelay(athleteIndex, pointIndex);
+                          {athlete.editorialNotes.map((note, index) => {
+                            const placement = getEditorialNotePlacement(index);
 
-                          return (
-                            <button
-                              key={`${athlete.id}-${point.year}`}
-                              type="button"
-                              aria-label={getPointAriaLabel(athlete, point)}
-                              className={`group absolute top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center bg-transparent transition-[transform,opacity] ease-out focus-visible:outline-none ${
-                                rowIsVisible ? "opacity-100 scale-100" : "opacity-0 scale-[0.7]"
-                              }`}
-                              style={{
-                                left: getLinePercent(point.year),
-                                transitionDelay: `${rowIsVisible ? pointDelay : 0}ms`,
-                                transitionDuration: `${entranceTransitionDurationMs}ms`,
-                              }}
-                            >
-                              <span
-                                className={`flex items-center justify-center rounded-full border transition duration-200 group-hover/row:scale-110 ${pointVisual.outer}`}
-                                style={{ width: pointVisual.diameter, height: pointVisual.diameter }}
+                            return (
+                              <button
+                                key={`${athlete.id}-${note.year}-${note.label}`}
+                                type="button"
+                                aria-label={`${athlete.name}. Editorial note for ${note.year}. ${note.label}`}
+                                data-ignore-row-selection="true"
+                                className={`group absolute z-10 -translate-x-1/2 rounded-full border border-[#c9a84c]/40 bg-[rgba(10,10,10,0.92)] px-2.5 py-1 text-[9px] uppercase tracking-[0.18em] text-[#d8bb68] shadow-[0_14px_30px_rgba(0,0,0,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] ${placement === "top" ? "top-1" : "bottom-1"}`}
+                                style={{ left: getLinePercent(note.year), fontFamily: "var(--font-onelife-data)" }}
                               >
-                                {pointVisual.showInner ? (
-                                  <span
-                                    className={`rounded-full ${pointVisual.inner}`}
-                                    style={{ width: pointVisual.innerDiameter, height: pointVisual.innerDiameter }}
-                                  />
-                                ) : null}
-                              </span>
-
-                              <span
-                                className={`pointer-events-none absolute bottom-[calc(100%+18px)] z-20 w-64 rounded-[20px] border border-white/12 bg-[rgba(8,8,8,0.96)] px-4 py-3 text-left opacity-0 shadow-[0_20px_55px_rgba(0,0,0,0.45)] transition duration-200 ${getTooltipPositionClasses(point.alignment)} group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100`}
-                              >
-                                <p
-                                  className="text-[10px] uppercase tracking-[0.28em] text-[#c9a84c]"
-                                  style={{ fontFamily: "var(--font-onelife-data)" }}
+                                {note.year}
+                                <span
+                                  className={`pointer-events-none absolute z-20 w-60 rounded-[18px] border border-[#c9a84c]/20 bg-[rgba(8,8,8,0.96)] px-4 py-3 text-left opacity-0 shadow-[0_20px_55px_rgba(0,0,0,0.45)] transition duration-200 group-hover:opacity-100 group-focus-visible:opacity-100 ${getEditorialTooltipClasses(placement)}`}
                                 >
-                                  {point.city} {point.year}
-                                </p>
-                                <div className="mt-3 h-px w-full bg-white/10" />
-                                <p
-                                  className="mt-3 text-[1.75rem] uppercase leading-none text-white"
-                                  style={{ fontFamily: "var(--font-onelife-display)" }}
-                                >
-                                  {athlete.name}
-                                </p>
-                                <p
-                                  className="mt-1 text-sm italic leading-relaxed text-white/78"
-                                  style={{ fontFamily: "var(--font-onelife-body)" }}
-                                >
-                                  {athlete.sport} · {athlete.country}
-                                </p>
-
-                                <div className="mt-3 space-y-2">
-                                  {point.medals.length === 0 ? (
-                                    <div className="rounded-2xl border border-white/8 bg-white/[0.03] px-3 py-2">
-                                      <p
-                                        className="text-[11px] uppercase tracking-[0.22em] text-white/78"
-                                        style={{ fontFamily: "var(--font-onelife-data)" }}
-                                      >
-                                        Participation only
-                                      </p>
-                                      <p
-                                        className="mt-1 text-xs italic leading-relaxed text-white/72"
-                                        style={{ fontFamily: "var(--font-onelife-body)" }}
-                                      >
-                                        No medal this edition.
-                                      </p>
-                                    </div>
-                                  ) : (
-                                    point.medals.map((medal) => {
-                                      const medalTone = getPointVisual(medal.type);
-
-                                      return (
-                                        <div key={`${athlete.id}-${point.year}-${medal.type}-${medal.event}`} className="rounded-2xl border border-white/8 bg-white/[0.03] px-3 py-2">
-                                          <p
-                                            className={`text-[11px] uppercase tracking-[0.22em] ${medalTone.copy}`}
-                                            style={{ fontFamily: "var(--font-onelife-data)" }}
-                                          >
-                                            {medalLabel[medal.type]} medal
-                                          </p>
-                                          <p
-                                            className="mt-1 text-xs italic leading-relaxed text-white/78"
-                                            style={{ fontFamily: "var(--font-onelife-body)" }}
-                                          >
-                                            {medal.event}
-                                          </p>
-                                        </div>
-                                      );
-                                    })
-                                  )}
-
-                                  {pointEditorialNotes.map((note) => (
-                                    <div key={`${athlete.id}-${point.year}-${note.label}`} className="rounded-2xl border border-[#c9a84c]/25 bg-[#c9a84c]/8 px-3 py-2">
-                                      <p
-                                        className="text-[11px] uppercase tracking-[0.22em] text-[#d8bb68]"
-                                        style={{ fontFamily: "var(--font-onelife-data)" }}
-                                      >
-                                        Editorial note
-                                      </p>
-                                      <p
-                                        className="mt-1 text-xs italic leading-relaxed text-white/80"
-                                        style={{ fontFamily: "var(--font-onelife-body)" }}
-                                      >
-                                        {note.label}
-                                      </p>
-                                    </div>
-                                  ))}
-                                </div>
-                              </span>
-                            </button>
-                          );
-                        })}
-
-                        {athlete.editorialNotes.map((note, index) => {
-                          const placement = getEditorialNotePlacement(index);
-
-                          return (
-                            <button
-                              key={`${athlete.id}-${note.year}-${note.label}`}
-                              type="button"
-                              aria-label={`${athlete.name}. Editorial note for ${note.year}. ${note.label}`}
-                              className={`group absolute z-10 -translate-x-1/2 rounded-full border border-[#c9a84c]/40 bg-[rgba(10,10,10,0.92)] px-2.5 py-1 text-[9px] uppercase tracking-[0.18em] text-[#d8bb68] shadow-[0_14px_30px_rgba(0,0,0,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c9a84c] ${placement === "top" ? "top-1" : "bottom-1"}`}
-                              style={{ left: getLinePercent(note.year), fontFamily: "var(--font-onelife-data)" }}
-                            >
-                              {note.year}
-                              <span
-                                className={`pointer-events-none absolute z-20 w-60 rounded-[18px] border border-[#c9a84c]/20 bg-[rgba(8,8,8,0.96)] px-4 py-3 text-left opacity-0 shadow-[0_20px_55px_rgba(0,0,0,0.45)] transition duration-200 group-hover:opacity-100 group-focus-visible:opacity-100 ${getEditorialTooltipClasses(placement)}`}
-                              >
-                                <p
-                                  className="text-[10px] uppercase tracking-[0.28em] text-[#c9a84c]"
-                                  style={{ fontFamily: "var(--font-onelife-data)" }}
-                                >
-                                  Key year {note.year}
-                                </p>
-                                <p
-                                  className="mt-2 text-sm italic leading-relaxed text-white/80"
-                                  style={{ fontFamily: "var(--font-onelife-body)" }}
-                                >
-                                  {note.label}
-                                </p>
-                              </span>
-                            </button>
-                          );
-                        })}
+                                  <p
+                                    className="text-[10px] uppercase tracking-[0.28em] text-[#c9a84c]"
+                                    style={{ fontFamily: "var(--font-onelife-data)" }}
+                                  >
+                                    Key year {note.year}
+                                  </p>
+                                  <p
+                                    className="mt-2 text-sm italic leading-relaxed text-white/80"
+                                    style={{ fontFamily: "var(--font-onelife-body)" }}
+                                  >
+                                    {note.label}
+                                  </p>
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
+
+                      {isPanelRendered ? (
+                        <AthleteDetailPanel
+                          key={athlete.id}
+                          athlete={athlete}
+                          isActive={selectedAthleteId === athlete.id}
+                          onClose={() => requestAthleteSelection(null)}
+                          onExited={() => {
+                            setRenderedAthleteId((current) => current === athlete.id ? null : current);
+                          }}
+                          reduceMotion={prefersReducedMotion}
+                        />
+                      ) : null}
                     </div>
                   );
                 })}
